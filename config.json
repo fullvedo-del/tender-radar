@@ -1,0 +1,48 @@
+{
+  "_napomena": "Postavke prikupljanja. Izmjena važi od sljedećeg dnevnog osvježavanja.",
+
+  "ted": {
+    "countries": ["BA", "RS", "ME", "MK", "AL", "XK"],
+    "strict_eu": true,
+    "buyer_names": [
+      "Deutsche Gesellschaft für Internationale Zusammenarbeit",
+      "KfW",
+      "European Investment Bank",
+      "Banque européenne d'investissement",
+      "European Bank for Reconstruction and Development",
+      "Expertise France",
+      "Agence Française de Développement",
+      "Enabel",
+      "LuxDev",
+      "Lux-Development",
+      "Austrian Development Agency",
+      "Sida@SE",
+      "Swedish International Development Cooperation Agency",
+      "European Central Bank",
+      "Union for the Mediterranean",
+      "Scuola Europea",
+      "European School"
+    ]
+  },
+
+  "excluded": [
+    {
+      "key": "UNGM",
+      "name": "UNGM (UN sistem)",
+      "home": "https://www.ungm.org/Public/Notice",
+      "reason": "Uslovi korištenja UNGM-a (tačka 5.3) zabranjuju uključivanje sadržaja u druge sisteme i stranice bez pisane dozvole (registry@ungm.org), a sajt odbija automatski pristup. Objave UNDP-a su pokrivene zasebno."
+    },
+    {
+      "key": "ECEPP",
+      "name": "EBRD ECEPP (tenderi klijenata EBRD-a)",
+      "home": "https://ecepp.ebrd.com",
+      "reason": "Portal odbija automatski pristup (HTTP 403). Većina tendera iz EBRD projekata objavljuje se samo ovdje, pa ih treba pregledati ručno."
+    },
+    {
+      "key": "ENC",
+      "name": "Energy Community",
+      "home": "https://www.energy-community.org/aboutus/procurement.html",
+      "reason": "Sajt automatski pristup odbija zaštitom od robota (HTTP 403). Objave treba pregledati ručno."
+    }
+  ]
+}
