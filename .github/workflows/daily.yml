@@ -34,6 +34,9 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Prikupi objave
+        env:
+          # Šifra za interne izvore (GIZ, OSCE). Bez nje se oni ne preuzimaju.
+          TR_PASSPHRASE: ${{ secrets.TR_PASSPHRASE }}
         run: python collect.py
 
       - name: Sačuvaj podatke u repozitorij
