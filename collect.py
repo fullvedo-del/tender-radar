@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
-"""Tender radar: pokreće kolektore i piše data/tenders.json i data/status.json.
+"""Tender radar: pokreće kolektore i piše data/tenders.json, data/status.json i,
+za interne izvore, šifrirani data/private.json.
 
     python collect.py                 # svi izvori
     python collect.py --only TED,WB   # samo navedeni; ostali zadržavaju zadnje podatke
+
+Interni izvori (META["private"] u kolektoru ili lista private_sources u config.json) su oni
+čiji uslovi dozvoljavaju samo internu upotrebu. Njihove objave se ne pišu u javni fajl, nego
+se šifriraju šifrom iz varijable okruženja TR_PASSPHRASE (na GitHubu: secret istog imena).
+Bez te šifre interni izvori se uopće ne preuzimaju.
 """
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import importlib
 import json
@@ -15,14 +22,19 @@ import re
 import sys
 import time
 import traceback
+import unicodedata
 from collections import Counter
 
 from collectors import base
 
 # Redoslijed je ujedno prioritet kod duplikata: objavu zadržava izvor koji je prvi na listi.
-MODULES = ["ejn", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france"]
+# Interni izvori uvijek dolaze poslije javnih, pa istu objavu zadržava javni izvor.
+MODULES = ["ejn", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
+           "giz", "osce"]
 
 KEEP_NO_DEADLINE_DAYS = 60   # objave bez roka ostaju ovoliko dana od objave
+SUSPICIOUS_EMPTY = 10        # 0 objava je sumnjivo ako ih je zadnji put bilo bar ovoliko
+KDF_ITERATIONS = 250_000     # PBKDF2-SHA256; isti postupak radi i stranica u pregledniku
 
 # Kursevi za filter po vrijednosti: koliko KM vrijedi jedinica valute. KM je vezan za euro
 # (1 EUR = 1,95583 KM), ostalo se računa iz dnevne liste ECB-a. Ovo su približne vrijednosti
@@ -49,8 +61,44 @@ def exchange_rates():
     except Exception:  # kursna lista nije presudna
         traceback.print_exc()
         return fx, None
-SUSPICIOUS_EMPTY = 10        # 0 objava je sumnjivo ako ih je zadnji put bilo bar ovoliko
 
+
+# --------------------------------------------------------------------------- šifriranje
+
+def _key(passphrase: str, salt: bytes, iterations: int) -> bytes:
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    text = unicodedata.normalize("NFC", passphrase.strip()).encode("utf-8")
+    return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt,
+                      iterations=iterations).derive(text)
+
+
+def encrypt_records(records: list, passphrase: str, stamp: str) -> dict:
+    """AES-256-GCM; ključ iz šifre preko PBKDF2. Novi salt i IV pri svakom pisanju."""
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    salt, iv = os.urandom(16), os.urandom(12)
+    plain = json.dumps(records, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    sealed = AESGCM(_key(passphrase, salt, KDF_ITERATIONS)).encrypt(iv, plain, None)
+
+    def b64(b: bytes) -> str:
+        return base64.b64encode(b).decode("ascii")
+    return {"v": 1, "kdf": "PBKDF2-SHA256", "iter": KDF_ITERATIONS, "cipher": "AES-256-GCM",
+            "salt": b64(salt), "iv": b64(iv), "ct": b64(sealed), "generated": stamp}
+
+
+def decrypt_records(blob, passphrase: str):
+    """Lista zapisa, ili None ako šifra ne odgovara ili fajl nije ispravan."""
+    try:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        d = base64.b64decode
+        key = _key(passphrase, d(blob["salt"]), int(blob["iter"]))
+        out = json.loads(AESGCM(key).decrypt(d(blob["iv"]), d(blob["ct"]), None))
+        return out if isinstance(out, list) else None
+    except Exception:
+        return None
+
+
+# --------------------------------------------------------------------------- pomoćno
 
 def load_json(path, default):
     try:
@@ -98,7 +146,8 @@ def dedup(recs):
             continue
         seen.add(r["id"])
         due = r.get("d")
-        tkey = (base.norm(r["t"])[:80], due)
+        # Broj projekta ispred naziva ("10030774-Naziv") neki izvori pišu, a neki ne.
+        tkey = (base.norm(re.sub(r"^\s*\d{6,}\s*[-–:]?\s*", "", r["t"]))[:80], due)
         rkey = (base.norm(r.get("ref", "")), due)
         use_t = bool(due) and len(tkey[0]) >= 25
         use_r = bool(due) and len(rkey[0]) >= 8
@@ -117,6 +166,8 @@ def dedup(recs):
     return out
 
 
+# --------------------------------------------------------------------------- glavni tok
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Tender radar: prikupljanje objava")
     ap.add_argument("--only", default="", help="ključevi izvora odvojeni zarezom, npr. TED,WB")
@@ -128,8 +179,30 @@ def main() -> int:
     os.makedirs(args.data, exist_ok=True)
     t_path = os.path.join(args.data, "tenders.json")
     s_path = os.path.join(args.data, "status.json")
+    p_path = os.path.join(args.data, "private.json")
+
+    mods = [importlib.import_module(f"collectors.{name}") for name in MODULES]
+    private = {m.META["key"] for m in mods if m.META.get("private")} \
+        | {str(k).upper() for k in cfg.get("private_sources", [])}
+    mods.sort(key=lambda m: m.META["key"] in private)  # javni prvi, redoslijed inače isti
+
+    passphrase = (os.environ.get("TR_PASSPHRASE") or "").strip()
+    locked_reason = None
+    if private and not passphrase:
+        locked_reason = ("Interni izvor se ne preuzima: na GitHubu nije postavljena šifra "
+                         "(Settings, Secrets and variables, Actions: secret TR_PASSPHRASE).")
+    elif private:
+        try:
+            importlib.import_module("cryptography")
+        except ImportError:
+            locked_reason = "Interni izvor se ne preuzima: nije instalirana biblioteka cryptography."
 
     prev = load_json(t_path, [])
+    if private and not locked_reason:
+        old_private = decrypt_records(load_json(p_path, None), passphrase)
+        if old_private is None and os.path.exists(p_path):
+            print("Raniji interni podaci se ne mogu otvoriti ovom šifrom; počinjem ispočetka.")
+        prev = prev + (old_private or [])
     prev_status = {s["key"]: s for s in load_json(s_path, {}).get("sources", [])}
     prev_by_src: dict[str, list] = {}
     for r in prev:
@@ -146,13 +219,18 @@ def main() -> int:
     cutoff = (now.date() - dt.timedelta(days=KEEP_NO_DEADLINE_DAYS)).isoformat()
 
     recs, statuses, any_ok = [], [], False
-    for name in MODULES:
-        mod = importlib.import_module(f"collectors.{name}")
+    for mod in mods:
         meta = mod.META
         key = meta["key"]
         old = prev_status.get(key, {})
         st = {"key": key, "name": meta["name"], "home": meta["home"],
               "scope": meta.get("scope", "")}
+        if key in private:
+            st["private"] = True
+            if locked_reason:
+                st.update(ok=False, off=True, error=locked_reason, last_ok=None)
+                statuses.append(st)
+                continue
         kept = prev_by_src.get(key, [])
 
         if only and key not in only:
@@ -181,7 +259,7 @@ def main() -> int:
                           last_ok=old.get("last_ok"))
             st["sec"] = round(time.time() - t0, 1)
 
-        new_source = key not in prev_status
+        new_source = key not in prev_status or old.get("off")
         for r in items:
             r["fs"] = prev_fs.get(r["id"]) or ((r.get("p") or today) if new_source else today)
         recs.extend(items)
@@ -191,10 +269,20 @@ def main() -> int:
     recs.sort(key=lambda r: (r.get("d") or "9999", r.get("p") or ""))
     collected = Counter(r["src"] for r in recs)
     merged = Counter(r["src"] for r in recs if "dup" in r)
-    total = len(recs) - sum(merged.values())
     for st in statuses:
         st["count"] = collected[st["key"]]   # otvorene objave s izvora
         st["merged"] = merged[st["key"]]     # od toga prikazane pod drugim izvorom
+
+    # Javni i interni dio. U javnom ne smije ostati ni trag internih objava.
+    public = [r for r in recs if r["src"] not in private]
+    internal = [r for r in recs if r["src"] in private]
+    for r in public:
+        if "also" in r:
+            r["also"] = [a for a in r["also"] if a["src"] not in private]
+            if not r["also"]:
+                del r["also"]
+    total = sum(1 for r in public if "dup" not in r)
+    total_private = sum(1 for r in internal if "dup" not in r)
 
     # Izvori koji su namjerno izostavljeni (npr. zabranjuju automatsko preuzimanje).
     for ex in cfg.get("excluded", []):
@@ -203,15 +291,20 @@ def main() -> int:
                          "error": ex.get("reason", ""), "last_ok": None})
 
     fx, fx_date = exchange_rates()
-    write_json_lines(t_path, recs)
+    write_json_lines(t_path, public)
+    if private and not locked_reason:
+        with open(p_path, "w", encoding="utf-8") as f:
+            json.dump(encrypt_records(internal, passphrase, stamp), f)
     with open(s_path, "w", encoding="utf-8") as f:
-        json.dump({"generated": stamp, "total": total, "fx": fx, "fx_date": fx_date,
-                   "sources": statuses}, f, ensure_ascii=False, indent=1)
+        json.dump({"generated": stamp, "total": total, "total_private": total_private,
+                   "fx": fx, "fx_date": fx_date, "sources": statuses},
+                  f, ensure_ascii=False, indent=1)
 
-    print(f"\nUkupno {total} objava ({stamp})")
+    print(f"\nUkupno {total} javnih i {total_private} internih objava ({stamp})")
     for st in statuses:
         flag = "isključen" if st.get("off") else ("OK" if st["ok"] else "GREŠKA")
-        print(f"  {st['key']:5s} {flag:9s} {st['count']:6d}  {st.get('error') or ''}")
+        note = "interni" if st.get("private") and not st.get("off") else (st.get("error") or "")
+        print(f"  {st['key']:5s} {flag:9s} {st['count']:6d}  {note}")
     if not only and not any_ok:
         print("Nijedan izvor nije uspio.", file=sys.stderr)
         return 1

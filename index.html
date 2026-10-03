@@ -136,6 +136,7 @@ td a{color:var(--accent)}
 <header class="top">
   <div class="brand"><h1>Tender radar</h1><span id="stamp" class="muted"></span></div>
   <span class="spacer"></span>
+  <button id="btnLock" hidden></button>
   <button id="btnSources">Izvori<span id="srcDot" class="dot" hidden></span></button>
 </header>
 
@@ -218,6 +219,15 @@ td a{color:var(--accent)}
   <h2>Izvori podataka</h2>
   <div class="tbl" id="srcTable"></div>
   <menu><button id="btnSourcesClose" class="primary">Zatvori</button></menu>
+</dialog>
+
+<dialog id="dlgLock">
+  <h2>Interni izvori</h2>
+  <p class="hint" id="lockInfo"></p>
+  <label class="field" id="lockField">Šifra
+    <input id="lockPass" type="password" autocomplete="current-password"></label>
+  <p class="hint" id="lockMsg"></p>
+  <menu><button id="btnLockForget">Zaključaj u ovom pregledniku</button><button id="btnLockClose">Zatvori</button><button id="btnLockOk" class="primary">Otključaj</button></menu>
 </dialog>
 
 <dialog id="dlgSave">
@@ -378,7 +388,7 @@ const markOf = r => (MARKS[r.id] || [])[0] || '';
 /* ---------- stanje ---------- */
 const DEF = {q: '', any: '', none: '', src: [], c: [], reg: [], k: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', sort: 'due'};
 const PAGE = 100;
-const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null};
+const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false};
 let F = structuredClone(DEF);
 
 const mem = {};
@@ -408,7 +418,7 @@ function fromHash(h) {
   return f;
 }
 
-const SEED = '3';  // povećati kad se promijeni lista početnih profila
+const SEED = '4';  // povećati kad se promijeni lista početnih profila
 const STARTERS = [
   {name: 'Usluge – Zapadni Balkan', h: toHash({...DEF, c: WB6, k: ['S', 'O']})},
   {name: 'Usluge – BiH', h: toHash({...DEF, c: ['BA'], k: ['S']})},
@@ -416,13 +426,15 @@ const STARTERS = [
   {name: 'Energija i okoliš – cijeli svijet', h: toHash({...DEF, sec: ['E', 'O'], k: ['S', 'O']})},
   {name: 'EU institucije i razvojne agencije – usluge', h: toHash({...DEF, bt: ['eu', 'bilateral', 'intorg'], k: ['S', 'O']})},
   {name: 'RCC – svi pozivi', h: toHash({...DEF, src: ['RCC']})},
+  {name: 'GIZ i OSCE (interno)', h: toHash({...DEF, src: ['GIZ', 'OSCE']})},
 ];
 
 /* ---------- filtriranje ---------- */
 const srcName = k => (S.src[k] && S.src[k].name) || k;
+const srcLabel = k => srcName(k) + (S.src[k] && S.src[k].private ? (S.unlocked ? ' (interno)' : ' (interno, zaključano)') : '');
 const FACETS = [
   // order: opcije se prikazuju tim redom i uvijek sve, i kad uz ostale filtere nemaju objava
-  {key: 'src', slot: 'A', title: 'Izvor', vals: r => r._src, label: srcName, order: [], top: 20},
+  {key: 'src', slot: 'A', title: 'Izvor', vals: r => r._src, label: srcLabel, order: [], top: 20},
   {key: 'c', slot: 'A', title: 'Država', vals: r => r._c, label: countryName, top: 6},
   {key: 'reg', slot: 'A', title: 'Regija, entitet, kanton', vals: r => r.reg ? [r.reg] : [], label: v => v, top: 4},
   {key: 'k', slot: 'A', title: 'Vrsta ugovora', vals: r => [r.k], label: v => K_LABEL[v] || v, order: ['S', 'G', 'W', 'O'], top: 4},
@@ -556,7 +568,9 @@ function rowHtml(r) {
 function renderList() {
   const rows = S.view.slice(0, S.shown);
   $('list').innerHTML = rows.length ? rows.map(rowHtml).join('')
-    : `<div class="empty">Nijedna objava ne odgovara filterima.${S.data.length ? ' Proširi kriterije ili očisti filtere.' : ''}</div>`;
+    : !S.unlocked && S.priv && F.src.some(k => S.privKeys.has(k))
+      ? '<div class="empty">Izabrani interni izvori su zaključani u ovom pregledniku. <button class="link" data-open-lock>Otključaj</button></div>'
+      : `<div class="empty">Nijedna objava ne odgovara filterima.${S.data.length ? ' Proširi kriterije ili očisti filtere.' : ''}</div>`;
   const rest = S.view.length - rows.length;
   $('btnMore').hidden = rest <= 0;
   if (rest > 0) $('btnMore').textContent = `Prikaži još ${Math.min(PAGE, rest)} (preostalo ${fmtN(rest)})`;
@@ -620,7 +634,7 @@ function renderStatus() {
   $('alerts').innerHTML = a;
   const fmtTs = t => { if (!t) return 'nikad'; const d = new Date(t); return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}. ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
   $('srcTable').innerHTML = '<table><thead><tr><th>Izvor</th><th>Stanje</th><th>Objava</th><th>Zadnje uspješno</th><th>Šta se prikuplja / napomena</th></tr></thead><tbody>' +
-    st.sources.map(s => `<tr><td><a href="${esc(s.home)}" target="_blank" rel="noopener">${esc(s.name)}</a><br><span class="muted">${esc(s.key)}</span></td><td class="${s.off ? 'st-off' : s.ok ? 'st-ok' : 'st-bad'}">${s.off ? 'isključen' : s.ok ? 'radi' : 'greška'}</td><td class="num">${fmtN(s.count || 0)}${s.merged ? `<br><span class="muted">${fmtN(s.merged)} i na drugom izvoru</span>` : ''}</td><td>${s.off ? '' : fmtTs(s.last_ok)}</td><td>${esc(s.off || !s.ok ? (s.error || '') : (s.scope || ''))}</td></tr>`).join('') +
+    st.sources.map(s => `<tr><td><a href="${esc(s.home)}" target="_blank" rel="noopener">${esc(s.name)}</a><br><span class="muted">${esc(s.key)}${s.private ? ', interni izvor' + (s.off || S.unlocked ? '' : ' (zaključan u ovom pregledniku)') : ''}</span></td><td class="${s.off ? 'st-off' : s.ok ? 'st-ok' : 'st-bad'}">${s.off ? 'isključen' : s.ok ? 'radi' : 'greška'}</td><td class="num">${fmtN(s.count || 0)}${s.merged ? `<br><span class="muted">${fmtN(s.merged)} i na drugom izvoru</span>` : ''}</td><td>${s.off ? '' : fmtTs(s.last_ok)}</td><td>${esc(s.off || !s.ok ? (s.error || '') : (s.scope || ''))}</td></tr>`).join('') +
     '</tbody></table>' + (off.length ? '<p class="hint">Isključeni izvori se ne preuzimaju; razlog je naveden u napomeni.</p>' : '');
 }
 
@@ -699,6 +713,7 @@ function wire() {
   $('mark').addEventListener('change', () => { F.mark = $('mark').value; apply(); });
   $('summary').addEventListener('click', e => { if ('fresh' in e.target.dataset) { F.fresh = e.target.dataset.fresh; syncInputs(); apply(); } });
   $('list').addEventListener('click', e => {
+    if ('openLock' in e.target.dataset) { openLockDialog(); return; }
     const b = e.target.closest('[data-mark]');
     if (!b) return;
     const id = b.dataset.id, m = b.dataset.mark, was = (MARKS[id] || [])[0] || '';
@@ -793,27 +808,93 @@ function wire() {
   });
 }
 
+/* ---------- interni izvori: šifrirani fajl koji se otključava u pregledniku ---------- */
+// data/private.json je šifriran (AES-256-GCM, ključ iz šifre preko PBKDF2-SHA256). Šifra se
+// pamti samo u ovom pregledniku; bez nje se interni izvori ne vide.
+const fromB64 = t => Uint8Array.from(atob(t), ch => ch.charCodeAt(0));
+async function decryptPrivate(blob, pass) {
+  const raw = new TextEncoder().encode(pass.trim().normalize('NFC'));
+  const base = await crypto.subtle.importKey('raw', raw, 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name: 'PBKDF2', salt: fromB64(blob.salt), iterations: blob.iter, hash: 'SHA-256'}, base, {name: 'AES-GCM', length: 256}, false, ['decrypt']);
+  const plain = await crypto.subtle.decrypt({name: 'AES-GCM', iv: fromB64(blob.iv)}, key, fromB64(blob.ct));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+function withoutPrivate() { return S.data.filter(r => !S.privKeys.has(r.src)); }
+function refreshLock() {
+  $('btnLock').hidden = !S.priv;
+  $('btnLock').textContent = S.unlocked ? 'Interni izvori: otključani' : 'Interni izvori: zaključani';
+  renderStatus(); renderMarks(); apply();
+}
+async function unlock(pass) {
+  const recs = (await decryptPrivate(S.priv, pass)).filter(r => !r.dup);
+  recs.forEach(prep);
+  S.data = withoutPrivate().concat(recs);
+  S.unlocked = true;
+  store.set('tr.pass', pass);
+  loadMarks(); refreshLock();
+  return recs.length;
+}
+function lockAgain() {
+  store.set('tr.pass', '');
+  S.data = withoutPrivate(); S.unlocked = false;
+  refreshLock();
+}
+async function setupPrivate(blob) {
+  S.priv = blob;
+  S.privKeys = new Set(S.status.sources.filter(x => x.private).map(x => x.key));
+  const pass = store.get('tr.pass');
+  if (pass) { try { await unlock(pass); return; } catch (e) { store.set('tr.pass', ''); } }  // šifra je u međuvremenu promijenjena
+  refreshLock();
+}
+function openLockDialog() {
+  const names = S.status.sources.filter(x => x.private && !x.off).map(x => x.name).join(', ');
+  $('lockInfo').textContent = `${names}: ovi izvori dozvoljavaju samo internu upotrebu svojih objava, pa se čuvaju šifrirani i vide se tek nakon unosa šifre. Šifra se pamti samo u ovom pregledniku.`;
+  $('lockMsg').textContent = S.unlocked ? 'Otključano u ovom pregledniku.' : '';
+  $('lockField').hidden = S.unlocked; $('btnLockOk').hidden = S.unlocked; $('btnLockForget').hidden = !S.unlocked;
+  $('lockPass').value = '';
+  $('dlgLock').showModal();
+  if (!S.unlocked) $('lockPass').focus();
+}
+function wireLock() {
+  $('btnLock').addEventListener('click', openLockDialog);
+  $('btnLockClose').addEventListener('click', () => $('dlgLock').close());
+  $('btnLockForget').addEventListener('click', () => { lockAgain(); $('dlgLock').close(); toast('Interni izvori su zaključani u ovom pregledniku'); });
+  const tryUnlock = async () => {
+    const pass = $('lockPass').value;
+    if (!pass.trim()) { $('lockPass').focus(); return; }
+    if (!(window.crypto && crypto.subtle)) { $('lockMsg').textContent = 'Ovaj preglednik na ovoj adresi ne podržava otključavanje.'; return; }
+    $('lockMsg').textContent = 'Provjeravam…';
+    try { const n = await unlock(pass); $('dlgLock').close(); toast(`Interni izvori su otključani: ${fmtN(n)} ${plural(n, 'objava', 'objave', 'objava')}`); }
+    catch (e) { $('lockMsg').textContent = 'Šifra nije tačna.'; $('lockPass').select(); }
+  };
+  $('btnLockOk').addEventListener('click', tryUnlock);
+  $('lockPass').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); } });
+}
+
 /* ---------- pokretanje ---------- */
+// Izvedena polja jednog zapisa (pretraga, datumi, sektor, ponuđač, vrijednost u KM).
+function prep(r) {
+  if (hasCyr(r.t)) { r._t0 = r.t; r.t = toLatin(r.t); }
+  if (hasCyr(r.b)) r.b = toLatin(r.b);
+  if (hasCyr(r.loc)) r.loc = toLatin(r.loc);
+  r._v = r.v && S.fx[r.cur] ? r.v * S.fx[r.cur] : null;  // vrijednost u KM, za filter
+  r._who = bidder(r);
+  r._s = norm([r.t, r.b, r.loc, r.reg, r.ref, r.n, (r.cpv || []).join(' ')].filter(Boolean).join(' '));
+  r._d = r.d ? dayNum(r.d) : null;
+  r._p = r.p ? dayNum(r.p) : null;
+  r._f = r.fs ? dayNum(r.fs) : r._p;
+  r._c = r.c && r.c.length ? r.c : ['??'];
+  r._src = [r.src, ...(r.also || []).map(a => a.src)];  // objava se nalazi i pod izvorima iz "also"
+  r._cpv = r.cpv ? [...new Set(r.cpv.map(x => x.slice(0, 2)))] : [];
+  r._sec = sectors(r);
+}
+
 function init(data, status) {
   S.status = status;
   if (status) for (const s of status.sources) S.src[s.key] = s;
+  if (status && status.fx) S.fx = status.fx;
   data = data.filter(r => !r.dup);  // duplikati s drugih izvora (vidi polje also)
-  const fx = (status && status.fx) || {BAM: 1, EUR: 1.95583};
-  for (const r of data) {
-    if (hasCyr(r.t)) { r._t0 = r.t; r.t = toLatin(r.t); }
-    if (hasCyr(r.b)) r.b = toLatin(r.b);
-    if (hasCyr(r.loc)) r.loc = toLatin(r.loc);
-    r._v = r.v && fx[r.cur] ? r.v * fx[r.cur] : null;  // vrijednost u KM, za filter
-    r._who = bidder(r);
-    r._s = norm([r.t, r.b, r.loc, r.reg, r.ref, r.n, (r.cpv || []).join(' ')].filter(Boolean).join(' '));
-    r._d = r.d ? dayNum(r.d) : null;
-    r._p = r.p ? dayNum(r.p) : null;
-    r._f = r.fs ? dayNum(r.fs) : r._p;
-    r._c = r.c && r.c.length ? r.c : ['??'];
-    r._src = [r.src, ...(r.also || []).map(a => a.src)];  // objava se nalazi i pod izvorima iz "also"
-    r._cpv = r.cpv ? [...new Set(r.cpv.map(x => x.slice(0, 2)))] : [];
-    r._sec = sectors(r);
-  }
+  data.forEach(prep);
   S.data = data;
   FACETS[0].order = status ? status.sources.filter(x => !x.off).map(x => x.key) : [];
   $('fxNote').textContent = 'Iznosi u drugim valutama preračunati su u KM ' + (status && status.fx_date ? `po kursnoj listi ECB-a od ${fmtDate(status.fx_date)}` : 'po približnim kursevima') + '.';
@@ -825,7 +906,7 @@ function init(data, status) {
   else if (saved !== null) { F = fromHash(saved); S.profile = store.get('tr.profile') || ''; }
   else { F = fromHash(STARTERS[0].h); S.profile = STARTERS[0].name; }
   if (!S.profiles.some(p => p.name === S.profile)) S.profile = '';
-  syncInputs(); wire(); renderStatus(); apply();
+  syncInputs(); wire(); wireLock(); renderStatus(); apply();
 }
 
 async function load() {
@@ -839,6 +920,12 @@ async function load() {
       status = b.ok ? await b.json() : null;
     }
     init(data, status);
+    if (!window.TR_DATA && status && status.sources.some(x => x.private && !x.off)) {
+      try {
+        const c = await fetch('data/private.json?v=' + Math.floor(Date.now() / 3600000));
+        if (c.ok) await setupPrivate(await c.json());
+      } catch (e) { /* interni izvori ostaju zaključani */ }
+    }
   } catch (e) {
     $('list').innerHTML = `<div class="empty">Objave se ne mogu učitati: ${esc(e.message)}.<br>Ako je alat tek postavljen, pokreni prvo osvježavanje u kartici Actions na GitHubu.</div>`;
   }

@@ -262,6 +262,35 @@ def country_code(value) -> str | None:
     return None
 
 
+_NAMES_RX = None
+_NAMES_CODE: dict[str, str] = {}
+
+
+def countries_in(text) -> list[str]:
+    """ISO2 kodovi država čija se (engleska) imena izričito pojavljuju u tekstu, redom
+    pojavljivanja. Služi izvorima koji državu navode samo u naslovu ili nazivu ureda."""
+    global _NAMES_RX
+    if _NAMES_RX is None:
+        for c in pycountry.countries:
+            for attr in ("name", "common_name"):
+                n = getattr(c, attr, None)
+                if n and "," not in n:
+                    _NAMES_CODE[norm(n)] = c.alpha_2
+        for k, v in _COUNTRY_FIX.items():
+            if len(k) >= 5 or k == "bih":  # bez kratkih skraćenica (uk, usa, drc ...)
+                _NAMES_CODE[k] = v
+        for word in ("jersey", "reunion"):  # obične engleske riječi
+            _NAMES_CODE.pop(word, None)
+        alt = "|".join(sorted(map(re.escape, _NAMES_CODE), key=len, reverse=True))
+        _NAMES_RX = re.compile(rf"(?<![a-z0-9])(?:{alt})(?![a-z0-9])")
+    out: list[str] = []
+    for m in _NAMES_RX.finditer(norm(text)):
+        code = _NAMES_CODE[m.group(0)]
+        if code not in out:
+            out.append(code)
+    return out
+
+
 # --------------------------------------------------------------------------- zapis
 
 # Vrsta ugovora

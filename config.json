@@ -25,6 +25,8 @@
     ]
   },
 
+  "private_sources": [],
+
   "excluded": [
     {
       "key": "UNGM",
@@ -37,6 +39,24 @@
       "name": "EBRD ECEPP (tenderi klijenata EBRD-a)",
       "home": "https://ecepp.ebrd.com",
       "reason": "Portal odbija automatski pristup (HTTP 403). Većina tendera iz EBRD projekata objavljuje se samo ovdje, pa ih treba pregledati ručno."
+    },
+    {
+      "key": "UNOPS",
+      "name": "UNOPS",
+      "home": "https://www.unops.org/business-opportunities",
+      "reason": "UNOPS svoje pozive objavljuje preko UNGM-a i vlastitog sistema eSourcing koji traži prijavu, pa nema javne liste koju alat smije čitati."
+    },
+    {
+      "key": "FAO",
+      "name": "FAO",
+      "home": "https://www.fao.org/unfao/procurement/en/",
+      "reason": "FAO nema javnu listu tendera: pozive šalje registrovanim dobavljačima preko UNGM-a."
+    },
+    {
+      "key": "WWFA",
+      "name": "WWF Adria",
+      "home": "https://www.wwfadria.org",
+      "reason": "Sajt odbija automatski pristup (HTTP 403). Objave treba pregledati ručno."
     },
     {
       "key": "ENC",
