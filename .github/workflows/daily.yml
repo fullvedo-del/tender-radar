@@ -1,0 +1,60 @@
+name: Osvježi tendere
+
+on:
+  schedule:
+    # Svaki dan u 03:23 UTC (05:23 ljeti, 04:23 zimi po sarajevskom vremenu).
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: tender-radar
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instaliraj biblioteke
+        run: pip install -r requirements.txt
+
+      - name: Prikupi objave
+        run: python collect.py
+
+      - name: Sačuvaj podatke u repozitorij
+        run: |
+          git config user.name "tender-radar"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "Podaci $(date -u +%F)"
+          git push
+
+      - name: Pripremi stranicu
+        run: |
+          mkdir _site
+          cp index.html _site/
+          cp -r data _site/data
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v5
