@@ -1,6 +1,6 @@
 {
- "generated": "2026-10-04T09:56:46Z",
- "total": 3558,
+ "generated": "2026-10-04T11:09:11Z",
+ "total": 3560,
  "total_private": 79,
  "fx": {
   "BAM": 1.0,
@@ -49,8 +49,8 @@
    "scope": "Sva obavještenja o nabavci (robe, usluge, radovi) kojima rok za ponude ili zahtjeve za učešće nije istekao; bez poništenih postupaka, direktnih sporazuma i javnih poziva za usluge iz Aneksa II.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 67.2,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 76.6,
    "count": 1944,
    "merged": 0
   },
@@ -61,8 +61,8 @@
    "scope": "Otvoreni pozivi (rok nije istekao): svi tipovi ugovora za Zapadni Balkan (mjesto izvršenja ili naručilac) te usluge koje naručuju EU institucije, međunarodne organizacije i razvojne agencije i banke (GIZ, KfW, EIB, AFD, Enabel i dr.).",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 4.9,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 5.8,
    "count": 338,
    "merged": 0
   },
@@ -73,8 +73,8 @@
    "scope": "Otvoreni i najavljeni pozivi za tendere institucija i agencija EU; bez poziva za grantove.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 13.1,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 15.6,
    "count": 193,
    "merged": 114
   },
@@ -85,9 +85,9 @@
    "scope": "Svi otvoreni pozivi za ponude, izraze interesa i pretkvalifikaciju iz projekata Svjetske banke u cijelom svijetu; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 3.0,
-   "count": 606,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 4.0,
+   "count": 609,
    "merged": 0
   },
   {
@@ -97,9 +97,9 @@
    "scope": "Sve otvorene objave s UNDP-ovog portala nabavki (UNDP, UNCDF, UNV) u cijelom svijetu, iz zvaničnog RSS feeda.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 1.3,
-   "count": 557,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 2.3,
+   "count": 556,
    "merged": 0
   },
   {
@@ -109,8 +109,8 @@
    "scope": "Otvoreni pozivi s liste objava na ebrd.com za projekte koje finansira EBRD (tenderi, prijedlozi, izražavanje interesa, pretkvalifikacija); bez portala ECEPP i vlastitih korporativnih i konsultantskih nabavki EBRD-a.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 1.8,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 2.6,
    "count": 2,
    "merged": 2
   },
@@ -121,8 +121,8 @@
    "scope": "Svi otvoreni pozivi sa RCC stranice „Open Calls“ (konsultantske usluge, individualni konsultanti, druge nabavke); oglasi za zapošljavanje nisu uključeni. Poziv koji ne imenuje državu vodi se pod svih šest zemalja Zapadnog Balkana.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 0.7,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 0.9,
    "count": 1,
    "merged": 0
   },
@@ -133,8 +133,8 @@
    "scope": "Otvorene nabavke Expertise France (sjedište i sve njegove jedinice) objavljene na francuskoj državnoj platformi PLACE; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 48.8,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 53.3,
    "count": 36,
    "merged": 3
   },
@@ -146,8 +146,8 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 9.9,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 12.0,
    "count": 83,
    "merged": 20
   },
@@ -159,8 +159,8 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T09:56:46Z",
-   "sec": 3.3,
+   "last_ok": "2026-10-04T11:09:11Z",
+   "sec": 2.9,
    "count": 16,
    "merged": 0
   },
