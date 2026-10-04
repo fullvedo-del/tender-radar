@@ -34,7 +34,8 @@ Za svaku objavu procijeni koliko je relevantna za firmu, kao posao na koji bi fi
 1 = slabo relevantno
 0 = nije za firmu (npr. nabavka robe, građevinski radovi, oprema ili usluge izvan oblasti firme)
 
-Odgovori isključivo JSON listom, bez ikakvog drugog teksta, s jednim elementom za svaku objavu:
+Odgovori isključivo JSON listom, bez ikakvog drugog teksta, s jednim elementom za svaku objavu.
+U obrazloženju ne koristi navodnike.
 [{{"i": 1, "s": 2, "r": "obrazloženje na bosanskom, najviše 12 riječi"}}]"""
 KINDS = {"S": "usluge", "G": "robe", "W": "radovi"}
 
@@ -81,18 +82,30 @@ def _line(i: int, r: dict) -> str:
     return f"{i}. " + " | ".join(p for p in parts if p)
 
 
+# Rezervno čitanje kad AI vrati neispravan JSON (npr. navodnike unutar obrazloženja).
+ITEM_RX = re.compile(r'"i"\s*:\s*(\d+)\s*,\s*"s"\s*:\s*(\d)\s*(?:,\s*"r"\s*:\s*"(.*?)"\s*)?\}', re.S)
+
+
 def _parse(text: str, n: int) -> dict:
+    items = []
     m = re.search(r"\[.*\]", text, re.S)
-    if not m:
-        raise ValueError("AI nije vratio JSON listu")
-    out = {}
-    for x in json.loads(m.group(0)):
+    if m:
         try:
-            i, s = int(x["i"]), int(x["s"])
-        except (KeyError, TypeError, ValueError):
+            items = [(x.get("i"), x.get("s"), x.get("r")) for x in json.loads(m.group(0)) if isinstance(x, dict)]
+        except ValueError:
+            items = []
+    if not items:
+        items = ITEM_RX.findall(text)
+    if not items:
+        raise ValueError("AI nije vratio ocjene u očekivanom obliku")
+    out = {}
+    for i, sc, r in items:
+        try:
+            i, sc = int(i), int(sc)
+        except (TypeError, ValueError):
             continue
-        if 1 <= i <= n and 0 <= s <= 3:
-            out[i] = (s, re.sub(r"\s+", " ", str(x.get("r") or "")).strip()[:160])
+        if 1 <= i <= n and 0 <= sc <= 3:
+            out[i] = (sc, re.sub(r"\s+", " ", str(r or "")).replace('\\"', '"').strip()[:160])
     return out
 
 
