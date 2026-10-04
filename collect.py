@@ -25,6 +25,7 @@ import traceback
 import unicodedata
 from collections import Counter
 
+import ai_score
 from collectors import base
 
 # Redoslijed je ujedno prioritet kod duplikata: objavu zadržava izvor koji je prvi na listi.
@@ -210,6 +211,8 @@ def main() -> int:
         r.pop("dup", None)
         prev_by_src.setdefault(r["src"], []).append(r)
     prev_fs = {r["id"]: r.get("fs") for r in prev}
+    # AI ocjene se prenose, da se svaka objava ocjenjuje samo jednom.
+    prev_ai = {r["id"]: (r["ai"], r.get("air", "")) for r in prev if "ai" in r}
     # Rok koji je alat prvi put zabilježio, da se vidi kad ga naručilac pomjeri.
     first_due = {r["id"]: r.get("d0") or r.get("d") for r in prev}
 
@@ -262,10 +265,13 @@ def main() -> int:
         new_source = key not in prev_status or old.get("off")
         for r in items:
             r["fs"] = prev_fs.get(r["id"]) or ((r.get("p") or today) if new_source else today)
+            if "ai" not in r and r["id"] in prev_ai:
+                r["ai"], r["air"] = prev_ai[r["id"]]
         recs.extend(items)
         statuses.append(st)
 
     recs = dedup([r for r in recs if alive(r, today, cutoff)])
+    ai_info = ai_score.score(recs, cfg, private)
     recs.sort(key=lambda r: (r.get("d") or "9999", r.get("p") or ""))
     collected = Counter(r["src"] for r in recs)
     merged = Counter(r["src"] for r in recs if "dup" in r)
@@ -297,10 +303,12 @@ def main() -> int:
             json.dump(encrypt_records(internal, passphrase, stamp), f)
     with open(s_path, "w", encoding="utf-8") as f:
         json.dump({"generated": stamp, "total": total, "total_private": total_private,
-                   "fx": fx, "fx_date": fx_date, "sources": statuses},
+                   "fx": fx, "fx_date": fx_date, "ai": ai_info, "sources": statuses},
                   f, ensure_ascii=False, indent=1)
 
     print(f"\nUkupno {total} javnih i {total_private} internih objava ({stamp})")
+    print(f"AI ocjena: {ai_info['new']} novih, ukupno {ai_info['scored']}, čeka {ai_info['pending']}"
+          + (f" ({ai_info['error']})" if ai_info["error"] else ""))
     for st in statuses:
         flag = "isključen" if st.get("off") else ("OK" if st["ok"] else "GREŠKA")
         note = "interni" if st.get("private") and not st.get("off") else (st.get("error") or "")

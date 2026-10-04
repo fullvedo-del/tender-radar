@@ -24,7 +24,7 @@ Folder `data` se nikad ne prenosi ručno. U njemu alat čuva podatke i evidencij
 
 Filteri su lijevo: moje oznake, ključne riječi, izvor, država, regija u BiH, vrsta ugovora, ko može ponuditi, sektor, oblast po CPV kodu, rok, procijenjena vrijednost i vrsta naručioca. Broj uz svaku opciju pokazuje koliko objava ona daje uz ostale izabrane filtere. Dugme „Očisti sve filtere“ na vrhu menija vraća prikaz svih objava. Na mobitelu i tabletu filteri se otvaraju dugmetom „Filteri“ pored pretrage; broj u zagradi kaže koliko je filtera uključeno.
 
-Ključne riječi se odvajaju zarezom i dovoljan je korijen riječi („energetsk“ nalazi i „energetska“ i „energetske“). Kvačice nisu bitne. Nazivi na ćirilici prikazuju se latinicom (preslovljeno, nije prevod), a izvorni naziv se vidi kad se mišem stane na naziv.
+Ključne riječi se odvajaju zarezom i dovoljan je korijen riječi („energetsk“ nalazi i „energetska“ i „energetske“). Kvačice nisu bitne. Nazivi na ćirilici prikazuju se latinicom (preslovljeno, nije prevod), a izvorni naziv se vidi kad se mišem stane na naziv. Kvačica „traži i istoznačnice na drugim jezicima“ (uključena sama od sebe) dodaje istu riječ na drugim jezicima: „okoliš“ nalazi i „environment“, „Umwelt“ i „životna sredina“. Ispod polja piše šta je dodano.
 
 Uz svaku objavu su dugmad „Pratim“ i „Sakrij“. Praćene i sakrivene objave biraju se pod „Moje oznake“; sakrivene se više ne prikazuju dok ih ne vratiš. Stranica pamti i koje si podatke zadnji put vidio, pa iznad liste piše koliko je objava novih od zadnje posjete. Oznake, zadnja posjeta i profili čuvaju se u pregledniku u kojem su napravljeni i ne dijele se s kolegama. Za drugi uređaj koristi izvoz i uvoz u prozoru „Sačuvaj profil“; „Kopiraj link“ prenosi samo filtere.
 
@@ -37,6 +37,22 @@ Filter po procijenjenoj vrijednosti radi u KM. Iznosi u drugim valutama preraču
 Oznaka „rok pomjeren“ pojavi se kad se rok objave promijeni između dva osvježavanja. Na TED-u je ispravka nova objava s novim brojem, pa se tamo pomjeren rok vidi kao nova objava.
 
 Oznaka „novo“ stoji uz objave koje su stigle poslije tvoje zadnje posjete. Pri prvoj posjeti stoji uz objave koje je alat prvi put vidio danas ili jučer.
+
+## AI: ocjena za CETEOR i Pitaj AI
+
+Ocjena za CETEOR: pri svakom osvježavanju AI pročita nove objave i svakoj da ocjenu od 0 do 3 (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za nas) i jednu rečenicu obrazloženja. Na stranici su filter „AI ocjena za CETEOR“, poredak „AI ocjena, najbolje prvo“ i oznaka „AI 3/3“ uz objavu. AI ocjenjuje po opisu firme u `config.json` (dio `ai`, polje `profile`); što je opis tačniji, ocjene su bolje. Svaka objava se ocjenjuje jednom. Pri prvom osvježavanju ocijeni se do 2.000 objava, a ostatak sljedeći dan. Objave internih izvora (GIZ, OSCE) ne šalju se AI servisu dok se u `config.json` ne postavi `"include_private": true`.
+
+Pitaj AI: dugme pored pretrage. Napišeš običnim jezikom šta tražiš, a AI postavi filtere; „Vrati prethodne“ u poruci vraća stare. Prvi put stranica traži API ključ i pamti ga samo u tom pregledniku.
+
+Postavljanje (jednom):
+
+1. Na console.anthropic.com napravi račun. U dijelu Billing uplati kredit (npr. 5 USD) i postavi mjesečni limit potrošnje.
+2. Pod API keys klikni Create key i kopiraj ključ.
+3. Na GitHubu otvori Settings, zatim Secrets and variables, zatim Actions i klikni New repository secret. Name: `ANTHROPIC_API_KEY`, Secret: ključ. Klikni Add secret.
+4. U fajlu `.github/workflows/daily.yml` (olovka) ispod reda s `TR_PASSPHRASE` mora stajati red `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}`, uvučen isto kao red iznad.
+5. Za Pitaj AI isti ključ (ili poseban) upiši na stranici kad je zatraži.
+
+Cijena: model je Claude Haiku 4.5 (1 USD na milion ulaznih i 5 USD na milion izlaznih tokena). Prvo ocjenjivanje svih objava košta oko 1 USD, a poslije toga nekoliko centi dnevno. Jedno pitanje u Pitaj AI košta manje od jednog centa. Bez ključa sve ostalo radi kao i prije.
 
 ## Izvori
 
@@ -87,6 +103,6 @@ Stranica je javna za svakoga ko ima link, ali je označena tako da je pretraživ
 
 ## Tehnički
 
-`collect.py` pokreće kolektore iz foldera `collectors` i piše `data/tenders.json`, `data/status.json` i šifrirani `data/private.json`. `index.html` je cijela stranica. `.github/workflows/daily.yml` je dnevni raspored. Pravila za pisanje novog kolektora su u `collectors/CONTRACT.md`.
+`collect.py` pokreće kolektore iz foldera `collectors` i piše `data/tenders.json`, `data/status.json` i šifrirani `data/private.json`. `ai_score.py` je AI ocjena objava. `index.html` je cijela stranica. `.github/workflows/daily.yml` je dnevni raspored. Pravila za pisanje novog kolektora su u `collectors/CONTRACT.md`.
 
 Lokalno pokretanje: `pip install -r requirements.txt`, zatim `python collect.py`. Samo jedan izvor: `python collect.py --only TED`. Interni izvori se lokalno preuzimaju samo ako je postavljena varijabla okruženja `TR_PASSPHRASE`.

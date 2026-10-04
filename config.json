@@ -1,8 +1,14 @@
 {
   "_napomena": "Postavke prikupljanja. Izmjena važi od sljedećeg dnevnog osvježavanja.",
-
   "ted": {
-    "countries": ["BA", "RS", "ME", "MK", "AL", "XK"],
+    "countries": [
+      "BA",
+      "RS",
+      "ME",
+      "MK",
+      "AL",
+      "XK"
+    ],
     "strict_eu": true,
     "buyer_names": [
       "Deutsche Gesellschaft für Internationale Zusammenarbeit",
@@ -24,9 +30,14 @@
       "European School"
     ]
   },
-
+  "ai": {
+    "_napomena": "AI ocjena relevantnosti. Radi samo ako je na GitHubu postavljen secret ANTHROPIC_API_KEY. Po opisu u polju profile AI ocjenjuje svaku objavu od 0 do 3; profil slobodno mijenjaj. include_private: da li se i objave internih izvora (GIZ, OSCE) šalju AI servisu na ocjenu.",
+    "model": "claude-haiku-4-5-20251001",
+    "max_per_run": 2000,
+    "include_private": false,
+    "profile": "CETEOR d.o.o. Sarajevo je konsultantska firma za okoliš, energiju, klimu i zelenu tranziciju, aktivna u Bosni i Hercegovini i na Zapadnom Balkanu. Radi strategije, akcione planove i studije (izvodljivosti, politika, tržišta); energetsku efikasnost i obnovljive izvore energije; zelene i održive finansije, ESG i izvještavanje o održivosti; cirkularnu ekonomiju i upravljanje otpadom; procjene uticaja na okoliš; prilagođavanje klimatskim promjenama i smanjenje emisija; obuke, e-učenje i jačanje kapaciteta; tehničku pomoć javnim institucijama, bankama, međunarodnim organizacijama i firmama. Ne isporučuje robu, opremu ni građevinske radove."
+  },
   "private_sources": [],
-
   "excluded": [
     {
       "key": "UNGM",

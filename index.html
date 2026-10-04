@@ -82,6 +82,11 @@ main{min-width:0}
 .chip.src{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .chip.sec,.chip.who{color:var(--ink);font-weight:600}
 .chip.chg{background:var(--warn-soft);color:var(--warn);font-weight:600}
+.chip.ai{font-weight:700}
+.chip.ai3{background:var(--accent);color:var(--accent-ink)}
+.chip.ai2{background:var(--accent-soft);color:var(--accent)}
+.air{font-size:.84rem;color:var(--muted);margin-top:3px}
+#askKeyBox[hidden],#btnAskForget[hidden]{display:none}
 .row.tracked{box-shadow:inset 4px 0 0 var(--accent)}
 .row.hid .title,.row.hid .buyer{color:var(--muted)}
 .acts{display:grid;grid-template-columns:auto auto;gap:4px;justify-content:end;margin-top:6px}
@@ -155,6 +160,9 @@ td a{color:var(--accent)}
 @media (max-width:700px){
   .top{flex-wrap:wrap;gap:6px 8px;padding:8px 12px}
   .brand{flex:1 1 100%}
+  .searchbar{flex-wrap:nowrap}
+  .searchbar button{padding:6px 10px}
+  #q{min-width:0}
   .head{display:none}
   .row{grid-template-columns:minmax(0,1fr);gap:6px}
   .due{display:flex;gap:10px;align-items:baseline}
@@ -185,6 +193,8 @@ td a{color:var(--accent)}
     <label class="field">Bez ovih riječi
       <input id="none" type="text" placeholder="npr. gorivo, ugalj"></label>
     <p class="hint">Riječi odvoji zarezom. Dovoljan je korijen riječi: „energetsk“ nalazi i „energetska“ i „energetske“. Kvačice nisu bitne.</p>
+    <label class="inline"><input type="checkbox" id="syn"><span>traži i istoznačnice na drugim jezicima (npr. okoliš i environment)</span></label>
+    <p class="hint" id="synNote"></p>
 
     <div id="facetsA"></div>
 
@@ -222,6 +232,7 @@ td a{color:var(--accent)}
   <main>
     <div class="bar searchbar">
       <input id="q" type="search" placeholder="Brza pretraga naziva i naručioca" aria-label="Brza pretraga">
+      <button id="btnAsk" title="Opiši običnim jezikom šta tražiš, a AI postavi filtere">Pitaj AI</button>
       <button id="btnFilters" class="only-mobile">Filteri</button>
     </div>
     <div class="bar">
@@ -238,6 +249,7 @@ td a{color:var(--accent)}
         <option value="due">rok, najskoriji prvo</option>
         <option value="pub">objavljeno, najnovije prvo</option>
         <option value="buyer">naručilac, A do Ž</option>
+        <option value="ai" id="sortAi">AI ocjena, najbolje prvo</option>
       </select></label>
       <button id="btnCsv">Izvezi CSV</button>
       <button id="btnLink">Kopiraj link</button>
@@ -278,6 +290,19 @@ td a{color:var(--accent)}
   <p class="hint" id="shareHint"></p>
   <p class="hint" id="shareMsg" role="status"></p>
   <menu><button id="btnShareClose">Zatvori</button><button id="btnShareCopy">Kopiraj tabelu</button><button id="btnShareMail" class="primary" autofocus>Otvori e-mail</button></menu>
+</dialog>
+
+<dialog id="dlgAsk">
+  <h2>Pitaj AI</h2>
+  <label class="field">Šta tražiš? Piši običnim jezikom.
+    <textarea id="askText" rows="3" maxlength="500" placeholder="npr. usluge iz energetske efikasnosti u BiH i Srbiji, rok bar 10 dana, bez radova"></textarea></label>
+  <div id="askKeyBox">
+    <label class="field">Anthropic API ključ
+      <input id="askKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…"></label>
+    <p class="hint">Ključ se pravi na console.anthropic.com, pod API keys. Čuva se samo u ovom pregledniku i šalje se samo Anthropicu. Jedno pitanje košta manje od jednog centa.</p>
+  </div>
+  <p class="hint" id="askMsg" role="status"></p>
+  <menu><button id="btnAskForget" class="link">Zaboravi ključ</button><span class="spacer"></span><button id="btnAskClose">Zatvori</button><button id="btnAskGo" class="primary">Postavi filtere</button></menu>
 </dialog>
 
 <dialog id="dlgSave">
@@ -436,9 +461,9 @@ let MARKS = {};  // id objave -> [oznaka 'p' ili 'h', dan postavljanja]
 const markOf = r => (MARKS[r.id] || [])[0] || '';
 
 /* ---------- stanje ---------- */
-const DEF = {q: '', any: '', none: '', src: [], c: [], reg: [], k: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', sort: 'due'};
+const DEF = {q: '', any: '', none: '', syn: true, ai: [], src: [], c: [], reg: [], k: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', sort: 'due'};
 const PAGE = 100;
-const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false};
+const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false, hasAi: false, synNote: ''};
 let F = structuredClone(DEF);
 
 const mem = {};
@@ -482,8 +507,10 @@ const STARTERS = [
 /* ---------- filtriranje ---------- */
 const srcName = k => (S.src[k] && S.src[k].name) || k;
 const srcLabel = k => srcName(k) + (S.src[k] && S.src[k].private ? (S.unlocked ? ' (interno)' : ' (interno, zaključano)') : '');
+const AI_LABEL = {3: '3 · jako relevantno', 2: '2 · moguće relevantno', 1: '1 · slabo', 0: '0 · nije za nas', N: 'nije ocijenjeno'};
 const FACETS = [
   // order: opcije se prikazuju tim redom i uvijek sve, i kad uz ostale filtere nemaju objava
+  {key: 'ai', slot: 'A', title: 'AI ocjena za CETEOR', vals: r => [r._ai], label: v => AI_LABEL[v] || v, order: ['3', '2', '1', '0', 'N'], top: 5},
   {key: 'src', slot: 'A', title: 'Izvor', vals: r => r._src, label: srcLabel, order: [], top: 20},
   {key: 'c', slot: 'A', title: 'Država', vals: r => r._c, label: countryName, top: 6},
   {key: 'reg', slot: 'A', title: 'Regija, entitet, kanton', vals: r => r.reg ? [r.reg] : [], label: v => v, top: 4},
@@ -494,9 +521,67 @@ const FACETS = [
   {key: 'bt', slot: 'B', title: 'Vrsta naručioca', vals: r => [r.bt], label: v => BT_LABEL[v] || v, top: 6},
 ];
 
+/* ---------- istoznačnice na više jezika ---------- */
+// Korijeni riječi (mala slova, bez kvačica). Kad pretraga sadrži riječ iz grupe, objava prolazi i
+// ako neka njena riječ počinje bilo kojim drugim korijenom iz iste grupe.
+const SYN = [
+  ['okolis', 'okolin', 'zivotn sredin', 'environment', 'environnement', 'umwelt', 'medio ambiente', 'meio ambiente', 'ambiental', 'mjedis'],
+  ['otpad', 'waste', 'dechet', 'abfall', 'residuo', 'mbetje', 'mbeturin', 'smece'],
+  ['otpadn vod', 'kanalizac', 'sewer', 'sewage', 'wastewater', 'eaux usees', 'assainissement', 'abwasser', 'aguas residuales'],
+  ['vodosnabd', 'vodovod', 'water supply', 'approvisionnement en eau', 'wasserversorg', 'abastecimiento de agua'],
+  ['voda', 'vode', 'vodni', 'vodnih', 'water', 'wasser', 'agua', 'eau'],
+  ['klima', 'klimat', 'climat', 'clima'],
+  ['efikasn', 'ucinkovit', 'efficien', 'efficacit', 'effizien', 'eficien'],
+  ['obnovljiv', 'renewable', 'renouvelable', 'erneuerbar', 'renovable', 'rinnovabil'],
+  ['solar', 'solarn', 'fotonapon', 'photovolt', 'fotovolt'],
+  ['vjetro', 'wind', 'windkraft', 'eolien', 'eolic'],
+  ['grijanj', 'toplinsk', 'toplotn', 'toplifik', 'heating', 'chauffage', 'fernwarm', 'heizung', 'calefacc'],
+  ['zgrad', 'building', 'batiment', 'gebaude', 'edific'],
+  ['studij', 'study', 'studies', 'etude', 'studie', 'estudio'],
+  ['akcion plan', 'action plan', 'plan d action', 'aktionsplan', 'plan de accion'],
+  ['obuka', 'obuke', 'edukac', 'trening', 'training', 'formation', 'capacity building', 'jacanj kapacitet', 'schulung', 'capacitacion'],
+  ['procjen uticaj', 'procjen utjecaj', 'impact assessment', 'etude d impact', 'esia', 'umweltvertraglich'],
+  ['cirkularn', 'kruzn ekonom', 'circular', 'circulaire', 'kreislauf'],
+  ['odrziv', 'sustainab', 'durabl', 'nachhaltig', 'sostenib', 'sustentab'],
+  ['emisij', 'emission', 'emision'],
+  ['zagadj', 'onecisc', 'pollut', 'verschmutz', 'contaminac'],
+  ['kvalitet zrak', 'kvalitet vazduh', 'air quality', 'qualite de l air', 'luftqualit', 'calidad del aire'],
+  ['biodiverz', 'bioraznolik', 'biodivers'],
+  ['poljopriv', 'agricult', 'agricol', 'landwirtschaft'],
+  ['sumarstv', 'sumsk', 'forest', 'foret', 'forst', 'bosque', 'florest'],
+  ['turiz', 'touris', 'turism'],
+  ['digital', 'numerique'],
+  ['konsult', 'consult', 'savjetodav', 'savjetovanj', 'advisory', 'conseil', 'beratung', 'asesor'],
+  ['nadzor', 'supervis', 'uberwach'],
+  ['evaluac', 'evaluat', 'bewert'],
+  ['istrazivanj', 'research', 'recherche', 'forschung'],
+  ['poplav', 'flood', 'inondation', 'hochwasser', 'inundac'],
+  ['susa', 'suse', 'drought', 'secheresse', 'durre', 'sequia'],
+  ['prilagodjavanj', 'adaptac', 'adaptat', 'anpassung'],
+  ['vodik', 'hydrogen', 'wasserstoff', 'hidrogen'],
+  ['ugalj', 'uglja', 'coal', 'charbon', 'kohle'],
+  ['rasvjet', 'lighting', 'eclairage', 'beleuchtung', 'alumbrado'],
+  ['energetsk pregled', 'energetsk audit', 'energy audit', 'audit energetique', 'energieaudit', 'auditoria energetica'],
+  ['ekspert', 'expert', 'strucnjak'],
+];
+// Druge riječi iz grupe kojoj pripada riječ t. Kratki korijeni (do 4 slova) vrijede samo kao cijela riječ.
+function alts(t) {
+  if (!F.syn || t.length < 4) return [];
+  const out = new Set();
+  for (const g of SYN) if (g.some(x => t === x || (x.length >= 5 && t.startsWith(x)) || (t.length >= 5 && !x.includes(' ') && x.startsWith(t)))) for (const x of g) if (x !== t) out.add(x);
+  return [...out];
+}
+function matcher(t) {
+  const a = alts(t).map(x => ' ' + x);
+  return a.length ? r => r._s.includes(t) || a.some(x => r._sw.includes(x)) : r => r._s.includes(t);
+}
+
 function compile() {
   const qw = norm(F.q).split(' ').filter(Boolean);
   const anyT = terms(F.any), noneT = terms(F.none);
+  const qm = qw.map(matcher), am = anyT.map(matcher), nm = noneT.map(matcher);
+  const ex = [...qw, ...anyT].map(t => [t, alts(t)]).filter(x => x[1].length);
+  S.synNote = ex.length ? 'Traži i: ' + ex.slice(0, 3).map(([t, a]) => `${t} → ${a.slice(0, 6).join(', ')}${a.length > 6 ? '…' : ''}`).join('; ') : '';
   const min = Math.max(0, parseInt(F.min, 10) || 0);
   const fresh = parseInt(F.fresh, 10) || 0;
   const sinceVisit = F.fresh === 'v' && S.prevDay !== null;
@@ -510,10 +595,11 @@ function compile() {
     (!sinceVisit || (r._f !== null && r._f > S.prevDay)) &&
     (!byValue || (r._v === null ? F.nov : (isNaN(vmin) || r._v >= vmin) && (isNaN(vmax) || r._v <= vmax))) &&
     (F.mark === 'all' || (F.mark ? markOf(r) === F.mark : markOf(r) !== 'h')) &&
-    qw.every(w => r._s.includes(w)) &&
-    (!anyT.length || anyT.some(t => r._s.includes(t))) &&
-    !noneT.some(t => r._s.includes(t));
+    qm.every(m => m(r)) &&
+    (!am.length || am.some(m => m(r))) &&
+    !nm.some(m => m(r));
   const ok = {
+    ai: r => !set.ai.size || set.ai.has(r._ai),
     c: r => !set.c.size || r._c.some(x => set.c.has(x)),
     reg: r => !set.reg.size || (!!r.reg && set.reg.has(r.reg)),
     src: r => !set.src.size || r._src.some(x => set.src.has(x)),
@@ -530,6 +616,7 @@ const SORTS = {
   due: (a, b) => (a._d ?? 1e9) - (b._d ?? 1e9) || (b._p ?? 0) - (a._p ?? 0),
   pub: (a, b) => (b._p ?? 0) - (a._p ?? 0) || (a._d ?? 1e9) - (b._d ?? 1e9),
   buyer: (a, b) => (a.b || '').localeCompare(b.b || '', 'bs') || (a._d ?? 1e9) - (b._d ?? 1e9),
+  ai: (a, b) => (b.ai ?? -1) - (a.ai ?? -1) || (a._d ?? 1e9) - (b._d ?? 1e9),
 };
 
 function apply(keep) {
@@ -560,6 +647,7 @@ function renderFacets() {
   const activeId = document.activeElement && document.activeElement.id;
   const html = {A: '', B: ''};
   for (const f of FACETS) {
+    if (f.key === 'ai' && !S.hasAi) continue;  // facet se vidi tek kad postoje AI ocjene
     let h = '';
     const cnt = S.counts[f.key], sel = new Set(F[f.key]);
     const vals = [...new Set([...(f.order || []), ...cnt.keys(), ...sel])];
@@ -596,6 +684,7 @@ function rowHtml(r) {
   const left = days === null ? '' : days <= 0 ? (days === 0 ? 'danas' : 'istekao') : days === 1 ? 'sutra' : `za ${days} ${plural(days, 'dan', 'dana', 'dana')}`;
   const due = days === null ? '<b>bez roka</b>' : `<b>${fmtDate(r.d)}</b><span>${left}${r.dt ? ' u ' + esc(r.dt) : ''}</span>`;
   const chips = [`<span class="chip src" title="${esc(srcName(r.src))}">${esc(r.src)}</span>`];
+  if (r.ai != null) chips.unshift(`<span class="chip ai ai${r.ai}" title="${esc(r.air ? 'AI: ' + r.air : 'AI ocjena za CETEOR')}">AI ${r.ai}/3</span>`);
   const cs = r.c || [];
   if (cs.length === 6 && WB6.every(c => cs.includes(c))) chips.push('<span class="chip">Zapadni Balkan</span>');
   else if (cs.length) chips.push(`<span class="chip">${esc(cs.slice(0, 3).map(c => C_SHORT[c] || countryName(c)).join(', '))}${cs.length > 3 ? ' +' + (cs.length - 3) : ''}</span>`);
@@ -612,7 +701,7 @@ function rowHtml(r) {
   const mk = markOf(r);
   const tip = [r.ref ? 'Broj objave: ' + r.ref : '', r._t0 ? 'Izvorno: ' + r._t0 : ''].filter(Boolean).join(' | ');
   const acts = `<div class="acts"><button class="mini${mk === 'p' ? ' on' : ''}" data-mark="p" data-id="${esc(r.id)}" aria-pressed="${mk === 'p'}">${mk === 'p' ? 'Pratim ✓' : 'Pratim'}</button><button class="mini" data-mark="h" data-id="${esc(r.id)}">${mk === 'h' ? 'Vrati' : 'Sakrij'}</button><button class="mini" data-share data-id="${esc(r.id)}" title="Pošalji objavu e-mailom">Pošalji</button></div>`;
-  return `<article class="row${mk === 'p' ? ' tracked' : mk === 'h' ? ' hid' : ''}"><div class="due${cls}">${due}</div><div><a class="title" href="${esc(r.u)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${esc(r.t)}</a>${isNew(r) ? '<span class="new">novo</span>' : ''}<div class="buyer">${esc(r.b || 'Naručilac nije naveden')}</div><div class="chips">${chips.join('')}${also ? `<span class="also">također na: ${also}</span>` : ''}</div></div><div class="pub"><span>objavljeno</span><b>${r.p ? fmtDate(r.p) : 'nije navedeno'}</b>${acts}</div></article>`;
+  return `<article class="row${mk === 'p' ? ' tracked' : mk === 'h' ? ' hid' : ''}"><div class="due${cls}">${due}</div><div><a class="title" href="${esc(r.u)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${esc(r.t)}</a>${isNew(r) ? '<span class="new">novo</span>' : ''}<div class="buyer">${esc(r.b || 'Naručilac nije naveden')}</div>${r.ai >= 2 && r.air ? `<div class="air">AI: ${esc(r.air)}</div>` : ''}<div class="chips">${chips.join('')}${also ? `<span class="also">također na: ${also}</span>` : ''}</div></div><div class="pub"><span>objavljeno</span><b>${r.p ? fmtDate(r.p) : 'nije navedeno'}</b>${acts}</div></article>`;
 }
 
 function renderList() {
@@ -639,6 +728,7 @@ function renderSummary() {
     }
   }
   $('summary').innerHTML = h;
+  $('synNote').textContent = S.synNote;
   // Dugmad za filtere na tabletu i mobitelu: broj aktivnih filtera i broj objava koje daju.
   const nf = Object.keys(DEF).filter(k => k !== 'q' && k !== 'sort' && JSON.stringify(F[k]) !== JSON.stringify(DEF[k])).length;
   $('btnFilters').textContent = nf ? `Filteri (${nf})` : 'Filteri';
@@ -689,7 +779,17 @@ function renderStatus() {
   const fmtTs = t => { if (!t) return 'nikad'; const d = new Date(t); return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}. ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
   $('srcTable').innerHTML = '<table><thead><tr><th>Izvor</th><th>Stanje</th><th>Objava</th><th>Zadnje uspješno</th><th>Šta se prikuplja / napomena</th></tr></thead><tbody>' +
     st.sources.map(s => `<tr><td><a href="${esc(s.home)}" target="_blank" rel="noopener">${esc(s.name)}</a><br><span class="muted">${esc(s.key)}${s.private ? ', interni izvor' + (s.off || S.unlocked ? '' : ' (zaključan u ovom pregledniku)') : ''}</span></td><td class="${s.off ? 'st-off' : s.ok ? 'st-ok' : 'st-bad'}">${s.off ? 'isključen' : s.ok ? 'radi' : 'greška'}</td><td class="num">${fmtN(s.count || 0)}${s.merged ? `<br><span class="muted">${fmtN(s.merged)} i na drugom izvoru</span>` : ''}</td><td>${s.off ? '' : fmtTs(s.last_ok)}</td><td>${esc(s.off || !s.ok ? (s.error || '') : (s.scope || ''))}</td></tr>`).join('') +
-    '</tbody></table>' + (off.length ? '<p class="hint">Isključeni izvori se ne preuzimaju; razlog je naveden u napomeni.</p>' : '');
+    '</tbody></table>' + (off.length ? '<p class="hint">Isključeni izvori se ne preuzimaju; razlog je naveden u napomeni.</p>' : '') + aiStatus(st.ai);
+}
+
+function aiStatus(ai) {
+  if (!ai) return '';
+  if (!ai.on || /isključena/.test(ai.error || '')) return `<p class="hint">${esc(ai.error || 'AI ocjena je isključena.')}</p>`;
+  return `<p class="hint">AI ocjena (${esc(ai.model)}): ocijenjeno ${fmtN(ai.scored || 0)} ${plural(ai.scored || 0, 'objava', 'objave', 'objava')}, u zadnjem osvježavanju ${fmtN(ai.new || 0)} novih${ai.pending ? `, čeka ${fmtN(ai.pending)}` : ''}.${ai.error ? ' Zadnja greška: ' + esc(ai.error) + '.' : ''}</p>`;
+}
+function refreshAi() {
+  S.hasAi = S.data.some(r => r.ai != null);
+  $('sortAi').hidden = !S.hasAi;
 }
 
 /* ---------- profili ---------- */
@@ -724,7 +824,7 @@ function persist() {
 function syncInputs() {
   $('q').value = F.q; $('any').value = F.any; $('none').value = F.none;
   $('min').value = F.min; $('fresh').value = F.fresh; $('nodue').checked = F.nodue; $('sort').value = F.sort;
-  $('vmin').value = F.vmin; $('vmax').value = F.vmax; $('nov').checked = F.nov;
+  $('vmin').value = F.vmin; $('vmax').value = F.vmax; $('nov').checked = F.nov; $('syn').checked = F.syn;
   renderMarks();
 }
 
@@ -745,10 +845,10 @@ function setMark(id, m) {
 }
 
 function exportCsv() {
-  const head = ['Rok', 'Vrijeme', 'Naziv', 'Naručilac', 'Država', 'Regija', 'Mjesto', 'Vrsta ugovora', 'Vrsta postupka', 'CPV', 'Sektor', 'Ko može ponuditi', 'Vrsta naručioca', 'Izvor', 'Objavljeno', 'Procijenjena vrijednost', 'Valuta', 'Vrijednost u KM', 'Raniji rok', 'Moja oznaka', 'Referenca', 'Link'];
+  const head = ['Rok', 'Vrijeme', 'Naziv', 'Naručilac', 'Država', 'Regija', 'Mjesto', 'Vrsta ugovora', 'Vrsta postupka', 'CPV', 'Sektor', 'Ko može ponuditi', 'Vrsta naručioca', 'Izvor', 'Objavljeno', 'Procijenjena vrijednost', 'Valuta', 'Vrijednost u KM', 'Raniji rok', 'Moja oznaka', 'Referenca', 'Link', 'AI ocjena', 'AI obrazloženje'];
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
   const lines = [head.map(q).join(';')];
-  for (const r of S.view) lines.push([r.d || '', r.dt || '', r.t, r.b || '', (r.c || []).map(countryName).join(', '), r.reg || '', r.loc || '', r.k === 'O' ? '' : K_LABEL[r.k], r.n || '', (r.cpv || []).join(' '), r._sec.map(x => SEC_LABEL[x]).join(', '), WHO_LABEL[r._who], BT_LABEL[r.bt] || '', srcName(r.src), r.p || '', r.v || '', r.cur || '', r._v === null ? '' : Math.round(r._v), r.d0 || '', {p: 'pratim', h: 'sakriveno'}[markOf(r)] || '', r.ref || '', r.u].map(q).join(';'));
+  for (const r of S.view) lines.push([r.d || '', r.dt || '', r.t, r.b || '', (r.c || []).map(countryName).join(', '), r.reg || '', r.loc || '', r.k === 'O' ? '' : K_LABEL[r.k], r.n || '', (r.cpv || []).join(' '), r._sec.map(x => SEC_LABEL[x]).join(', '), WHO_LABEL[r._who], BT_LABEL[r.bt] || '', srcName(r.src), r.p || '', r.v || '', r.cur || '', r._v === null ? '' : Math.round(r._v), r.d0 || '', {p: 'pratim', h: 'sakriveno'}[markOf(r)] || '', r.ref || '', r.u, r.ai ?? '', r.air || ''].map(q).join(';'));
   download(`tenderi-${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}.csv`, String.fromCharCode(0xFEFF) + lines.join('\r\n'), 'text/csv;charset=utf-8');
 }
 function download(name, text, type) {
@@ -982,12 +1082,108 @@ function wireShare() {
   });
 }
 
+/* ---------- Pitaj AI: pitanje običnim jezikom postaje filteri ---------- */
+// Poziv ide direktno iz preglednika Anthropicu, s ključem koji je korisnik upisao (čuva se samo u
+// ovom pregledniku). AI vraća JSON s filterima; stranica prihvata samo poznata polja i vrijednosti.
+const AI_MODEL = 'claude-haiku-4-5-20251001';
+const ASK_ARR = ['ai', 'src', 'c', 'reg', 'k', 'sec', 'who', 'bt', 'cpv'];
+function askValues() {
+  const out = {};
+  for (const f of FACETS) if (ASK_ARR.includes(f.key)) out[f.key] = new Set(S.data.flatMap(f.vals));
+  out.c.delete('??');
+  if (!S.hasAi) out.ai = new Set();
+  return out;
+}
+function askSystem(v) {
+  const list = (set, name) => [...set].sort().map(x => `${x} ${name(x)}`).join('; ');
+  return `Pretvaraš pitanje korisnika u filtere za pretragu objava o javnim nabavkama i tenderima. Danas je ${new Date().toISOString().slice(0, 10)}.
+Vrati samo JSON objekat, bez ikakvog drugog teksta. Sva polja su neobavezna; navedi samo ono što pitanje traži.
+- any: ključne riječi, dovoljna je bilo koja (riječi odvojene zarezom). Piši korijene riječi na bosanskom i engleskom, po potrebi i na francuskom i njemačkom, jer su objave na više jezika (npr. "energetsk, energy, energie").
+- none: riječi koje objava ne smije sadržavati, isti oblik kao any.
+- src: izvori: ${list(v.src, srcName)}.
+- c: države (ISO kodovi): ${list(v.c, countryName)}.
+- reg: regija u BiH: ${[...v.reg].join('; ')}.
+- k: vrsta ugovora: S usluge, G robe, W radovi, O ostalo.
+- sec: sektor: E energija, O okoliš, X ostalo.
+- who: ko može ponuditi: ORG firma, IND pojedinac, OTH i firme i pojedinci ili NVO, UNK nepoznato.
+- bt: vrsta naručioca: ${Object.entries(BT_LABEL).map(([k, x]) => k + ' ' + x).join('; ')}.
+- cpv: CPV grupe (dvije cifre): ${list(v.cpv, x => CPV[x] || '')}.${v.ai.size ? `
+- ai: AI ocjena relevantnosti za firmu CETEOR: "3" jako, "2" moguće, "1" slabo, "0" nije za nas.` : ''}
+- min: najmanje dana do roka za ponude (broj).
+- fresh: objavljeno u zadnjih N dana: "1", "3", "7", "14" ili "30".
+- vmin, vmax: procijenjena vrijednost u KM (broj).
+- sort: "due" po roku, "pub" najnovije prvo${v.ai.size ? ', "ai" po AI ocjeni' : ''}.
+Polja src, c, reg, k, sec, who, bt, cpv i ai su liste. Primjer: {"any": "energetsk, energy", "c": ["BA"], "k": ["S"], "min": 10}`;
+}
+function askFilters(obj, v) {
+  const f = structuredClone(DEF);
+  f.syn = F.syn; f.nodue = F.nodue; f.nov = F.nov; f.sort = F.sort;
+  if (!obj || typeof obj !== 'object') return f;
+  for (const k of ASK_ARR) if (Array.isArray(obj[k])) f[k] = [...new Set(obj[k].map(String).filter(x => v[k].has(x)))];
+  for (const k of ['any', 'none']) if (typeof obj[k] === 'string') f[k] = obj[k].slice(0, 300);
+  for (const k of ['min', 'vmin', 'vmax']) if (obj[k] !== null && obj[k] !== '' && isFinite(obj[k]) && +obj[k] >= 0) f[k] = String(Math.round(+obj[k]));
+  if (['1', '3', '7', '14', '30'].includes(String(obj.fresh))) f.fresh = String(obj.fresh);
+  if (['due', 'pub', 'buyer'].includes(obj.sort) || (obj.sort === 'ai' && S.hasAi)) f.sort = obj.sort;
+  return f;
+}
+function openAsk() {
+  const has = !!store.get('tr.aikey');
+  $('askKeyBox').hidden = has; $('btnAskForget').hidden = !has;
+  $('askMsg').textContent = ''; $('askKey').value = '';
+  $('dlgAsk').showModal(); $('askText').focus();
+}
+async function askAI() {
+  const text = $('askText').value.trim();
+  if (!text) { $('askText').focus(); return; }
+  const key = store.get('tr.aikey') || $('askKey').value.trim();
+  if (!key) { $('askMsg').textContent = 'Upiši API ključ.'; $('askKey').focus(); return; }
+  $('askMsg').textContent = 'Pitam AI…'; $('btnAskGo').disabled = true;
+  try {
+    const v = askValues();
+    const res = await fetch('https://api.anthropic.com/v1/messages', {method: 'POST', headers: {'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true'},
+      body: JSON.stringify({model: (S.status && S.status.ai && S.status.ai.model) || AI_MODEL, max_tokens: 600, system: askSystem(v), messages: [{role: 'user', content: text}]})});
+    if (res.status === 401 || res.status === 403) {
+      store.set('tr.aikey', ''); $('askKeyBox').hidden = false; $('btnAskForget').hidden = true;
+      throw new Error('Ključ nije prihvaćen. Provjeri ga i upiši ponovo.');
+    }
+    if (!res.ok) {
+      let m = '';
+      try { m = (await res.json()).error.message || ''; } catch (e) { /* bez poruke */ }
+      throw new Error(res.status === 429 || res.status === 529 ? 'AI je trenutno zauzet. Pokušaj ponovo za minut.' : `AI servis je vratio grešku ${res.status}${m ? ': ' + m : ''}.`);
+    }
+    store.set('tr.aikey', key);
+    const out = ((await res.json()).content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+    const m = out.match(/\{[\s\S]*\}/);
+    let obj = null;
+    try { obj = m && JSON.parse(m[0]); } catch (e) { /* neispravan JSON */ }
+    if (!obj) throw new Error('AI nije vratio filtere. Pokušaj drugačije opisati šta tražiš.');
+    const before = toHash(F), prof = S.profile;
+    F = askFilters(obj, v); S.profile = '';
+    syncInputs(); apply();
+    $('dlgAsk').close();
+    toast(`AI je postavio filtere: ${fmtN(S.view.length)} ${plural(S.view.length, 'objava', 'objave', 'objava')}.`, null,
+      {label: 'Vrati prethodne', run: () => { F = fromHash(before); S.profile = prof; syncInputs(); apply(); }});
+  } catch (e) {
+    $('askMsg').textContent = e instanceof TypeError ? 'Nema veze s AI servisom. Provjeri internet i pokušaj ponovo.' : e.message;
+  } finally {
+    $('btnAskGo').disabled = false;
+  }
+}
+function wireAsk() {
+  $('btnAsk').addEventListener('click', openAsk);
+  $('btnAskClose').addEventListener('click', () => $('dlgAsk').close());
+  $('btnAskGo').addEventListener('click', askAI);
+  $('btnAskForget').addEventListener('click', () => { store.set('tr.aikey', ''); $('askKeyBox').hidden = false; $('btnAskForget').hidden = true; $('askMsg').textContent = 'Ključ je obrisan iz ovog preglednika.'; });
+  for (const id of ['askText', 'askKey']) $(id).addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAI(); } });
+}
+
 /* ---------- događaji ---------- */
 function debounce(fn, ms) { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; }
 function wire() {
   const text = debounce(() => { F.q = $('q').value; F.any = $('any').value; F.none = $('none').value; F.min = $('min').value; F.vmin = $('vmin').value; F.vmax = $('vmax').value; apply(); }, 180);
   for (const id of ['q', 'any', 'none', 'min', 'vmin', 'vmax']) $(id).addEventListener('input', text);
   $('nov').addEventListener('change', () => { F.nov = $('nov').checked; apply(); });
+  $('syn').addEventListener('change', () => { F.syn = $('syn').checked; apply(); });
   $('mark').addEventListener('change', () => { F.mark = $('mark').value; apply(); });
   $('summary').addEventListener('click', e => { if ('fresh' in e.target.dataset) { F.fresh = e.target.dataset.fresh; syncInputs(); apply(); } });
   $('list').addEventListener('click', e => {
@@ -1118,6 +1314,7 @@ async function unlock(pass) {
   recs.forEach(prep);
   S.data = withoutPrivate().concat(recs);
   S.unlocked = true;
+  refreshAi();
   store.set('tr.pass', pass);
   loadMarks(); refreshLock();
   return recs.length;
@@ -1125,6 +1322,7 @@ async function unlock(pass) {
 function lockAgain() {
   store.set('tr.pass', '');
   S.data = withoutPrivate(); S.unlocked = false;
+  refreshAi();
   refreshLock();
 }
 async function setupPrivate(blob) {
@@ -1168,6 +1366,8 @@ function prep(r) {
   r._v = r.v && S.fx[r.cur] ? r.v * S.fx[r.cur] : null;  // vrijednost u KM, za filter
   r._who = bidder(r);
   r._s = norm([r.t, r.b, r.loc, r.reg, r.ref, r.n, (r.cpv || []).join(' ')].filter(Boolean).join(' '));
+  r._sw = ' ' + r._s;  // za istoznačnice: traže se na početku riječi
+  r._ai = r.ai == null ? 'N' : String(r.ai);
   r._d = r.d ? dayNum(r.d) : null;
   r._p = r.p ? dayNum(r.p) : null;
   r._f = r.fs ? dayNum(r.fs) : r._p;
@@ -1184,7 +1384,8 @@ function init(data, status) {
   data = data.filter(r => !r.dup);  // duplikati s drugih izvora (vidi polje also)
   data.forEach(prep);
   S.data = data;
-  FACETS[0].order = status ? status.sources.filter(x => !x.off).map(x => x.key) : [];
+  refreshAi();
+  FACETS.find(f => f.key === 'src').order = status ? status.sources.filter(x => !x.off).map(x => x.key) : [];
   $('fxNote').textContent = 'Iznosi u drugim valutama preračunati su u KM ' + (status && status.fx_date ? `po kursnoj listi ECB-a od ${fmtDate(status.fx_date)}` : 'po približnim kursevima') + '.';
   loadProfiles(); loadMarks(); loadMails(); lastVisit(status && status.generated);
   if (S.prevDay === null) $('fresh').querySelector('option[value="v"]').disabled = true;
@@ -1194,7 +1395,7 @@ function init(data, status) {
   else if (saved !== null) { F = fromHash(saved); S.profile = store.get('tr.profile') || ''; }
   else { F = fromHash(STARTERS[0].h); S.profile = STARTERS[0].name; }
   if (!S.profiles.some(p => p.name === S.profile)) S.profile = '';
-  syncInputs(); wire(); wireLock(); wireShare(); renderStatus(); apply();
+  syncInputs(); wire(); wireLock(); wireShare(); wireAsk(); renderStatus(); apply();
 }
 
 async function load() {
