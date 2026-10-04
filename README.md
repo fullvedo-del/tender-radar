@@ -28,6 +28,8 @@ Ključne riječi se odvajaju zarezom i dovoljan je korijen riječi („energetsk
 
 Uz svaku objavu su dugmad „Pratim“ i „Sakrij“. Praćene i sakrivene objave biraju se pod „Moje oznake“; sakrivene se više ne prikazuju dok ih ne vratiš. Stranica pamti i koje si podatke zadnji put vidio, pa iznad liste piše koliko je objava novih od zadnje posjete. Oznake, zadnja posjeta i profili čuvaju se u pregledniku u kojem su napravljeni i ne dijele se s kolegama. Za drugi uređaj koristi izvoz i uvoz u prozoru „Sačuvaj profil“; „Kopiraj link“ prenosi samo filtere.
 
+Dugme „Pošalji“ uz objavu otvara gotovu poruku u tvom programu za poštu: naslov, ključni podaci i link na objavu. Primaoca upišeš u prozoru ili tek u samoj poruci. Stranica sama ne šalje ništa; poruku šalješ ti. Ko poštu čita u Gmailu u pregledniku, u istom prozoru klikne „Otvori u Gmailu“, i stranica to zapamti za sljedeći put. Podaci su u poruci upisani kao tekst, jer link koji otvara poruku ne može prenijeti tabelu. Pravu tabelu daje „Kopiraj tabelu“: zalijepi je sa Ctrl+V u poruku, Word ili chat. Adrese koje upišeš pamte se samo u tom pregledniku.
+
 Sektor (energija, okoliš, ostalo) i „ko može ponuditi“ (organizacija, pojedinac, ostalo, nepoznato) alat određuje sam, pa su približni. Sektor ide po CPV kodu gdje ga izvor daje i po riječima u nazivu. Nabavke naftnih derivata (gorivo, lož ulje, maziva) ne računaju se u energiju, a nabavke uglja, peleta, plina, električne i toplotne energije se računaju. Ko može ponuditi uzima se iz izvora kad ga on navodi (Svjetska banka), javne nabavke (e-Nabavke, TED, EU) vode se kao pozivi za organizacije, a kod ostalih odlučuju riječi u nazivu, na primjer „individual consultant“ ili oznaka postupka RFP. „Ostalo“ su pozivi otvoreni i firmama i pojedincima te pozivi za nevladine organizacije. Pravila za oboje su u fajlu `index.html`.
 
 Filter po procijenjenoj vrijednosti radi u KM. Iznosi u drugim valutama preračunavaju se po dnevnoj kursnoj listi ECB-a, a 1 EUR je 1,95583 KM. Vrijednost objavljuju e-Nabavke, Svjetska banka i dio objava TED-a i EU portala.
@@ -60,6 +62,8 @@ Na e-Nabavkama se ne prikupljaju javni pozivi za usluge iz Aneksa II, direktni s
 GIZ u uslovima korištenja svoje platforme dozvoljava upotrebu rezultata pretrage samo interno i zabranjuje prenos trećim licima. OSCE bez pisane dozvole dozvoljava upotrebu sadržaja samo za lične i obrazovne svrhe. Zato se objave ta dva izvora ne pišu u javni fajl. Alat ih šifrira šifrom iz GitHub secreta `TR_PASSPHRASE` i sprema u `data/private.json`, a stranica ih prikaže tek kad se ista šifra unese preko dugmeta „Interni izvori“ u zaglavlju.
 
 Šifra se pamti u pregledniku u koji je unesena, dok se tamo ne klikne „Zaključaj u ovom pregledniku“. Ko nema šifru, vidi sve ostalo, a interne izvore vidi kao zaključane. Šifru daj samo ljudima iz firme.
+
+Objavu iz internog izvora dugmetom „Pošalji“ šalji samo kolegama u firmi. Prozor na to upozori, a poruka i tabela nose napomenu da se objava ne prosljeđuje dalje.
 
 Zaštita je jaka koliko i šifra: uzmi bar četiri nasumične riječi ili 16 znakova. Šifra se mijenja izmjenom secreta; sljedeće osvježavanje šifrira podatke novom šifrom, a svi je moraju ponovo unijeti. Stare verzije šifriranog fajla ostaju u historiji repozitorija i otvaraju se starom šifrom.
 

@@ -84,7 +84,8 @@ main{min-width:0}
 .chip.chg{background:var(--warn-soft);color:var(--warn);font-weight:600}
 .row.tracked{box-shadow:inset 4px 0 0 var(--accent)}
 .row.hid .title,.row.hid .buyer{color:var(--muted)}
-.acts{display:flex;gap:4px;justify-content:flex-end;margin-top:6px}
+.acts{display:grid;grid-template-columns:auto auto;gap:4px;justify-content:end;margin-top:6px}
+.acts [data-share]{grid-column:1/-1}
 .mini{padding:1px 8px;font-size:.78rem;border-radius:6px}
 .mini.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
 .checks label.zero span{color:var(--muted)}
@@ -102,7 +103,17 @@ footer{color:var(--muted);font-size:.8rem;margin:18px 2px 30px;max-width:80ch}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:18px;max-width:min(860px,94vw)}
 dialog::backdrop{background:rgba(0,0,0,.45)}
 dialog h2{font-size:1.1rem;margin-bottom:10px}
-dialog menu{display:flex;justify-content:flex-end;gap:8px;padding:0;margin:14px 0 0}
+dialog menu{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:0;margin:14px 0 0}
+#dlgShare{width:min(640px,94vw)}
+#shareWarn{margin:12px 0 0}
+#shareMsg{color:var(--ink);font-weight:600}
+#shareMsg:empty{display:none}
+.picks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;font-size:.84rem}
+.picks:empty{display:none}
+.picks button:not(.link){padding:2px 10px;font-size:.84rem;border-radius:14px}
+.picks button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.share-prev{margin-top:12px;max-height:38vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px}
+.share-prev td{overflow-wrap:anywhere}
 .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
 .filebtn{border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
 .tbl{overflow:auto}
@@ -127,7 +138,7 @@ td a{color:var(--accent)}
   .due{display:flex;gap:10px;align-items:baseline}
   .due b{display:inline}
   .pub{text-align:left;color:var(--muted)}
-  .acts{justify-content:flex-start}
+  .acts{display:flex;justify-content:flex-start}
   .pub span{display:inline;margin-right:5px}
 }
 </style>
@@ -228,6 +239,20 @@ td a{color:var(--accent)}
     <input id="lockPass" type="password" autocomplete="current-password"></label>
   <p class="hint" id="lockMsg"></p>
   <menu><button id="btnLockForget">Zaključaj u ovom pregledniku</button><button id="btnLockClose">Zatvori</button><button id="btnLockOk" class="primary">Otključaj</button></menu>
+</dialog>
+
+<dialog id="dlgShare">
+  <h2>Pošalji objavu</h2>
+  <label class="field">Kome (nije obavezno, primaoca možeš upisati i u samoj poruci)
+    <input id="shareTo" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="npr. kolega@firma.ba; više adresa odvoji zarezom"></label>
+  <div class="picks" id="shareHist"></div>
+  <label class="field">Poruka (nije obavezno)
+    <textarea id="shareNote" rows="2" maxlength="300" placeholder="npr. Pogledaj, mislim da je ovo za nas."></textarea></label>
+  <p class="alert" id="shareWarn" hidden></p>
+  <div class="share-prev" id="sharePreview"></div>
+  <p class="hint" id="shareHint"></p>
+  <p class="hint" id="shareMsg" role="status"></p>
+  <menu><button id="btnShareClose">Zatvori</button><button id="btnShareCopy">Kopiraj tabelu</button><button id="btnShareMail" class="primary" autofocus>Otvori e-mail</button></menu>
 </dialog>
 
 <dialog id="dlgSave">
@@ -561,7 +586,7 @@ function rowHtml(r) {
   const also = (r.also || []).map(a => `<a href="${esc(a.u)}" target="_blank" rel="noopener">${esc(srcName(a.src))}</a>`).join(', ');
   const mk = markOf(r);
   const tip = [r.ref ? 'Broj objave: ' + r.ref : '', r._t0 ? 'Izvorno: ' + r._t0 : ''].filter(Boolean).join(' | ');
-  const acts = `<div class="acts"><button class="mini${mk === 'p' ? ' on' : ''}" data-mark="p" data-id="${esc(r.id)}" aria-pressed="${mk === 'p'}">${mk === 'p' ? 'Pratim ✓' : 'Pratim'}</button><button class="mini" data-mark="h" data-id="${esc(r.id)}">${mk === 'h' ? 'Vrati' : 'Sakrij'}</button></div>`;
+  const acts = `<div class="acts"><button class="mini${mk === 'p' ? ' on' : ''}" data-mark="p" data-id="${esc(r.id)}" aria-pressed="${mk === 'p'}">${mk === 'p' ? 'Pratim ✓' : 'Pratim'}</button><button class="mini" data-mark="h" data-id="${esc(r.id)}">${mk === 'h' ? 'Vrati' : 'Sakrij'}</button><button class="mini" data-share data-id="${esc(r.id)}" title="Pošalji objavu e-mailom">Pošalji</button></div>`;
   return `<article class="row${mk === 'p' ? ' tracked' : mk === 'h' ? ' hid' : ''}"><div class="due${cls}">${due}</div><div><a class="title" href="${esc(r.u)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${esc(r.t)}</a>${isNew(r) ? '<span class="new">novo</span>' : ''}<div class="buyer">${esc(r.b || 'Naručilac nije naveden')}</div><div class="chips">${chips.join('')}${also ? `<span class="also">također na: ${also}</span>` : ''}</div></div><div class="pub"><span>objavljeno</span><b>${r.p ? fmtDate(r.p) : 'nije navedeno'}</b>${acts}</div></article>`;
 }
 
@@ -704,6 +729,182 @@ function download(name, text, type) {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
+/* ---------- slanje objave e-mailom ---------- */
+// Stranica sama ne šalje poštu. Dugme "Pošalji" otvara gotovu poruku u korisnikovom programu za
+// poštu (mailto link) ili u Gmailu. Takav link prenosi samo običan tekst i pouzdano radi do oko
+// 2000 znakova, pa podaci idu kao redovi "polje: vrijednost", a prava tabela se kopira posebno.
+const MAIL_MAX = 1900;
+const MAIL_RX = /^[^\s@,;<>()"]+@[^\s@,;<>()"]+\.[^\s@,;<>()".]{2,}$/;
+const WHO_MAIL = {IND: 'Pojedinac', OTH: 'Firme i pojedinci ili NVO'};
+let MAILS = [];       // ranije korištene adrese; pamte se samo u ovom pregledniku
+let shareRec = null;  // objava otvorena u prozoru "Pošalji objavu"
+
+const cut = (s, n) => s.length > n ? s.slice(0, n - 1).replace(/[\uD800-\uDBFF]$/, '').trimEnd() + '…' : s;
+const enc = s => { try { return encodeURIComponent(s); } catch (e) { return encodeURIComponent(s.replace(/[\uD800-\uDFFF]/g, '')); } };
+const encAddr = a => enc(a).replace(/%40/g, '@');
+const mailtoUrl = (to, subject, body) => `mailto:${to.map(encAddr).join(',')}?subject=${enc(subject)}&body=${enc(body)}`;
+const gmailUrl = (to, subject, body) => `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(to.join(','))}&su=${enc(subject)}&body=${enc(body)}`;
+const mailVia = () => store.get('tr.mailvia') === 'gmail' ? 'gmail' : 'app';
+
+// Polja objave za poruku i tabelu. drop: redoslijed izbacivanja kad je poruka preduga za link
+// (veći broj otpada prvi, 0 ostaje uvijek).
+function shareFields(r) {
+  const out = [];
+  const add = (label, value, drop, url) => { if (value) out.push({label, value: String(value), drop, url: !!url}); };
+  const cs = r.c || [];
+  add('Naziv', r.t, 0);
+  add('Naručilac', r.b, 0);
+  add('Rok za ponude', r.d ? fmtDate(r.d) + (r.dt ? ' u ' + r.dt : '') + (r.d0 ? ` (pomjeren, ranije ${fmtDate(r.d0)})` : '') : 'nije naveden', 0);
+  add('Objavljeno', r.p && fmtDate(r.p), 3);
+  add('Država', cs.length === 6 && WB6.every(c => cs.includes(c)) ? 'Zapadni Balkan' : cs.slice(0, 5).map(countryName).join(', ') + (cs.length > 5 ? ` i još ${cs.length - 5}` : ''), 5);
+  add('Mjesto', [r.loc, r.reg].filter(Boolean).join(', '), 8);
+  add('Vrsta ugovora', r.k !== 'O' && K_LABEL[r.k], 6);
+  add('Vrsta postupka', r.n, 9);
+  add('Ko može ponuditi', WHO_MAIL[r._who] && WHO_MAIL[r._who] + (r.w ? '' : ' (procjena po nazivu objave)'), 7);
+  add('CPV', (r.cpv || []).slice(0, 3).join(', '), 10);
+  add('Procijenjena vrijednost', r.v && `${fmtN(Math.round(r.v))} ${r.cur === 'BAM' ? 'KM' : r.cur || ''}`.trim() + (r.cur !== 'BAM' && r._v !== null ? ` (oko ${fmtN(Math.round(r._v))} KM)` : ''), 2);
+  add('Broj objave', r.ref, 4);
+  add('Izvor', srcName(r.src), 1);
+  if (S.privKeys.has(r.src)) add('Napomena', 'Objava je iz internog izvora. Molim ne prosljeđivati izvan firme.', 0);
+  add('Link', r.u, 0, true);
+  return out;
+}
+const shareText = (fields, nl) => fields.map(f => `${f.label}: ${f.value}`).join(nl);
+
+// Tabela za lijepljenje u poruku ili dokument. Boje i font su upisani u same ćelije, da tabela
+// izgleda isto u svakom programu za poštu i kad je stranica u tamnoj temi.
+function shareTable(fields) {
+  const cell = 'border:1px solid #b9c2bb;padding:6px 10px;vertical-align:top;text-align:left;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.4;color:#16201a;';
+  return '<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#ffffff">' + fields.map(f => {
+    let v = esc(f.value);
+    if (f.url && /^https?:\/\//i.test(f.value)) {
+      let host = '';
+      try { host = new URL(f.value).hostname.replace(/^www\./, ''); } catch (e) { /* neobičan link: ostaje ispisan cijeli */ }
+      v = `<a href="${v}" style="color:#00633f">${host ? `Otvori objavu (${esc(host)})` : v}</a>`;
+    }
+    return `<tr><td style="${cell}background:#edf0ec;font-weight:bold;white-space:nowrap">${esc(f.label)}</td><td style="${cell}background:#ffffff">${v}</td></tr>`;
+  }).join('') + '</table>';
+}
+
+// Naslov i tekst poruke koji staju u link: prvo otpadaju manje važna polja, zatim se krate
+// naziv, naručilac i poruka. Rok i link uvijek ostaju cijeli.
+function mailParts(r, to, note) {
+  let fields = shareFields(r);
+  const subject = 'Tender: ' + cut(r.t, 110) + (r.d ? ' | rok ' + fmtDate(r.d) : '');
+  const body = () => (note ? note + '\r\n\r\n' : '') + shareText(fields, '\r\n');
+  const tooLong = () => mailtoUrl(to, subject, body()).length > MAIL_MAX;
+  while (tooLong() && fields.some(f => f.drop)) {
+    const worst = Math.max(...fields.map(f => f.drop));
+    fields = fields.filter(f => f.drop !== worst);
+  }
+  for (let n = 240; tooLong() && n >= 30; n = Math.floor(n * 0.7)) {
+    fields = fields.map(f => f.label === 'Naziv' || f.label === 'Naručilac' ? {...f, value: cut(f.value, n)} : f);
+    note = cut(note, n * 2);
+  }
+  return {subject, body: body()};
+}
+
+function parseAddrs(text) {
+  const ok = [], bad = [];
+  for (let tok of String(text || '').split(/[,;\n]+/)) {
+    tok = tok.trim();
+    if (!tok) continue;
+    const m = tok.match(/<([^<>]+)>/);  // oblik "Ime Prezime <adresa>"
+    for (const a of m ? [m[1].trim()] : tok.split(/\s+/)) { if (MAIL_RX.test(a)) ok.push(a.toLowerCase()); else bad.push(a); }
+  }
+  return {ok: [...new Set(ok)], bad};
+}
+function loadMails() {
+  try { const v = JSON.parse(store.get('tr.mailhist')); MAILS = Array.isArray(v) ? v.filter(a => typeof a === 'string' && MAIL_RX.test(a)).slice(0, 12) : []; }
+  catch (e) { MAILS = []; }
+}
+
+function renderShare() {
+  const gm = mailVia() === 'gmail';
+  $('btnShareMail').textContent = gm ? 'Otvori u Gmailu' : 'Otvori e-mail';
+  $('shareHint').innerHTML = (gm ? '„Otvori u Gmailu“ otvara gotovu poruku u novoj kartici preglednika.' : '„Otvori e-mail“ otvara gotovu poruku u programu za poštu na ovom uređaju.') +
+    ' Podaci su u poruci upisani kao tekst. Za pravu tabelu klikni „Kopiraj tabelu“ i zalijepi je (Ctrl+V) u poruku ili dokument. ' +
+    (gm ? '<button class="link" data-via="app">Otvori u programu za poštu</button>' : 'Poštu čitaš u Gmailu u pregledniku? <button class="link" data-via="gmail">Otvori u Gmailu</button>');
+  const cur = new Set(parseAddrs($('shareTo').value).ok);
+  $('shareHist').innerHTML = !MAILS.length ? '' : '<span class="muted">Ranije:</span>' +
+    MAILS.map(a => `<button${cur.has(a) ? ' class="on"' : ''} data-addr="${esc(a)}" aria-pressed="${cur.has(a)}">${esc(a)}</button>`).join('') +
+    '<button class="link" data-forget>zaboravi adrese</button>';
+}
+function openShare(id, keep) {
+  const r = S.data.find(x => x.id === id);
+  if (!r) return;
+  shareRec = r;
+  $('shareTo').value = keep ? keep.to : '';
+  $('shareNote').value = keep ? keep.note : '';
+  $('shareMsg').textContent = keep ? keep.msg : '';
+  const internal = S.privKeys.has(r.src);
+  $('shareWarn').hidden = !internal;
+  $('shareWarn').textContent = internal ? `Interni izvor: ${srcName(r.src)}. Objavu šalji samo kolegama u firmi.` : '';
+  $('sharePreview').innerHTML = shareTable(shareFields(r));
+  renderShare();
+  $('dlgShare').showModal();
+}
+function sendShare(via) {
+  const r = shareRec;
+  if (!r) return;
+  const {ok, bad} = parseAddrs($('shareTo').value);
+  if (bad.length) { $('shareMsg').textContent = `Adresa „${bad[0]}“ nije ispravna. Ispravi je ili obriši.`; $('shareTo').focus(); return; }
+  const keep = {to: $('shareTo').value, note: $('shareNote').value};
+  const m = mailParts(r, ok, keep.note.trim().replace(/\r?\n/g, '\r\n'));
+  if (ok.length) { MAILS = [...new Set([...ok, ...MAILS])].slice(0, 12); store.set('tr.mailhist', JSON.stringify(MAILS)); }
+  store.set('tr.mailvia', via);
+  $('dlgShare').close();
+  if (via === 'gmail') window.open(gmailUrl(ok, m.subject, m.body), '_blank', 'noopener');
+  else {
+    // target=_blank: ako je za mailto linkove u pregledniku podešen Gmail, poruka se otvara u
+    // novoj kartici umjesto preko ove stranice; program za poštu na računaru otvara se kao i inače.
+    const a = document.createElement('a');
+    a.href = mailtoUrl(ok, m.subject, m.body); a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  const help = via === 'gmail'
+    ? 'Ako se Gmail nije otvorio, preglednik je blokirao novu karticu. Dozvoli je za ovu stranicu, ili klikni „Kopiraj tabelu“ i zalijepi tabelu u novu poruku.'
+    : 'Ako se program za poštu nije otvorio, na ovom uređaju nije podešen. Klikni „Otvori u Gmailu“, ili „Kopiraj tabelu“ pa zalijepi tabelu u novu poruku.';
+  toast(via === 'gmail' ? 'Poruka se otvara u Gmailu, u novoj kartici.' : 'Poruka se otvara u programu za poštu.', null, {label: 'Nije se otvorila?', run: () => openShare(r.id, {...keep, msg: help})});
+}
+async function copyShare() {
+  if (!shareRec) return;
+  const fields = shareFields(shareRec), html = shareTable(fields), text = shareText(fields, '\r\n');
+  let ok = false;
+  try {
+    await navigator.clipboard.write([new ClipboardItem({'text/html': new Blob([html], {type: 'text/html'}), 'text/plain': new Blob([text], {type: 'text/plain'})})]);
+    ok = true;
+  } catch (e) {
+    // Stariji preglednik ili zabranjen pristup međuspremniku: označi pregled u prozoru i kopiraj njega.
+    const sel = getSelection(), range = document.createRange();
+    range.selectNodeContents($('sharePreview'));
+    sel.removeAllRanges(); sel.addRange(range);
+    try { ok = document.execCommand('copy'); } catch (e2) { /* tabela ostaje označena za Ctrl+C */ }
+    if (ok) sel.removeAllRanges();
+  }
+  $('shareMsg').textContent = ok ? 'Tabela je kopirana. Zalijepi je sa Ctrl+V u poruku ili dokument.' : 'Kopiranje nije uspjelo. Tabela je označena: pritisni Ctrl+C.';
+}
+function wireShare() {
+  $('btnShareClose').addEventListener('click', () => $('dlgShare').close());
+  $('btnShareMail').addEventListener('click', () => sendShare(mailVia()));
+  $('btnShareCopy').addEventListener('click', copyShare);
+  $('shareHint').addEventListener('click', e => { if (e.target.dataset.via) sendShare(e.target.dataset.via); });
+  $('shareTo').addEventListener('input', () => { $('shareMsg').textContent = ''; renderShare(); });
+  $('shareTo').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendShare(mailVia()); } });
+  $('shareHist').addEventListener('click', e => {
+    const t = e.target;
+    if ('forget' in t.dataset) { MAILS = []; store.set('tr.mailhist', '[]'); renderShare(); return; }
+    const a = t.dataset.addr;
+    if (!a) return;
+    const {ok, bad} = parseAddrs($('shareTo').value);
+    $('shareTo').value = (ok.includes(a) ? ok.filter(x => x !== a) : [...ok, a]).concat(bad).join(', ');
+    $('shareMsg').textContent = '';
+    renderShare();
+    const again = [...$('shareHist').querySelectorAll('[data-addr]')].find(b => b.dataset.addr === a);
+    if (again) again.focus();
+  });
+}
+
 /* ---------- događaji ---------- */
 function debounce(fn, ms) { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; }
 function wire() {
@@ -714,6 +915,8 @@ function wire() {
   $('summary').addEventListener('click', e => { if ('fresh' in e.target.dataset) { F.fresh = e.target.dataset.fresh; syncInputs(); apply(); } });
   $('list').addEventListener('click', e => {
     if ('openLock' in e.target.dataset) { openLockDialog(); return; }
+    const sh = e.target.closest('[data-share]');
+    if (sh) { openShare(sh.dataset.id); return; }
     const b = e.target.closest('[data-mark]');
     if (!b) return;
     const id = b.dataset.id, m = b.dataset.mark, was = (MARKS[id] || [])[0] || '';
@@ -898,7 +1101,7 @@ function init(data, status) {
   S.data = data;
   FACETS[0].order = status ? status.sources.filter(x => !x.off).map(x => x.key) : [];
   $('fxNote').textContent = 'Iznosi u drugim valutama preračunati su u KM ' + (status && status.fx_date ? `po kursnoj listi ECB-a od ${fmtDate(status.fx_date)}` : 'po približnim kursevima') + '.';
-  loadProfiles(); loadMarks(); lastVisit(status && status.generated);
+  loadProfiles(); loadMarks(); loadMails(); lastVisit(status && status.generated);
   if (S.prevDay === null) $('fresh').querySelector('option[value="v"]').disabled = true;
   const hash = location.hash.replace(/^#/, '');
   const saved = store.get('tr.state');
@@ -906,7 +1109,7 @@ function init(data, status) {
   else if (saved !== null) { F = fromHash(saved); S.profile = store.get('tr.profile') || ''; }
   else { F = fromHash(STARTERS[0].h); S.profile = STARTERS[0].name; }
   if (!S.profiles.some(p => p.name === S.profile)) S.profile = '';
-  syncInputs(); wire(); wireLock(); renderStatus(); apply();
+  syncInputs(); wire(); wireLock(); wireShare(); renderStatus(); apply();
 }
 
 async function load() {
