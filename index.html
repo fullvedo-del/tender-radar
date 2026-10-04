@@ -127,12 +127,34 @@ td a{color:var(--accent)}
 .toast input{margin-top:6px;color:var(--ink)}
 .toast button{margin-left:10px;padding:2px 10px;color:var(--ink)}
 
+.sheet-head,.scrim{display:none}
+
+/* Tablet i mobitel: filteri su panel koji se otvara dugmetom "Filteri" i pomjera se sam za sebe. */
 @media (max-width:1100px){
   .app{grid-template-columns:minmax(0,1fr);padding:12px}
-  .filters{display:none;position:fixed;inset:0;z-index:10;max-height:none;border-radius:0;border:0;padding:8px 16px 80px}
+  .top{position:static}
+  .searchbar{position:sticky;top:0;z-index:4;background:var(--bg);margin:-12px -12px 10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  /* align-self:stretch je nužan: sa "start" iz prikaza za PC panel postaje visok koliko sadržaj i ne može se pomjerati */
+  .filters{display:none;position:fixed;top:0;right:0;bottom:0;left:0;align-self:stretch;z-index:10;max-height:none;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-radius:0;border:0;padding:0 16px 16px}
+  body.show-filters{overflow:hidden}
   body.show-filters .filters{display:block}
+  body.show-filters .scrim{display:block;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9;background:rgba(0,0,0,.45)}
+  .sheet-head{display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:2;background:var(--panel);border-bottom:1px solid var(--line);margin:0 -16px;padding:10px 16px}
+  .sheet-head b{font-size:1.05rem}
   .only-mobile{display:inline-block}
-  .close-filters{position:fixed;left:16px;right:16px;bottom:14px;z-index:11}
+  .close-filters{display:block;position:sticky;bottom:12px;z-index:2;width:100%;margin-top:18px;padding:10px 12px;box-shadow:0 3px 12px rgba(0,0,0,.3)}
+  .checks.open{max-height:none}
+  .checks label,.inline{padding:7px 4px}
+  input,select,textarea,#q{font-size:16px}
+}
+/* Tablet: filteri kao bočni panel, objave ostaju u tri kolone */
+@media (min-width:701px) and (max-width:1100px){
+  .filters{right:auto;width:min(440px,88vw);border-right:1px solid var(--line)}
+}
+/* Mobitel: niže zaglavlje, objava u jednoj koloni */
+@media (max-width:700px){
+  .top{flex-wrap:wrap;gap:6px 8px;padding:8px 12px}
+  .brand{flex:1 1 100%}
   .head{display:none}
   .row{grid-template-columns:minmax(0,1fr);gap:6px}
   .due{display:flex;gap:10px;align-items:baseline}
@@ -153,6 +175,7 @@ td a{color:var(--accent)}
 
 <div class="app">
   <aside class="filters" id="filters" aria-label="Filteri">
+    <div class="sheet-head"><b>Filteri</b><span class="spacer"></span><button id="btnSheetClose">Zatvori</button></div>
     <button id="btnResetSide" class="clear-all">Očisti sve filtere</button>
     <h3>Moje oznake</h3>
     <select id="mark" aria-label="Moje oznake"></select>
@@ -197,7 +220,7 @@ td a{color:var(--accent)}
   </aside>
 
   <main>
-    <div class="bar">
+    <div class="bar searchbar">
       <input id="q" type="search" placeholder="Brza pretraga naziva i naručioca" aria-label="Brza pretraga">
       <button id="btnFilters" class="only-mobile">Filteri</button>
     </div>
@@ -225,6 +248,8 @@ td a{color:var(--accent)}
     <footer>Podaci su preuzeti iz javnih izvora i služe za pronalaženje objava. Prije odluke provjeri originalnu objavu: rok, izmjene i dokumentaciju. Rokovi su prikazani onako kako ih navodi naručilac, po njegovom lokalnom vremenu.</footer>
   </main>
 </div>
+
+<div class="scrim" id="scrim"></div>
 
 <dialog id="dlgSources">
   <h2>Izvori podataka</h2>
@@ -614,6 +639,10 @@ function renderSummary() {
     }
   }
   $('summary').innerHTML = h;
+  // Dugmad za filtere na tabletu i mobitelu: broj aktivnih filtera i broj objava koje daju.
+  const nf = Object.keys(DEF).filter(k => k !== 'q' && k !== 'sort' && JSON.stringify(F[k]) !== JSON.stringify(DEF[k])).length;
+  $('btnFilters').textContent = nf ? `Filteri (${nf})` : 'Filteri';
+  $('btnCloseFilters').textContent = `Prikaži ${fmtN(n)} ${plural(n, 'objavu', 'objave', 'objava')}`;
 }
 
 function renderMarks() {
@@ -730,9 +759,10 @@ function download(name, text, type) {
 }
 
 /* ---------- slanje objave e-mailom ---------- */
-// Stranica sama ne šalje poštu. Dugme "Pošalji" otvara gotovu poruku u korisnikovom programu za
-// poštu (mailto link) ili u Gmailu. Takav link prenosi samo običan tekst i pouzdano radi do oko
-// 2000 znakova, pa podaci idu kao redovi "polje: vrijednost", a prava tabela se kopira posebno.
+// Stranica sama ne šalje poštu. Dugme "Pošalji" priprema poruku na jedan od tri načina: gotova
+// Outlook poruka s tabelom (.eml fajl), program za poštu (mailto link) ili Gmail. Link prenosi samo
+// običan tekst i pouzdano radi do oko 2000 znakova, pa tamo podaci idu kao redovi "polje: vrijednost",
+// a tabela se usput kopira da se u poruci zalijepi preko njih.
 const MAIL_MAX = 1900;
 const MAIL_RX = /^[^\s@,;<>()"]+@[^\s@,;<>()"]+\.[^\s@,;<>()".]{2,}$/;
 const WHO_MAIL = {IND: 'Pojedinac', OTH: 'Firme i pojedinci ili NVO'};
@@ -744,7 +774,19 @@ const enc = s => { try { return encodeURIComponent(s); } catch (e) { return enco
 const encAddr = a => enc(a).replace(/%40/g, '@');
 const mailtoUrl = (to, subject, body) => `mailto:${to.map(encAddr).join(',')}?subject=${enc(subject)}&body=${enc(body)}`;
 const gmailUrl = (to, subject, body) => `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(to.join(','))}&su=${enc(subject)}&body=${enc(body)}`;
-const mailVia = () => store.get('tr.mailvia') === 'gmail' ? 'gmail' : 'app';
+const WAYS = {outlook: 'Otvori u Outlooku', app: 'Otvori e-mail', gmail: 'Otvori u Gmailu'};
+const WAY_HINT = {
+  outlook: '„Otvori u Outlooku“ preuzme gotovu poruku s tabelom; klikni preuzeti fajl i Outlook je otvori spremnu za slanje.',
+  app: '„Otvori e-mail“ otvara poruku u programu za poštu i usput kopira tabelu: u poruci označi redove s podacima i pritisni Ctrl+V.',
+  gmail: '„Otvori u Gmailu“ otvara poruku u novoj kartici i usput kopira tabelu: u poruci označi redove s podacima i pritisni Ctrl+V.',
+};
+const WAY_HELP = {
+  outlook: 'Ako se preuzeti fajl otvorio kao primljena poruka ili u drugom programu, na ovom računaru Outlook ne otvara .eml fajlove. Klikni „Otvori e-mail“: tabela se kopira sama, pa je u poruci zalijepiš sa Ctrl+V.',
+  app: 'Ako se program za poštu nije otvorio, na ovom uređaju nije podešen. Klikni „Otvori u Outlooku“ ili „Otvori u Gmailu“.',
+  gmail: 'Ako se Gmail nije otvorio, preglednik je blokirao novu karticu. Dozvoli je za ovu stranicu ili izaberi drugi način ispod.',
+};
+// Zadnji korišteni način pamti se u pregledniku; početni je Outlook, a na telefonu program za poštu.
+const mailVia = () => { const v = store.get('tr.mailway'); return ['outlook', 'app', 'gmail'].includes(v) ? v : matchMedia('(pointer: coarse)').matches ? 'app' : 'outlook'; };
 
 // Polja objave za poruku i tabelu. drop: redoslijed izbacivanja kad je poruka preduga za link
 // (veći broj otpada prvi, 0 ostaje uvijek).
@@ -786,11 +828,34 @@ function shareTable(fields) {
   }).join('') + '</table>';
 }
 
+const shareSubject = r => 'Tender: ' + cut(r.t, 110) + (r.d ? ' | rok ' + fmtDate(r.d) : '');
+
+// Gotova Outlook poruka (.eml) s tabelom. Oznaka X-Unsent: 1 kaže Outlooku da je otvori kao novu
+// poruku spremnu za slanje, a ne kao primljenu.
+const b64 = t => { const u = new TextEncoder().encode(t); let x = ''; for (let i = 0; i < u.length; i += 0x8000) x += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(x); };
+function mimeHeader(t) {
+  if (/^[\x20-\x7e]*$/.test(t)) return t;
+  const te = new TextEncoder(), words = [];
+  let cur = '';
+  for (const ch of t) { if (cur && te.encode(cur + ch).length > 40) { words.push(cur); cur = ''; } cur += ch; }
+  if (cur) words.push(cur);
+  return words.map(w => `=?UTF-8?B?${b64(w)}?=`).join('\r\n ');
+}
+function emlText(r, to, note) {
+  const html = '<!doctype html><html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head>' +
+    '<body style="font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#16201a">' +
+    (note ? `<p>${esc(note).replace(/\r?\n/g, '<br>')}</p>` : '') + shareTable(shareFields(r)) + '</body></html>';
+  const head = to.length ? ['To: ' + to.join(', ')] : [];
+  head.push('Subject: ' + mimeHeader(shareSubject(r)), 'X-Unsent: 1', 'MIME-Version: 1.0', 'Content-Type: text/html; charset=UTF-8', 'Content-Transfer-Encoding: base64');
+  return head.join('\r\n') + '\r\n\r\n' + b64(html).replace(/.{76}/g, '$&\r\n') + '\r\n';
+}
+const emlName = r => 'tender-' + (String(r.ref || r.id).replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'objava') + '.eml';
+
 // Naslov i tekst poruke koji staju u link: prvo otpadaju manje važna polja, zatim se krate
 // naziv, naručilac i poruka. Rok i link uvijek ostaju cijeli.
 function mailParts(r, to, note) {
   let fields = shareFields(r);
-  const subject = 'Tender: ' + cut(r.t, 110) + (r.d ? ' | rok ' + fmtDate(r.d) : '');
+  const subject = shareSubject(r);
   const body = () => (note ? note + '\r\n\r\n' : '') + shareText(fields, '\r\n');
   const tooLong = () => mailtoUrl(to, subject, body()).length > MAIL_MAX;
   while (tooLong() && fields.some(f => f.drop)) {
@@ -820,11 +885,10 @@ function loadMails() {
 }
 
 function renderShare() {
-  const gm = mailVia() === 'gmail';
-  $('btnShareMail').textContent = gm ? 'Otvori u Gmailu' : 'Otvori e-mail';
-  $('shareHint').innerHTML = (gm ? '„Otvori u Gmailu“ otvara gotovu poruku u novoj kartici preglednika.' : '„Otvori e-mail“ otvara gotovu poruku u programu za poštu na ovom uređaju.') +
-    ' Podaci su u poruci upisani kao tekst. Za pravu tabelu klikni „Kopiraj tabelu“ i zalijepi je (Ctrl+V) u poruku ili dokument. ' +
-    (gm ? '<button class="link" data-via="app">Otvori u programu za poštu</button>' : 'Poštu čitaš u Gmailu u pregledniku? <button class="link" data-via="gmail">Otvori u Gmailu</button>');
+  const way = mailVia();
+  $('btnShareMail').textContent = WAYS[way];
+  $('shareHint').innerHTML = WAY_HINT[way] + ' Može i drugačije: ' +
+    Object.keys(WAYS).filter(k => k !== way).map(k => `<button class="link" data-via="${k}">${WAYS[k]}</button>`).join(' ili ') + '.';
   const cur = new Set(parseAddrs($('shareTo').value).ok);
   $('shareHist').innerHTML = !MAILS.length ? '' : '<span class="muted">Ranije:</span>' +
     MAILS.map(a => `<button${cur.has(a) ? ' class="on"' : ''} data-addr="${esc(a)}" aria-pressed="${cur.has(a)}">${esc(a)}</button>`).join('') +
@@ -844,44 +908,57 @@ function openShare(id, keep) {
   renderShare();
   $('dlgShare').showModal();
 }
-function sendShare(via) {
+async function sendShare(via) {
   const r = shareRec;
   if (!r) return;
   const {ok, bad} = parseAddrs($('shareTo').value);
   if (bad.length) { $('shareMsg').textContent = `Adresa „${bad[0]}“ nije ispravna. Ispravi je ili obriši.`; $('shareTo').focus(); return; }
   const keep = {to: $('shareTo').value, note: $('shareNote').value};
-  const m = mailParts(r, ok, keep.note.trim().replace(/\r?\n/g, '\r\n'));
+  const note = keep.note.trim().replace(/\r?\n/g, '\r\n');
   if (ok.length) { MAILS = [...new Set([...ok, ...MAILS])].slice(0, 12); store.set('tr.mailhist', JSON.stringify(MAILS)); }
-  store.set('tr.mailvia', via);
-  $('dlgShare').close();
-  if (via === 'gmail') window.open(gmailUrl(ok, m.subject, m.body), '_blank', 'noopener');
-  else {
-    // target=_blank: ako je za mailto linkove u pregledniku podešen Gmail, poruka se otvara u
-    // novoj kartici umjesto preko ove stranice; program za poštu na računaru otvara se kao i inače.
-    const a = document.createElement('a');
-    a.href = mailtoUrl(ok, m.subject, m.body); a.target = '_blank'; a.rel = 'noopener';
-    document.body.appendChild(a); a.click(); a.remove();
+  store.set('tr.mailway', via);
+  let msg;
+  if (via === 'outlook') {
+    download(emlName(r), emlText(r, ok, note), 'message/rfc822');
+    msg = 'Poruka s tabelom je preuzeta. Klikni preuzeti fajl i Outlook će je otvoriti spremnu za slanje.';
+  } else {
+    // Tabela se kopira prije otvaranja poruke, dok je ova stranica još u fokusu.
+    const copied = await copyTable();
+    const m = mailParts(r, ok, note);
+    if (via === 'gmail') window.open(gmailUrl(ok, m.subject, m.body), '_blank', 'noopener');
+    else {
+      // target=_blank: ako je za mailto linkove u pregledniku podešen Gmail, poruka se otvara u
+      // novoj kartici umjesto preko ove stranice; program za poštu na računaru otvara se kao i inače.
+      const a = document.createElement('a');
+      a.href = mailtoUrl(ok, m.subject, m.body); a.target = '_blank'; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+    msg = (via === 'gmail' ? 'Poruka se otvara u Gmailu.' : 'Poruka se otvara u programu za poštu.') +
+      (copied ? ' Tabela je kopirana: u poruci označi redove s podacima i pritisni Ctrl+V.' : '');
   }
-  const help = via === 'gmail'
-    ? 'Ako se Gmail nije otvorio, preglednik je blokirao novu karticu. Dozvoli je za ovu stranicu, ili klikni „Kopiraj tabelu“ i zalijepi tabelu u novu poruku.'
-    : 'Ako se program za poštu nije otvorio, na ovom uređaju nije podešen. Klikni „Otvori u Gmailu“, ili „Kopiraj tabelu“ pa zalijepi tabelu u novu poruku.';
-  toast(via === 'gmail' ? 'Poruka se otvara u Gmailu, u novoj kartici.' : 'Poruka se otvara u programu za poštu.', null, {label: 'Nije se otvorila?', run: () => openShare(r.id, {...keep, msg: help})});
+  $('dlgShare').close();
+  toast(msg, null, {label: 'Nije se otvorila?', run: () => openShare(r.id, {...keep, msg: WAY_HELP[via]})});
 }
-async function copyShare() {
-  if (!shareRec) return;
+// Tabela u međuspremnik, kao HTML (za poštu i Word) i kao tekst. Vraća true ako je uspjelo.
+async function copyTable() {
   const fields = shareFields(shareRec), html = shareTable(fields), text = shareText(fields, '\r\n');
-  let ok = false;
   try {
     await navigator.clipboard.write([new ClipboardItem({'text/html': new Blob([html], {type: 'text/html'}), 'text/plain': new Blob([text], {type: 'text/plain'})})]);
-    ok = true;
+    return true;
   } catch (e) {
     // Stariji preglednik ili zabranjen pristup međuspremniku: označi pregled u prozoru i kopiraj njega.
     const sel = getSelection(), range = document.createRange();
     range.selectNodeContents($('sharePreview'));
     sel.removeAllRanges(); sel.addRange(range);
+    let ok = false;
     try { ok = document.execCommand('copy'); } catch (e2) { /* tabela ostaje označena za Ctrl+C */ }
     if (ok) sel.removeAllRanges();
+    return ok;
   }
+}
+async function copyShare() {
+  if (!shareRec) return;
+  const ok = await copyTable();
   $('shareMsg').textContent = ok ? 'Tabela je kopirana. Zalijepi je sa Ctrl+V u poruku ili dokument.' : 'Kopiranje nije uspjelo. Tabela je označena: pritisni Ctrl+C.';
 }
 function wireShare() {
@@ -1002,8 +1079,16 @@ function wire() {
   $('btnSources').addEventListener('click', () => $('dlgSources').showModal());
   $('btnSourcesClose').addEventListener('click', () => $('dlgSources').close());
   $('alerts').addEventListener('click', e => { if ('openSources' in e.target.dataset) $('dlgSources').showModal(); });
-  $('btnFilters').addEventListener('click', () => document.body.classList.add('show-filters'));
-  $('btnCloseFilters').addEventListener('click', () => { document.body.classList.remove('show-filters'); window.scrollTo(0, 0); });
+  // Filteri na tabletu i mobitelu. Ako su se filteri promijenili, lista se pri zatvaranju vraća na početak.
+  let sheetHash = '';
+  const closeFilters = () => {
+    if (!document.body.classList.contains('show-filters')) return;
+    document.body.classList.remove('show-filters');
+    if (toHash(F) !== sheetHash) window.scrollTo(0, 0);
+  };
+  $('btnFilters').addEventListener('click', () => { sheetHash = toHash(F); document.body.classList.add('show-filters'); });
+  for (const id of ['btnCloseFilters', 'btnSheetClose', 'scrim']) $(id).addEventListener('click', closeFilters);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.querySelector('dialog[open]')) closeFilters(); });
   window.addEventListener('hashchange', () => {
     const h = location.hash.replace(/^#/, '');
     if (h === toHash(F)) return;
