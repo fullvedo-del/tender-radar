@@ -1441,18 +1441,21 @@ function init(data, status) {
 
 async function load() {
   try {
-    let data = window.TR_DATA, status = window.TR_STATUS;
+    let data = window.TR_DATA, status = window.TR_STATUS, v = '';
     if (!data) {
-      const v = '?v=' + Math.floor(Date.now() / 3600000);
-      const [a, b] = await Promise.all([fetch('data/tenders.json' + v), fetch('data/status.json' + v)]);
+      // status.json se uvijek čita svjež, a njegovo vrijeme osvježavanja je verzija ostalih
+      // fajlova: preglednik tako nikad ne prikaže novu stranicu sa starim podacima iz keša.
+      const b = await fetch('data/status.json?t=' + Date.now(), {cache: 'no-store'});
+      status = b.ok ? await b.json() : null;
+      v = '?v=' + encodeURIComponent((status && status.generated) || Math.floor(Date.now() / 3600000));
+      const a = await fetch('data/tenders.json' + v);
       if (!a.ok) throw new Error('podaci još nisu prikupljeni (HTTP ' + a.status + ')');
       data = await a.json();
-      status = b.ok ? await b.json() : null;
     }
     init(data, status);
     if (!window.TR_DATA && status && status.sources.some(x => x.private && !x.off)) {
       try {
-        const c = await fetch('data/private.json?v=' + Math.floor(Date.now() / 3600000));
+        const c = await fetch('data/private.json' + v);
         if (c.ok) await setupPrivate(await c.json());
       } catch (e) { /* interni izvori ostaju zaključani */ }
     }
