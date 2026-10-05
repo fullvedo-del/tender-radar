@@ -38,6 +38,16 @@ Oznaka „rok pomjeren“ pojavi se kad se rok objave promijeni između dva osvj
 
 Oznaka „novo“ stoji uz objave koje su stigle poslije tvoje zadnje posjete. Pri prvoj posjeti stoji uz objave koje je alat prvi put vidio danas ili jučer.
 
+## Javni pozivi (grantovi)
+
+Prekidač „Tenderi / Javni pozivi“ iznad liste dijeli objave na nabavke (posao za firmu) i javne pozive za grantove i sredstva. Svaki dio pamti svoje filtere. Javne pozive daju EU programi (Horizon Europe, LIFE, Erasmus+ i drugi), UNDP-ovi pozivi za prijedloge, CzechAid, Fond za zaštitu okoliša FBiH, Eko fond RS, FMRPO i, kad DevelopmentAid omogući pretragu, DevelopmentAid.
+
+AI javne pozive ocjenjuje za CETEOR i za REIC: ocjena od 0 do 3, za koga je poziv (filter „AI: za koga je poziv“) i kratko obrazloženje s tim ko smije aplicirati. Opis REIC-a je u `config.json`, dio `ai`, polje `profile_reic`; provjeri ga i dopuni. Ko smije aplicirati AI procjenjuje iz naziva poziva, pa uslove uvijek provjeri u samom pozivu.
+
+## DevelopmentAid (interni izvor)
+
+DevelopmentAid se čita preko njihovog API-ja, uz članarinu. Ključ je u GitHub secretu `DA_API_KEY`, a u `.github/workflows/daily.yml` ispod reda s `ANTHROPIC_API_KEY` mora stajati red `DA_API_KEY: ${{ secrets.DA_API_KEY }}`. Uslovi DevelopmentAid-a dozvoljavaju podatke iz API-ja samo za internu upotrebu, pa su te objave pod šifrom, kao GIZ i OSCE. Pretragu tendera i grantova DevelopmentAid mora posebno odobriti za ključ; dok to ne uradi, prozor „Izvori“ za DevelopmentAid javlja da ključ nema pravo pretrage.
+
 ## AI: ocjena za CETEOR i Pitaj AI
 
 Ocjena za CETEOR: pri svakom osvježavanju AI pročita nove objave i svakoj da ocjenu od 0 do 3 (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za nas) i jednu rečenicu obrazloženja. Na stranici su filter „AI ocjena za CETEOR“, poredak „AI ocjena, najbolje prvo“ i oznaka „AI 3/3“ uz objavu. AI ocjenjuje po opisu firme u `config.json` (dio `ai`, polje `profile`); što je opis tačniji, ocjene su bolje. Svaka objava se ocjenjuje jednom. Pri prvom osvježavanju ocijeni se do 2.000 objava, a ostatak sljedeći dan. Objave internih izvora (GIZ, OSCE) ne šalju se AI servisu dok se u `config.json` ne postavi `"include_private": true`.
@@ -68,8 +78,14 @@ Cijena: model je Claude Haiku 4.5 (1 USD na milion ulaznih i 5 USD na milion izl
 | Expertise France | Sve otvorene nabavke | Javna pretraga platforme PLACE |
 | GIZ (interni) | Svi otvoreni pozivi s GIZ-ove platforme, i manji tenderi kojih nema na TED-u | Javna lista na ausschreibungen.giz.de |
 | OSCE (interni) | Svi otvoreni tenderi sekretarijata, institucija i misija | Javna lista na procurement.osce.org |
+| CzechAid | Tenderi i pozivi za dotacije Češke razvojne agencije | Vijesti i lista dotacija na czechaid.gov.cz |
+| EU programi (grantovi) | Otvoreni i najavljeni pozivi EU programa | Zvanični API (isti kao EU Funding & Tenders) |
+| Fond za zaštitu okoliša FBiH | Javni pozivi i natječaji za dodjelu sredstava | RSS feedovi kategorija na fzofbih.org.ba |
+| Eko fond RS | Javni konkursi za tekuću godinu | Stranice konkursa na ekofondrs.org |
+| FMRPO | Javni pozivi i konkursi ministarstva | RSS feed kategorije na fmrpo.gov.ba |
+| DevelopmentAid (interni) | Tenderi za Zapadni Balkan i grantovi za organizacije iz BiH | API uz članarinu |
 
-Šest izvora nije uključeno i treba ih pregledati ručno. UNGM u uslovima korištenja zabranjuje preuzimanje sadržaja u druge sisteme bez pisane dozvole. UNOPS i FAO objavljuju preko UNGM-a i nemaju vlastitu javnu listu. EBRD-ov portal ECEPP, na kojem je većina tendera iz EBRD projekata, odbija automatski pristup, kao i sajtovi Energy Community i WWF Adria.
+Sedam izvora nije uključeno. Švedska agencija za zaštitu okoliša (Naturvårdsverket) nema javnu listu nabavki ni poziva za Zapadni Balkan; ono što nabavlja za region objavljuje se na TED-u. Ostale treba pregledati ručno. UNGM u uslovima korištenja zabranjuje preuzimanje sadržaja u druge sisteme bez pisane dozvole. UNOPS i FAO objavljuju preko UNGM-a i nemaju vlastitu javnu listu. EBRD-ov portal ECEPP, na kojem je većina tendera iz EBRD projekata, odbija automatski pristup, kao i sajtovi Energy Community i WWF Adria.
 
 Na e-Nabavkama se ne prikupljaju javni pozivi za usluge iz Aneksa II, direktni sporazumi i poništeni postupci.
 

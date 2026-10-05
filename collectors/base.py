@@ -315,7 +315,7 @@ BUYER_TYPES = {
 def rec(src: str, sid, *, title, buyer, url, pub=None, due=None, due_time=None,
         countries=None, region=None, place=None, ctype=None, ntype=None,
         cpv=None, btype=None, btype_raw=None, value=None, currency=None,
-        ref=None, bidder=None) -> dict:
+        ref=None, bidder=None, kind=None) -> dict:
     """Pravi normalizovan zapis o objavi.
 
     src        ključ izvora (META["key"])
@@ -337,6 +337,7 @@ def rec(src: str, sid, *, title, buyer, url, pub=None, due=None, due_time=None,
     ref        referentni broj koji naručilac koristi (ako se razlikuje od sid)
     bidder     ko može ponuditi, samo ako izvor to izričito kaže: 'org' (firma, organizacija),
                'ind' (pojedinac) ili 'both'
+    kind       'P' za javni poziv (grant, poziv za prijedloge); None za tender (nabavku)
     """
     title = clean(title)
     if not title:
@@ -347,6 +348,8 @@ def rec(src: str, sid, *, title, buyer, url, pub=None, due=None, due_time=None,
         raise ValueError(f"{src}:{sid} nepoznata vrsta ugovora {ctype!r}")
     if btype is not None and btype not in BUYER_TYPES:
         raise ValueError(f"{src}:{sid} nepoznata vrsta naručioca {btype!r}")
+    if kind not in ("P", None):
+        raise ValueError(f"{src}:{sid} nepoznata vrsta objave {kind!r}")
     if bidder not in ("org", "ind", "both", None):
         raise ValueError(f"{src}:{sid} nepoznata vrsta ponuđača {bidder!r}")
 
@@ -383,6 +386,7 @@ def rec(src: str, sid, *, title, buyer, url, pub=None, due=None, due_time=None,
         "cur": clean(currency)[:3].upper() or None,
         "ref": clean(ref)[:80] or None,
         "w": bidder,
+        "ty": kind,
     }
     return {k: v for k, v in r.items() if v not in (None, "", [])}
 

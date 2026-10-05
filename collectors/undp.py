@@ -65,6 +65,12 @@ def _nice(name: str) -> str:
     return re.sub(r"[A-Za-z]+", word, name)
 
 
+# Pozivi za prijedloge i grantovi (za NVO i druge organizacije) vode se kao javni pozivi.
+_CFP = re.compile(r"call\s*for\s*proposals?|\bcfp\b|\bcalls? for applications?\b|low[- ]value grants?|"
+                  r"small grants?|micro[- ]?grants?|\bgrants? (?:scheme|programme|program|competition)\b|"
+                  r"responsible part(?:y|ies)", re.I)
+
+
 def collect(cfg: dict) -> list[dict]:
     c = cfg.get("undp", {})
     want = {x.upper() for x in c.get("countries", [])}  # ISO2; prazno = sve države
@@ -107,7 +113,7 @@ def collect(cfg: dict) -> list[dict]:
         out.append(base.rec(
             META["key"], f"{m[1]}-{m[2]}", title=title, url=link, pub=pub, due=due,
             buyer=f"{agency} {_nice(cty)}".strip(), countries=[code] if code else None,
-            btype="un", ref=ref))
+            btype="un", ref=ref, kind="P" if _CFP.search(title) else None))
 
     if not parsed or not dated:
         raise base.SourceChanged("UNDP: RSS feed je promijenjen (nema naslova ili rokova)")

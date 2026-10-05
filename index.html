@@ -57,6 +57,12 @@ main{min-width:0}
 .bar select{width:auto;max-width:260px;color:var(--ink)}
 #q{flex:1;min-width:200px;font-size:1.05rem;padding:9px 12px}
 .summary{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin:0 2px}
+.modes{display:flex;margin-bottom:10px}
+.modes button{border-radius:0;padding:7px 14px;font-weight:600}
+.modes button:first-child{border-radius:8px 0 0 8px}
+.modes button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.modes button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.modes i{font-style:normal;font-weight:400;opacity:.85;margin-left:6px;font-variant-numeric:tabular-nums}
 .summary b{font-size:1.1rem}
 .alert{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.93rem}
 .alert button.link{color:inherit}
@@ -235,6 +241,7 @@ td a{color:var(--accent)}
       <button id="btnAsk" title="Opiši običnim jezikom šta tražiš, a AI postavi filtere">Pitaj AI</button>
       <button id="btnFilters" class="only-mobile">Filteri</button>
     </div>
+    <div class="modes" role="tablist" aria-label="Vrsta objava"><button id="modeT" data-ty="t" role="tab">Tenderi<i></i></button><button id="modeP" data-ty="p" role="tab">Javni pozivi<i></i></button></div>
     <div class="bar">
       <label>Profil <select id="profile"></select></label>
       <button id="btnSave">Sačuvaj profil</button>
@@ -254,7 +261,7 @@ td a{color:var(--accent)}
       <button id="btnCsv">Izvezi CSV</button>
       <button id="btnLink">Kopiraj link</button>
     </div>
-    <div class="head"><span>Rok za ponude</span><span>Naziv objave i ugovorni organ</span><span style="text-align:right">Objavljeno</span></div>
+    <div class="head"><span id="headDue">Rok za ponude</span><span>Naziv objave i ugovorni organ</span><span style="text-align:right">Objavljeno</span></div>
     <div class="list" id="list"><div class="empty">Učitavam objave…</div></div>
     <div class="more"><button id="btnMore" hidden>Prikaži još</button></div>
     <footer>Podaci su preuzeti iz javnih izvora i služe za pronalaženje objava. Prije odluke provjeri originalnu objavu: rok, izmjene i dokumentaciju. Rokovi su prikazani onako kako ih navodi naručilac, po njegovom lokalnom vremenu.</footer>
@@ -461,9 +468,9 @@ let MARKS = {};  // id objave -> [oznaka 'p' ili 'h', dan postavljanja]
 const markOf = r => (MARKS[r.id] || [])[0] || '';
 
 /* ---------- stanje ---------- */
-const DEF = {q: '', any: '', none: '', syn: true, ai: [], src: [], c: [], reg: [], k: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', sort: 'due'};
+const DEF = {ty: 't', q: '', any: '', none: '', syn: true, ai: [], aiw: [], src: [], c: [], reg: [], k: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', sort: 'due'};
 const PAGE = 100;
-const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false, hasAi: false, synNote: ''};
+const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false, hasAi: false, synNote: '', nTy: {t: 0, p: 0}, byTy: {}};
 let F = structuredClone(DEF);
 
 const mem = {};
@@ -493,7 +500,7 @@ function fromHash(h) {
   return f;
 }
 
-const SEED = '4';  // povećati kad se promijeni lista početnih profila
+const SEED = '5';  // povećati kad se promijeni lista početnih profila
 const STARTERS = [
   {name: 'Usluge – Zapadni Balkan', h: toHash({...DEF, c: WB6, k: ['S', 'O']})},
   {name: 'Usluge – BiH', h: toHash({...DEF, c: ['BA'], k: ['S']})},
@@ -502,6 +509,7 @@ const STARTERS = [
   {name: 'EU institucije i razvojne agencije – usluge', h: toHash({...DEF, bt: ['eu', 'bilateral', 'intorg'], k: ['S', 'O']})},
   {name: 'RCC – svi pozivi', h: toHash({...DEF, src: ['RCC']})},
   {name: 'GIZ i OSCE (interno)', h: toHash({...DEF, src: ['GIZ', 'OSCE']})},
+  {name: 'Javni pozivi – CETEOR i REIC', h: toHash({...DEF, ty: 'p', sort: 'ai'})},
 ];
 
 /* ---------- filtriranje ---------- */
@@ -511,6 +519,7 @@ const AI_LABEL = {3: '3 · jako relevantno', 2: '2 · moguće relevantno', 1: '1
 const FACETS = [
   // order: opcije se prikazuju tim redom i uvijek sve, i kad uz ostale filtere nemaju objava
   {key: 'ai', slot: 'A', title: 'AI ocjena za CETEOR', vals: r => [r._ai], label: v => AI_LABEL[v] || v, order: ['3', '2', '1', '0', 'N'], top: 5},
+  {key: 'aiw', slot: 'A', title: 'AI: za koga je poziv', vals: r => r._aiw, label: v => ({C: 'CETEOR', R: 'REIC'})[v] || v, order: ['C', 'R'], top: 2},
   {key: 'src', slot: 'A', title: 'Izvor', vals: r => r._src, label: srcLabel, order: [], top: 20},
   {key: 'c', slot: 'A', title: 'Država', vals: r => r._c, label: countryName, top: 6},
   {key: 'reg', slot: 'A', title: 'Regija, entitet, kanton', vals: r => r.reg ? [r.reg] : [], label: v => v, top: 4},
@@ -590,6 +599,7 @@ function compile() {
   const set = {};
   for (const f of FACETS) set[f.key] = new Set(F[f.key]);
   const base = r =>
+    r._ty === F.ty &&
     (r._d === null ? F.nodue : r._d - TODAY >= min) &&
     (!fresh || (r._f !== null && TODAY - r._f < fresh)) &&
     (!sinceVisit || (r._f !== null && r._f > S.prevDay)) &&
@@ -600,6 +610,7 @@ function compile() {
     !nm.some(m => m(r));
   const ok = {
     ai: r => !set.ai.size || set.ai.has(r._ai),
+    aiw: r => !set.aiw.size || r._aiw.some(x => set.aiw.has(x)),
     c: r => !set.c.size || r._c.some(x => set.c.has(x)),
     reg: r => !set.reg.size || (!!r.reg && set.reg.has(r.reg)),
     src: r => !set.src.size || r._src.some(x => set.src.has(x)),
@@ -639,7 +650,7 @@ function apply(keep) {
   }
   out.sort(SORTS[F.sort] || SORTS.due);
   S.view = out; S.counts = counts; S.shown = keep ? Math.max(S.shown, PAGE) : PAGE;
-  renderFacets(); renderList(); renderSummary(); persist();
+  renderModes(); renderFacets(); renderList(); renderSummary(); persist();
 }
 
 /* ---------- prikaz ---------- */
@@ -647,16 +658,20 @@ function renderFacets() {
   const activeId = document.activeElement && document.activeElement.id;
   const html = {A: '', B: ''};
   for (const f of FACETS) {
-    if (f.key === 'ai' && !S.hasAi) continue;  // facet se vidi tek kad postoje AI ocjene
+    if ((f.key === 'ai' || f.key === 'aiw') && !S.hasAi) continue;  // tek kad postoje AI ocjene
+    if (f.key === 'aiw' && F.ty !== 'p') continue;                     // samo za javne pozive
     let h = '';
     const cnt = S.counts[f.key], sel = new Set(F[f.key]);
-    const vals = [...new Set([...(f.order || []), ...cnt.keys(), ...sel])];
+    // Izvori se uvijek svi vide kod tendera; kod javnih poziva samo oni koji ih imaju.
+    const fixed = f.key === 'src' && F.ty === 'p' ? [] : (f.order || []);
+    const vals = [...new Set([...fixed, ...cnt.keys(), ...sel])];
     if (!vals.length) continue;
     if (f.order) vals.sort((a, b) => f.order.indexOf(a) - f.order.indexOf(b));
     else vals.sort((a, b) => (cnt.get(b) || 0) - (cnt.get(a) || 0) || String(f.label(a)).localeCompare(String(f.label(b)), 'bs'));
     const open = !!S.expand[f.key];
     const shown = open ? vals : vals.filter((v, i) => i < f.top || sel.has(v));
-    h += `<section><h3>${f.title}${sel.size ? `<span class="badge">${sel.size}</span><button class="link" data-clear="${f.key}">očisti</button>` : ''}</h3>`;
+    const title = f.key === 'ai' && F.ty === 'p' ? 'AI ocjena (CETEOR i REIC)' : f.title;
+    h += `<section><h3>${title}${sel.size ? `<span class="badge">${sel.size}</span><button class="link" data-clear="${f.key}">očisti</button>` : ''}</h3>`;
     if (f.key === 'c') h += '<div class="quick"><button data-quick="BA">BiH</button><button data-quick="WB6">Zapadni Balkan</button></div>';
     h += `<div class="checks${open ? ' open' : ''}">`;
     for (const v of shown) {
@@ -684,7 +699,7 @@ function rowHtml(r) {
   const left = days === null ? '' : days <= 0 ? (days === 0 ? 'danas' : 'istekao') : days === 1 ? 'sutra' : `za ${days} ${plural(days, 'dan', 'dana', 'dana')}`;
   const due = days === null ? '<b>bez roka</b>' : `<b>${fmtDate(r.d)}</b><span>${left}${r.dt ? ' u ' + esc(r.dt) : ''}</span>`;
   const chips = [`<span class="chip src" title="${esc(srcName(r.src))}">${esc(r.src)}</span>`];
-  if (r.ai != null) chips.unshift(`<span class="chip ai ai${r.ai}" title="${esc(r.air ? 'AI: ' + r.air : 'AI ocjena za CETEOR')}">AI ${r.ai}/3</span>`);
+  if (r.ai != null) chips.unshift(`<span class="chip ai ai${r.ai}" title="${esc(r.air ? 'AI: ' + r.air : 'AI ocjena')}">AI ${r.ai}/3${r._aiw.length ? ' · ' + r._aiw.map(x => ({C: 'CETEOR', R: 'REIC'})[x]).join(' i ') : ''}</span>`);
   const cs = r.c || [];
   if (cs.length === 6 && WB6.every(c => cs.includes(c))) chips.push('<span class="chip">Zapadni Balkan</span>');
   else if (cs.length) chips.push(`<span class="chip">${esc(cs.slice(0, 3).map(c => C_SHORT[c] || countryName(c)).join(', '))}${cs.length > 3 ? ' +' + (cs.length - 3) : ''}</span>`);
@@ -709,7 +724,8 @@ function renderList() {
   $('list').innerHTML = rows.length ? rows.map(rowHtml).join('')
     : !S.unlocked && S.priv && F.src.some(k => S.privKeys.has(k))
       ? '<div class="empty">Izabrani interni izvori su zaključani u ovom pregledniku. <button class="link" data-open-lock>Otključaj</button></div>'
-      : `<div class="empty">Nijedna objava ne odgovara filterima.${S.data.length ? ' Proširi kriterije ili očisti filtere.' : ''}</div>`;
+      : `<div class="empty">${F.ty === 'p' ? 'Nijedan javni poziv ne odgovara' : 'Nijedna objava ne odgovara'} filterima.${S.data.length ? ' Proširi kriterije ili očisti filtere.' : ''}</div>`;
+  $('headDue').textContent = F.ty === 'p' ? 'Rok za prijave' : 'Rok za ponude';
   const rest = S.view.length - rows.length;
   $('btnMore').hidden = rest <= 0;
   if (rest > 0) $('btnMore').textContent = `Prikaži još ${Math.min(PAGE, rest)} (preostalo ${fmtN(rest)})`;
@@ -717,7 +733,7 @@ function renderList() {
 
 function renderSummary() {
   const n = S.view.length;
-  let h = `<b>${fmtN(n)}</b><span>${plural(n, 'objava', 'objave', 'objava')} od ukupno ${fmtN(S.data.length)}</span>`;
+  let h = `<b>${fmtN(n)}</b><span>${F.ty === 'p' ? plural(n, 'javni poziv', 'javna poziva', 'javnih poziva') : plural(n, 'objava', 'objave', 'objava')} od ukupno ${fmtN(S.nTy[F.ty] || 0)}</span>`;
   if (S.prevDay !== null) {
     const since = fmtDate(S.prevGen.slice(0, 10));
     if (F.fresh === 'v') h += `<span>· samo nove od zadnje posjete (${since})</span><button class="link" data-fresh="">prikaži sve</button>`;
@@ -790,6 +806,24 @@ function aiStatus(ai) {
 function refreshAi() {
   S.hasAi = S.data.some(r => r.ai != null);
   $('sortAi').hidden = !S.hasAi;
+  S.nTy = {t: 0, p: 0};
+  for (const r of S.data) S.nTy[r._ty]++;
+}
+function renderModes() {
+  for (const [id, ty] of [['modeT', 't'], ['modeP', 'p']]) {
+    const b = $(id);
+    b.classList.toggle('on', F.ty === ty); b.setAttribute('aria-selected', F.ty === ty);
+    b.querySelector('i').textContent = fmtN(S.nTy[ty] || 0);
+  }
+}
+// Tenderi i javni pozivi imaju svaki svoje filtere; prekidač pamti filtere onog drugog.
+function setMode(ty) {
+  if (ty === F.ty) return;
+  S.byTy[F.ty] = toHash(F);
+  F = S.byTy[ty] ? fromHash(S.byTy[ty]) : structuredClone(DEF);
+  F.ty = ty; S.profile = '';
+  store.set('tr.bymode', JSON.stringify(S.byTy));
+  syncInputs(); apply(); window.scrollTo(0, 0);
 }
 
 /* ---------- profili ---------- */
@@ -845,10 +879,10 @@ function setMark(id, m) {
 }
 
 function exportCsv() {
-  const head = ['Rok', 'Vrijeme', 'Naziv', 'Naručilac', 'Država', 'Regija', 'Mjesto', 'Vrsta ugovora', 'Vrsta postupka', 'CPV', 'Sektor', 'Ko može ponuditi', 'Vrsta naručioca', 'Izvor', 'Objavljeno', 'Procijenjena vrijednost', 'Valuta', 'Vrijednost u KM', 'Raniji rok', 'Moja oznaka', 'Referenca', 'Link', 'AI ocjena', 'AI obrazloženje'];
+  const head = ['Rok', 'Vrijeme', 'Naziv', 'Naručilac', 'Država', 'Regija', 'Mjesto', 'Vrsta ugovora', 'Vrsta postupka', 'CPV', 'Sektor', 'Ko može ponuditi', 'Vrsta naručioca', 'Izvor', 'Objavljeno', 'Procijenjena vrijednost', 'Valuta', 'Vrijednost u KM', 'Raniji rok', 'Moja oznaka', 'Referenca', 'Link', 'AI ocjena', 'AI obrazloženje', 'Vrsta objave'];
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
   const lines = [head.map(q).join(';')];
-  for (const r of S.view) lines.push([r.d || '', r.dt || '', r.t, r.b || '', (r.c || []).map(countryName).join(', '), r.reg || '', r.loc || '', r.k === 'O' ? '' : K_LABEL[r.k], r.n || '', (r.cpv || []).join(' '), r._sec.map(x => SEC_LABEL[x]).join(', '), WHO_LABEL[r._who], BT_LABEL[r.bt] || '', srcName(r.src), r.p || '', r.v || '', r.cur || '', r._v === null ? '' : Math.round(r._v), r.d0 || '', {p: 'pratim', h: 'sakriveno'}[markOf(r)] || '', r.ref || '', r.u, r.ai ?? '', r.air || ''].map(q).join(';'));
+  for (const r of S.view) lines.push([r.d || '', r.dt || '', r.t, r.b || '', (r.c || []).map(countryName).join(', '), r.reg || '', r.loc || '', r.k === 'O' ? '' : K_LABEL[r.k], r.n || '', (r.cpv || []).join(' '), r._sec.map(x => SEC_LABEL[x]).join(', '), WHO_LABEL[r._who], BT_LABEL[r.bt] || '', srcName(r.src), r.p || '', r.v || '', r.cur || '', r._v === null ? '' : Math.round(r._v), r.d0 || '', {p: 'pratim', h: 'sakriveno'}[markOf(r)] || '', r.ref || '', r.u, r.ai ?? '', r.air || '', r._ty === 'p' ? 'Javni poziv' + (r._aiw.length ? ' (' + r._aiw.map(x => ({C: 'CETEOR', R: 'REIC'})[x]).join(', ') + ')' : '') : 'Tender'].map(q).join(';'));
   download(`tenderi-${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}.csv`, String.fromCharCode(0xFEFF) + lines.join('\r\n'), 'text/csv;charset=utf-8');
 }
 function download(name, text, type) {
@@ -896,7 +930,7 @@ function shareFields(r) {
   const cs = r.c || [];
   add('Naziv', r.t, 0);
   add('Naručilac', r.b, 0);
-  add('Rok za ponude', r.d ? fmtDate(r.d) + (r.dt ? ' u ' + r.dt : '') + (r.d0 ? ` (pomjeren, ranije ${fmtDate(r.d0)})` : '') : 'nije naveden', 0);
+  add(r._ty === 'p' ? 'Rok za prijave' : 'Rok za ponude', r.d ? fmtDate(r.d) + (r.dt ? ' u ' + r.dt : '') + (r.d0 ? ` (pomjeren, ranije ${fmtDate(r.d0)})` : '') : 'nije naveden', 0);
   add('Objavljeno', r.p && fmtDate(r.p), 3);
   add('Država', cs.length === 6 && WB6.every(c => cs.includes(c)) ? 'Zapadni Balkan' : cs.slice(0, 5).map(countryName).join(', ') + (cs.length > 5 ? ` i još ${cs.length - 5}` : ''), 5);
   add('Mjesto', [r.loc, r.reg].filter(Boolean).join(', '), 8);
@@ -928,7 +962,7 @@ function shareTable(fields) {
   }).join('') + '</table>';
 }
 
-const shareSubject = r => 'Tender: ' + cut(r.t, 110) + (r.d ? ' | rok ' + fmtDate(r.d) : '');
+const shareSubject = r => (r._ty === 'p' ? 'Javni poziv: ' : 'Tender: ') + cut(r.t, 110) + (r.d ? ' | rok ' + fmtDate(r.d) : '');
 
 // Gotova Outlook poruka (.eml) s tabelom. Oznaka X-Unsent: 1 kaže Outlooku da je otvori kao novu
 // poruku spremnu za slanje, a ne kao primljenu.
@@ -1086,18 +1120,19 @@ function wireShare() {
 // Poziv ide direktno iz preglednika Anthropicu, s ključem koji je korisnik upisao (čuva se samo u
 // ovom pregledniku). AI vraća JSON s filterima; stranica prihvata samo poznata polja i vrijednosti.
 const AI_MODEL = 'claude-haiku-4-5-20251001';
-const ASK_ARR = ['ai', 'src', 'c', 'reg', 'k', 'sec', 'who', 'bt', 'cpv'];
+const ASK_ARR = ['ai', 'aiw', 'src', 'c', 'reg', 'k', 'sec', 'who', 'bt', 'cpv'];
 function askValues() {
   const out = {};
   for (const f of FACETS) if (ASK_ARR.includes(f.key)) out[f.key] = new Set(S.data.flatMap(f.vals));
   out.c.delete('??');
-  if (!S.hasAi) out.ai = new Set();
+  if (!S.hasAi) { out.ai = new Set(); out.aiw = new Set(); }
   return out;
 }
 function askSystem(v) {
   const list = (set, name) => [...set].sort().map(x => `${x} ${name(x)}`).join('; ');
   return `Pretvaraš pitanje korisnika u filtere za pretragu objava o javnim nabavkama i tenderima. Danas je ${new Date().toISOString().slice(0, 10)}.
 Vrati samo JSON objekat, bez ikakvog drugog teksta. Sva polja su neobavezna; navedi samo ono što pitanje traži.
+- ty: "t" tenderi (nabavke, posao za firmu) ili "p" javni pozivi (grantovi, pozivi za prijedloge, sredstva za NVO i firme). Ako pitanje traži grantove ili javne pozive, stavi "p".
 - any: ključne riječi, dovoljna je bilo koja (riječi odvojene zarezom). Piši korijene riječi na bosanskom i engleskom, po potrebi i na francuskom i njemačkom, jer su objave na više jezika (npr. "energetsk, energy, energie").
 - none: riječi koje objava ne smije sadržavati, isti oblik kao any.
 - src: izvori: ${list(v.src, srcName)}.
@@ -1108,7 +1143,8 @@ Vrati samo JSON objekat, bez ikakvog drugog teksta. Sva polja su neobavezna; nav
 - who: ko može ponuditi: ORG firma, IND pojedinac, OTH i firme i pojedinci ili NVO, UNK nepoznato.
 - bt: vrsta naručioca: ${Object.entries(BT_LABEL).map(([k, x]) => k + ' ' + x).join('; ')}.
 - cpv: CPV grupe (dvije cifre): ${list(v.cpv, x => CPV[x] || '')}.${v.ai.size ? `
-- ai: AI ocjena relevantnosti za firmu CETEOR: "3" jako, "2" moguće, "1" slabo, "0" nije za nas.` : ''}
+- ai: AI ocjena relevantnosti: "3" jako, "2" moguće, "1" slabo, "0" nije za nas.
+- aiw: samo za javne pozive, za koga je poziv po AI procjeni: "C" CETEOR (firma), "R" REIC (NVO).` : ''}
 - min: najmanje dana do roka za ponude (broj).
 - fresh: objavljeno u zadnjih N dana: "1", "3", "7", "14" ili "30".
 - vmin, vmax: procijenjena vrijednost u KM (broj).
@@ -1117,12 +1153,13 @@ Polja src, c, reg, k, sec, who, bt, cpv i ai su liste. Primjer: {"any": "energet
 }
 function askFilters(obj, v) {
   const f = structuredClone(DEF);
-  f.syn = F.syn; f.nodue = F.nodue; f.nov = F.nov; f.sort = F.sort;
+  f.syn = F.syn; f.nodue = F.nodue; f.nov = F.nov; f.sort = F.sort; f.ty = F.ty;
   if (!obj || typeof obj !== 'object') return f;
   for (const k of ASK_ARR) if (Array.isArray(obj[k])) f[k] = [...new Set(obj[k].map(String).filter(x => v[k].has(x)))];
   for (const k of ['any', 'none']) if (typeof obj[k] === 'string') f[k] = obj[k].slice(0, 300);
   for (const k of ['min', 'vmin', 'vmax']) if (obj[k] !== null && obj[k] !== '' && isFinite(obj[k]) && +obj[k] >= 0) f[k] = String(Math.round(+obj[k]));
   if (['1', '3', '7', '14', '30'].includes(String(obj.fresh))) f.fresh = String(obj.fresh);
+  if (obj.ty === 't' || obj.ty === 'p') f.ty = obj.ty;
   if (['due', 'pub', 'buyer'].includes(obj.sort) || (obj.sort === 'ai' && S.hasAi)) f.sort = obj.sort;
   return f;
 }
@@ -1183,6 +1220,7 @@ function wire() {
   const text = debounce(() => { F.q = $('q').value; F.any = $('any').value; F.none = $('none').value; F.min = $('min').value; F.vmin = $('vmin').value; F.vmax = $('vmax').value; apply(); }, 180);
   for (const id of ['q', 'any', 'none', 'min', 'vmin', 'vmax']) $(id).addEventListener('input', text);
   $('nov').addEventListener('change', () => { F.nov = $('nov').checked; apply(); });
+  for (const id of ['modeT', 'modeP']) $(id).addEventListener('click', e => setMode(e.currentTarget.dataset.ty));
   $('syn').addEventListener('change', () => { F.syn = $('syn').checked; apply(); });
   $('mark').addEventListener('change', () => { F.mark = $('mark').value; apply(); });
   $('summary').addEventListener('click', e => { if ('fresh' in e.target.dataset) { F.fresh = e.target.dataset.fresh; syncInputs(); apply(); } });
@@ -1368,6 +1406,8 @@ function prep(r) {
   r._s = norm([r.t, r.b, r.loc, r.reg, r.ref, r.n, (r.cpv || []).join(' ')].filter(Boolean).join(' '));
   r._sw = ' ' + r._s;  // za istoznačnice: traže se na početku riječi
   r._ai = r.ai == null ? 'N' : String(r.ai);
+  r._aiw = r.aiw ? [...r.aiw] : [];
+  r._ty = r.ty === 'P' ? 'p' : 't';  // tender ili javni poziv
   r._d = r.d ? dayNum(r.d) : null;
   r._p = r.p ? dayNum(r.p) : null;
   r._f = r.fs ? dayNum(r.fs) : r._p;
@@ -1388,6 +1428,7 @@ function init(data, status) {
   FACETS.find(f => f.key === 'src').order = status ? status.sources.filter(x => !x.off).map(x => x.key) : [];
   $('fxNote').textContent = 'Iznosi u drugim valutama preračunati su u KM ' + (status && status.fx_date ? `po kursnoj listi ECB-a od ${fmtDate(status.fx_date)}` : 'po približnim kursevima') + '.';
   loadProfiles(); loadMarks(); loadMails(); lastVisit(status && status.generated);
+  try { const b = JSON.parse(store.get('tr.bymode')); if (b && typeof b === 'object') S.byTy = b; } catch (e) { /* prvi put */ }
   if (S.prevDay === null) $('fresh').querySelector('option[value="v"]').disabled = true;
   const hash = location.hash.replace(/^#/, '');
   const saved = store.get('tr.state');

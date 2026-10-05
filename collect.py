@@ -31,7 +31,8 @@ from collectors import base
 # Redoslijed je ujedno prioritet kod duplikata: objavu zadržava izvor koji je prvi na listi.
 # Interni izvori uvijek dolaze poslije javnih, pa istu objavu zadržava javni izvor.
 MODULES = ["ejn", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
-           "giz", "osce"]
+           "czechaid", "eu_grants", "fzofbih", "ekofondrs", "fmrpo",
+           "giz", "osce", "developmentaid"]
 
 KEEP_NO_DEADLINE_DAYS = 60   # objave bez roka ostaju ovoliko dana od objave
 SUSPICIOUS_EMPTY = 10        # 0 objava je sumnjivo ako ih je zadnji put bilo bar ovoliko
@@ -212,7 +213,7 @@ def main() -> int:
         prev_by_src.setdefault(r["src"], []).append(r)
     prev_fs = {r["id"]: r.get("fs") for r in prev}
     # AI ocjene se prenose, da se svaka objava ocjenjuje samo jednom.
-    prev_ai = {r["id"]: (r["ai"], r.get("air", "")) for r in prev if "ai" in r}
+    prev_ai = {r["id"]: r for r in prev if "ai" in r}
     # Rok koji je alat prvi put zabilježio, da se vidi kad ga naručilac pomjeri.
     first_due = {r["id"]: r.get("d0") or r.get("d") for r in prev}
 
@@ -234,6 +235,12 @@ def main() -> int:
                 st.update(ok=False, off=True, error=locked_reason, last_ok=None)
                 statuses.append(st)
                 continue
+        need = meta.get("env")  # izvor kojem treba poseban ključ (GitHub secret)
+        if need and not (os.environ.get(need) or "").strip():
+            st.update(ok=False, off=True, last_ok=None,
+                      error=f"Izvor se ne preuzima: na GitHubu nije postavljen secret {need}.")
+            statuses.append(st)
+            continue
         kept = prev_by_src.get(key, [])
 
         if only and key not in only:
@@ -265,8 +272,11 @@ def main() -> int:
         new_source = key not in prev_status or old.get("off")
         for r in items:
             r["fs"] = prev_fs.get(r["id"]) or ((r.get("p") or today) if new_source else today)
-            if "ai" not in r and r["id"] in prev_ai:
-                r["ai"], r["air"] = prev_ai[r["id"]]
+            old_ai = prev_ai.get(r["id"])
+            if "ai" not in r and old_ai and old_ai.get("ty") == r.get("ty"):  # tender ili javni poziv
+                for f in ("ai", "air", "aiw"):
+                    if f in old_ai:
+                        r[f] = old_ai[f]
         recs.extend(items)
         statuses.append(st)
 
