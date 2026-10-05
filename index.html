@@ -1313,10 +1313,11 @@ function wire() {
   $('profile').addEventListener('change', () => {
     S.profile = $('profile').value;
     const p = S.profiles.find(x => x.name === S.profile);
-    F = p ? fromHash(p.h) : structuredClone(DEF);
+    F = p ? fromHash(p.h) : {...structuredClone(DEF), ty: F.ty};  // bez profila: ostaje isti prikaz
     syncInputs(); apply();
   });
-  for (const id of ['btnReset', 'btnResetSide']) $(id).addEventListener('click', () => { F = structuredClone(DEF); S.profile = ''; S.fq = {}; syncInputs(); apply(); });
+  // Čisti filtere u prikazu koji je otvoren (tenderi ili javni pozivi); drugi prikaz pamti svoje.
+  for (const id of ['btnReset', 'btnResetSide']) $(id).addEventListener('click', () => { const ty = F.ty; F = structuredClone(DEF); F.ty = ty; S.profile = ''; S.fq = {}; syncInputs(); apply(); });
   $('btnSave').addEventListener('click', () => { $('profName').value = S.profile; $('dlgSave').showModal(); $('profName').focus(); });
   $('btnSaveCancel').addEventListener('click', () => $('dlgSave').close());
   $('btnSaveOk').addEventListener('click', () => {
