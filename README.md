@@ -28,7 +28,15 @@ Ključne riječi se odvajaju zarezom i dovoljan je korijen riječi („energetsk
 
 Uz svaku objavu su dugmad „Pratim“ i „Sakrij“. Praćene i sakrivene objave biraju se pod „Moje oznake“; sakrivene se više ne prikazuju dok ih ne vratiš. Stranica pamti i koje si podatke zadnji put vidio, pa iznad liste piše koliko je objava novih od zadnje posjete. Oznake, zadnja posjeta i profili čuvaju se u pregledniku u kojem su napravljeni i ne dijele se s kolegama. Za drugi uređaj koristi izvoz i uvoz u prozoru „Sačuvaj profil“; „Kopiraj link“ prenosi samo filtere.
 
-Dugme „Pošalji“ uz objavu priprema poruku s naslovom, ključnim podacima i linkom na objavu. Primaoca upišeš u prozoru ili tek u samoj poruci. Stranica sama ne šalje ništa; poruku šalješ ti. „Otvori u Outlooku“ preuzme gotovu poruku s tabelom (.eml fajl): klikni preuzeti fajl i Outlook je otvori spremnu za slanje. „Otvori e-mail“ i „Otvori u Gmailu“ otvaraju poruku s podacima kao tekstom, jer link koji otvara poruku ne može prenijeti tabelu; tabela se pri tome kopira sama, pa je u poruci zalijepiš sa Ctrl+V preko redova s podacima. Stranica pamti način koji si zadnji put koristio. „Kopiraj tabelu“ kopira tabelu za Word ili chat. Adrese koje upišeš pamte se samo u tom pregledniku.
+Dugme „Pošalji“ uz objavu priprema poruku s naslovom, ključnim podacima i linkom na objavu. Primaoca upišeš u prozoru ili tek u samoj poruci. Stranica sama ne šalje ništa; poruku šalješ ti. „Otvori u Outlooku“ preuzme gotovu poruku s tabelom (.eml fajl): klikni preuzeti fajl i Outlook je otvori spremnu za slanje. „Otvori e-mail“ i „Otvori u Gmailu“ otvaraju poruku s podacima kao tekstom, jer link koji otvara poruku ne može prenijeti tabelu; tabela se pri tome kopira sama, pa je u poruci zalijepiš sa Ctrl+V preko redova s podacima. Stranica pamti način koji si zadnji put koristio. „Kopiraj tabelu“ kopira tabelu za Word ili chat. Adrese koje upišeš pamte se samo u tom pregledniku. Tabela ima i red „Preostalo dana“ do roka, računato od današnjeg dana: do 3 dana crveno, do 7 narandžasto, više zeleno.
+
+Više objava jednim e-mailom: označi kvadratiće lijevo od roka i na dnu ekrana klikni „Pošalji označeno“. Poruka ima jednu tabelu s redom po objavi (naziv kao link, naručilac, rok, preostalo dana u boji, država, izvor), poredanu po roku. „Označi prikazane“ označi sve objave u listi, a „Poništi“ briše izbor.
+
+Kalendar: dugme „Kalendar“ uz objavu (ili „U kalendar“ za označene) preuzme .ics fajl. Kad ga otvoriš, Outlook doda rok u kalendar s podsjetnikom 3 dana prije; rok bez sata je cjelodnevni događaj. Kod najave se u kalendar upisuje očekivani datum poziva.
+
+Najave: filter „Faza“ dijeli objave na otvorene (imaju rok) i najave, odnosno prethodna obavještenja o nabavkama koje tek dolaze (TED, Svjetska banka za Zapadni Balkan, najavljeni pozivi EU programa). Najava u koloni roka pokazuje kad se očekuje poziv, ako je naručilac to naveo, i ostaje u listi do 30 dana poslije tog datuma, odnosno 120 dana od objave.
+
+Kad neki izvor ne radi ili podaci nisu osvježeni duže od 36 sati, na dugmetu „Izvori“ je crvena oznaka (npr. „1 ne radi“), a iznad liste poruka s nazivom izvora.
 
 Sektor (energija, okoliš, ostalo) i „ko može ponuditi“ (organizacija, pojedinac, ostalo, nepoznato) alat određuje sam, pa su približni. Sektor ide po CPV kodu gdje ga izvor daje i po riječima u nazivu. Nabavke naftnih derivata (gorivo, lož ulje, maziva) ne računaju se u energiju, a nabavke uglja, peleta, plina, električne i toplotne energije se računaju. Ko može ponuditi uzima se iz izvora kad ga on navodi (Svjetska banka), javne nabavke (e-Nabavke, TED, EU) vode se kao pozivi za organizacije, a kod ostalih odlučuju riječi u nazivu, na primjer „individual consultant“ ili oznaka postupka RFP. „Ostalo“ su pozivi otvoreni i firmama i pojedincima te pozivi za nevladine organizacije. Pravila za oboje su u fajlu `index.html`.
 
@@ -71,9 +79,9 @@ Cijena: model je Claude Haiku 4.5 (1 USD na milion ulaznih i 5 USD na milion izl
 | Izvor | Šta se prikuplja | Način |
 |---|---|---|
 | e-Nabavke BiH | Sva otvorena obavještenja o nabavci (robe, usluge, radovi) | Zvanični open data API Agencije za javne nabavke |
-| TED (EU) | Zapadni Balkan i Hrvatska: svi ugovori. EU institucije, međunarodne organizacije i razvojne agencije, te švedska agencija za zaštitu okoliša (Naturvårdsverket): usluge | Zvanični API |
+| TED (EU) | Zapadni Balkan i Hrvatska: svi ugovori. EU institucije, međunarodne organizacije i razvojne agencije, te švedska agencija za zaštitu okoliša (Naturvårdsverket): usluge. Uz to najave (prethodna obavještenja) za iste države i institucije | Zvanični API |
 | EU Funding & Tenders | Otvoreni i najavljeni tenderi EU institucija | Zvanični API |
-| Svjetska banka | Svi otvoreni pozivi u svijetu | Zvanični API |
+| Svjetska banka | Svi otvoreni pozivi u svijetu; najave (opšta obavještenja o nabavkama) za Zapadni Balkan | Zvanični API |
 | UNDP | Sve otvorene objave u svijetu | Zvanični RSS feed |
 | EBRD | Samo pozivi objavljeni na ebrd.com (malo ih je) | Lista na stranici |
 | RCC | Svi otvoreni pozivi; poziv koji ne imenuje državu vodi se pod šest zemalja Zapadnog Balkana | Stranica „Open Calls“ |

@@ -19,6 +19,7 @@ poništene ispravkom (change-reason-code = cancel) se ne uzimaju.
 """
 from __future__ import annotations
 
+import datetime as dt
 import re
 import time
 
@@ -38,6 +39,7 @@ META = {
 
 API = "https://api.ted.europa.eu/v3/notices/search"
 PAGE = 250       # API: najviše 250 objava po stranici i (broj polja + 1) x limit <= 10 000
+PIN_KEEP_DAYS = 120  # najava bez očekivanog datuma poziva ostaje ovoliko dana od objave
 MAX_PAGES = 40   # kočnica: najviše 10 000 objava po upitu
 
 COUNTRIES = ["BA", "RS", "ME", "MK", "AL", "XK"]
@@ -124,6 +126,7 @@ FIELDS = [
     "classification-cpv", "place-of-performance-country-proc", "place-of-performance-country-lot",
     "place-of-performance-city-proc", "procedure-type",
     "estimated-value-proc", "estimated-value-cur-proc",
+    "future-notice",  # kod najave: kad se očekuje poziv
 ]
 
 
@@ -150,11 +153,14 @@ def _names(t: dict) -> list[tuple[str, list[str], str | None]]:
     return out
 
 
-def _queries(t: dict, day: str, names: list) -> list[str]:
-    """Ekspertni upiti A (geografija) i B (institucije); day je 'YYYYMMDD'."""
+def _queries(t: dict, day: str, names: list, since: str | None = None) -> list[str]:
+    """Ekspertni upiti A (geografija) i B (institucije); day je 'YYYYMMDD'.
+    Sa since ('YYYYMMDD') upiti traže najave (prethodna obavještenja) objavljene od tog dana."""
     # Poziv na nadmetanje (bez dodjela i najava), rok od danas nadalje, objava nije poništena.
     head = (f"form-type = competition AND deadline-receipt-request >= {day}"
             " AND NOT change-reason-code = cancel")
+    if since:
+        head = f"form-type = planning AND publication-date >= {since} AND NOT change-reason-code = cancel"
     codes = " ".join(dict.fromkeys(
         c for x in t.get("countries") or COUNTRIES for c in _ted_countries(x)))
     geo = " OR ".join(f"{field} IN ({codes})" for field in (
@@ -244,11 +250,11 @@ def _due(n: dict, today: str) -> tuple[str | None, str | None]:
     return date, when or None
 
 
-def _record(n: dict, today: str, names: list) -> dict:
+def _record(n: dict, today: str, names: list, pin: bool = False) -> dict:
     sid = n.get("publication-number")
     buyers = _texts(n.get("buyer-name"))
-    due, due_time = _due(n, today)
-    if not isinstance(sid, str) or not buyers or not due:  # upit garantuje rok
+    due, due_time = (None, None) if pin else _due(n, today)
+    if not isinstance(sid, str) or not buyers or not (due or pin):  # upit garantuje rok
         raise base.SourceChanged(
             f"TED objava {sid or '?'} nema broj, naručioca ili rok u očekivanim poljima")
 
@@ -285,12 +291,24 @@ def _record(n: dict, today: str, names: list) -> dict:
         countries=["XK" if c in KOSOVO else c for c in places or buyer_cc],
         place=next(iter(cities.values())) if len(cities) == 1 else None,
         ctype=NATURE.get(nature),
-        ntype=PROCEDURE.get(n.get("procedure-type")) or NOTICE.get(n.get("notice-subtype"))
-        or NOTICE.get(n.get("notice-type")),
+        ntype="Najava (prethodno obavještenje)" if pin else PROCEDURE.get(n.get("procedure-type"))
+        or NOTICE.get(n.get("notice-subtype")) or NOTICE.get(n.get("notice-type")),
         cpv=(n.get("main-classification-proc") or []) + (n.get("classification-cpv") or []),
         btype=btype, btype_raw=btype_raw,
         value=value, currency=n.get("estimated-value-cur-proc") if value > 0 else None,
         ref=sid)
+
+
+def _pin_extra(rec: dict, n: dict, today: dt.date) -> dict:
+    """Najava: očekivani datum poziva (fn) i do kad se objava drži u listi (keep)."""
+    raw = n.get("future-notice") or []
+    fn = next((d for d in map(base.iso_date, [raw] if isinstance(raw, str) else raw) if d), None)
+    if fn:
+        rec["fn"] = fn
+    pub = dt.date.fromisoformat(rec["p"]) if rec.get("p") else today
+    until = dt.date.fromisoformat(fn) + dt.timedelta(days=30) if fn else pub + dt.timedelta(days=PIN_KEEP_DAYS)
+    rec["keep"] = until.isoformat()
+    return rec
 
 
 def collect(cfg: dict) -> list[dict]:
@@ -310,6 +328,19 @@ def collect(cfg: dict) -> list[dict]:
                 raise base.SourceChanged(f"TED objava {sid}: neočekivan oblik polja") from e
     if not out:  # TED uvijek ima otvorene pozive EU institucija
         raise base.SourceChanged("TED nije vratio nijednu otvorenu objavu za zadane upite")
+    if t.get("pins", True):  # najave (prethodna obavještenja) za iste države i institucije
+        since = (today - dt.timedelta(days=PIN_KEEP_DAYS)).strftime("%Y%m%d")
+        for query in _queries(t, today.strftime("%Y%m%d"), names, since=since):
+            for n in _search(s, query):
+                sid = n.get("publication-number")
+                if sid in out:
+                    continue
+                try:
+                    rec = _pin_extra(_record(n, today.isoformat(), names, pin=True), n, today)
+                except (AttributeError, KeyError, TypeError, ValueError) as e:
+                    raise base.SourceChanged(f"TED najava {sid}: neočekivan oblik polja") from e
+                if rec["keep"] >= today.isoformat():
+                    out[sid] = rec
     return list(out.values())
 
 

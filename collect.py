@@ -125,6 +125,8 @@ def write_json_lines(path, records):
 def alive(r, today, cutoff):
     if r.get("d"):
         return r["d"] >= today
+    if r.get("keep"):  # najava: izvor kaže do kad je drži u listi
+        return r["keep"] >= today
     return r.get("p") is None or r["p"] >= cutoff
 
 

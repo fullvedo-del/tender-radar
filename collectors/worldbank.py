@@ -21,7 +21,9 @@ API = "https://search.worldbank.org/api/v2/procnotices"
 DETAIL = "https://projects.worldbank.org/en/projects-operations/procurement-detail/"
 CALLS = ["Invitation for Bids", "Request for Expression of Interest",
          "Invitation for Prequalification"]
-GPN = "General Procurement Notice"  # ulazi samo ako ima rok
+GPN = "General Procurement Notice"  # s rokom ulazi kao poziv, bez roka kao najava (samo Zapadni Balkan)
+WB6 = {"BA", "RS", "ME", "MK", "AL", "XK"}
+GPN_DAYS = 120  # najava (opšte obavještenje bez roka) ostaje ovoliko dana od objave
 FIELDS = ("id,notice_type,submission_date,submission_deadline_date,submission_deadline_time,"
           "bid_description,bid_reference_no,project_name,project_ctry_name,agency_name,"
           "contact_organization,contact_ctry_name,procurement_group,procurement_method_code,"
@@ -118,6 +120,19 @@ def collect(cfg: dict) -> list[dict]:
         rec = _rec(r)
         if rec:
             found.setdefault(rec["id"], rec)
+
+    # 3) najave: opšta obavještenja o nabavkama bez roka za projekte na Zapadnom Balkanu
+    gpn = _query(s, {"notice_type_exact": GPN,
+                     "submission_strdate": (today - dt.timedelta(days=GPN_DAYS)).isoformat()}, max_pages)
+    for r in gpn:
+        if r.get("submission_deadline_date"):
+            continue
+        rec = _rec(r)
+        if rec and WB6 & set(rec.get("c") or []) and rec["id"] not in found:
+            rec["n"] = "Najava (opšte obavještenje o nabavkama)"
+            pub = dt.date.fromisoformat(rec["p"]) if rec.get("p") else today
+            rec["keep"] = (pub + dt.timedelta(days=GPN_DAYS)).isoformat()
+            found[rec["id"]] = rec
     if not found:
         raise base.SourceChanged("Svjetska banka: nijedna objava nije prepoznata.")
     return list(found.values())
