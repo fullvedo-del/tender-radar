@@ -38,6 +38,7 @@ jobs:
           # Šifra za interne izvore (GIZ, OSCE). Bez nje se oni ne preuzimaju.
           TR_PASSPHRASE: ${{ secrets.TR_PASSPHRASE }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DA_API_KEY: ${{ secrets.DA_API_KEY }}
         run: python collect.py
 
       - name: Sačuvaj podatke u repozitorij
