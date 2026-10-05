@@ -5,13 +5,16 @@ ANTHROPIC_API_KEY (na GitHubu: secret istog imena). Bez ključa korak se preska�
 
 Ocjenjuju se samo objave koje još nemaju ocjenu, najnovije prve; ocjene se prenose iz dana u dan.
 Polja u zapisu: ai (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za firmu) i air (kratko
-obrazloženje na bosanskom). Profil firme i model su u config.json, dio "ai".
+obrazloženje na bosanskom). AI ocjenjuje po okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a,
+pravila za ocjene, primjeri); izmjena okvira pokreće ponovno ocjenjivanje svih objava (collect.py).
+Model i ograničenja su u config.json, dio "ai".
 
 translate() daje kratak engleski prijevod naslova koji nisu na bosanskom, hrvatskom, srpskom,
 crnogorskom ili engleskom: polje en (prijevod; prazno ako prijevod ne treba) i lg (jezik originala).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -26,6 +29,7 @@ DEFAULTS = {
     "max_per_run": 2000,     # najviše novih ocjena po osvježavanju
     "minutes": 12,           # vremenski okvir za ocjenjivanje u jednom osvježavanju
     "include_private": False,
+    "okvir": "ai_okvir.md",  # okvir za ocjenu; bez njega se koriste profile i profile_reic
     "profile": "",
     "profile_reic": "",
     "translate": True,       # prijevod stranih naslova na engleski
@@ -33,37 +37,47 @@ DEFAULTS = {
     "translate_max": 3000,   # najviše naslova po osvježavanju
     "translate_minutes": 6,
 }
-INSTRUCTIONS = """Ti si analitičar tendera za konsultantsku firmu. Profil firme:
-{profile}
-
-Za svaku objavu procijeni koliko je relevantna za firmu, kao posao na koji bi firma mogla ponuditi:
-3 = jasno u oblastima firme, vrijedi pogledati odmah
-2 = moguće relevantno, ili samo dijelom u oblastima firme
-1 = slabo relevantno
-0 = nije za firmu (npr. nabavka robe, građevinski radovi, oprema ili usluge izvan oblasti firme)
-
+PROMPT_VERSION = "3"  # promjena načina ocjenjivanja u kodu; kao i izmjena okvira, pokreće ponovno ocjenjivanje
+OUT_TENDER = """Za svaku objavu daj ocjenu s od 0 do 3 isključivo po okviru i kratko obrazloženje na bosanskom,
+najviše 12 riječi (vrsta posla i razlog ocjene).
 Odgovori isključivo JSON listom, bez ikakvog drugog teksta, s jednim elementom za svaku objavu.
 U obrazloženju ne koristi navodnike.
-[{{"i": 1, "s": 2, "r": "obrazloženje na bosanskom, najviše 12 riječi"}}]"""
-# Javni pozivi (grantovi) ocjenjuju se za dvije organizacije, uz procjenu ko smije aplicirati.
-CALLS = """Ti si analitičar javnih poziva (grantova) za dvije organizacije iz Bosne i Hercegovine.
-
-CETEOR, privatna konsultantska firma: {profile}
-
-REIC, nevladina organizacija: {profile_reic}
-
-Za svaki javni poziv procijeni smije li CETEOR, REIC ili obje aplicirati, kao nosilac ili partner
+[{"i": 1, "s": 2, "r": "obrazloženje"}]"""
+OUT_CALL = """Za svaki javni poziv procijeni smije li CETEOR, REIC ili obje aplicirati, kao nosilac ili partner
 (po vrsti organizacije i državi; BiH je zemlja kandidat za članstvo u EU), i koliko poziv odgovara
-njihovom radu. Ocjena s vrijedi za onu koja bolje odgovara:
-3 = jasno relevantno i prihvatljivo, vrijedi pogledati odmah
-2 = moguće relevantno ili prihvatljivost nije sigurna
-1 = slabo relevantno
-0 = nije za njih (npr. samo za građane, općine, poljoprivrednike ili organizacije iz drugih zemalja)
+njihovom radu po okviru, posebno po dijelu o javnim pozivima. Ocjena s od 0 do 3 vrijedi za onu
+organizaciju kojoj poziv bolje odgovara.
 w = "C" ako je za CETEOR, "R" ako je za REIC, "CR" ako je za obje, "" ako ni za jednu.
-
 Odgovori isključivo JSON listom, bez ikakvog drugog teksta, s jednim elementom za svaki poziv.
-U obrazloženju ne koristi navodnike; ako je poznato, navedi ko smije aplicirati.
-[{{"i": 1, "s": 2, "w": "CR", "r": "obrazloženje na bosanskom, najviše 12 riječi"}}]"""
+U obrazloženju (najviše 12 riječi, na bosanskom) ne koristi navodnike; ako je poznato, navedi ko smije aplicirati.
+[{"i": 1, "s": 2, "w": "CR", "r": "obrazloženje"}]"""
+
+
+def load_okvir(cfg: dict) -> tuple[str, str]:
+    """Tekst okvira za ocjenu i kratki ID verzije (mijenja se s izmjenom teksta okvira)."""
+    conf = {**DEFAULTS, **(cfg.get("ai") or {})}
+    text = ""
+    name = str(conf.get("okvir") or "").strip()
+    if name:
+        path = name if os.path.isabs(name) else os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S).strip()  # komentari su za ljude, ne za AI
+    if not text:  # stari način: opisi u config.json
+        parts = [("CETEOR: " + str(conf.get("profile") or "").strip()) if str(conf.get("profile") or "").strip() else "",
+                 ("REIC: " + str(conf.get("profile_reic") or "").strip()) if str(conf.get("profile_reic") or "").strip() else ""]
+        text = "\n\n".join(p for p in parts if p)
+    oid = hashlib.sha1(f"{PROMPT_VERSION}\n{text}".encode("utf-8")).hexdigest()[:10] if text else ""
+    return text, oid
+
+
+def _system(okvir: str, calls: bool) -> str:
+    who = ("Ti si analitičar javnih poziva (grantova) za CETEOR, firmu iz BiH, i REIC, nevladinu organizaciju iz BiH."
+           if calls else "Ti si analitičar tendera za CETEOR, konsultantsku i inženjersku firmu iz BiH.")
+    return f"{who} Ocjenjuj po okviru ispod.\n\n<okvir>\n{okvir}\n</okvir>\n\n" + (OUT_CALL if calls else OUT_TENDER)
+
+
 KINDS = {"S": "usluge", "G": "robe", "W": "radovi"}
 TRANSLATE = """You get numbered titles of public tenders and calls for proposals.
 For every title that is NOT written in English, Bosnian, Croatian, Serbian or Montenegrin
@@ -111,8 +125,13 @@ def _call(key: str, body: dict, tries: int = 4) -> str:
 
 
 def _line(i: int, r: dict) -> str:
-    parts = [r["t"], r.get("b") or "", ", ".join(r.get("c") or []), KINDS.get(r.get("k"), ""),
-             r.get("n") or "", r["src"]]
+    value = ""
+    if r.get("v"):
+        cur = r.get("cur") or ""
+        km = r["v"] if cur == "BAM" else r["v"] * 1.95583 if cur == "EUR" else None
+        value = f"vrijednost {r['v']:,.0f} {cur}".replace(",", ".") + (f" (oko {km:,.0f} KM)".replace(",", ".") if km and cur != "BAM" else "")
+    parts = [r["t"], f"EN: {r['en']}" if r.get("en") else "", r.get("b") or "", ", ".join(r.get("c") or []),
+             KINDS.get(r.get("k"), ""), r.get("n") or "", f"CPV {r['cpv'][0]}" if r.get("cpv") else "", value, r["src"]]
     return f"{i}. " + " | ".join(p for p in parts if p)
 
 
@@ -230,7 +249,8 @@ def _run(key: str, conf: dict, system: str, work: list, info: dict, stop: float,
             info["error"] = "isteklo vrijeme za ocjenjivanje; ostatak se ocjenjuje pri sljedećem osvježavanju"
             return False
         chunk = work[k:k + size]
-        body = {"model": conf["model"], "max_tokens": 70 * len(chunk) + 200, "system": system,
+        body = {"model": conf["model"], "max_tokens": 70 * len(chunk) + 200,
+                "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
                 "messages": [{"role": "user", "content": "\n".join(
                     _line(i, r) for i, r in enumerate(chunk, 1))}]}
         try:
@@ -257,23 +277,22 @@ def score(recs: list, cfg: dict, private: set) -> dict:
     pool = [r for r in recs if not r.get("dup")
             and (conf["include_private"] or r["src"] not in private)]
     todo = [r for r in pool if "ai" not in r]
-    info = {"model": conf["model"], "on": bool(key), "new": 0, "error": None}
+    okvir, oid = load_okvir(cfg)
+    info = {"model": conf["model"], "on": bool(key), "new": 0, "error": None, "okvir": oid}
     if not key:
         info["error"] = ("AI ocjena je isključena: na GitHubu nije postavljen secret "
                          "ANTHROPIC_API_KEY.")
-    elif not str(conf["profile"]).strip():
-        info["error"] = "AI ocjena je isključena: u config.json nema profila firme (ai, profile)."
+    elif not okvir:
+        info["error"] = "AI ocjena je isključena: nema okvira za ocjenu (fajl ai_okvir.md)."
     else:
         todo.sort(key=lambda r: r.get("fs") or r.get("p") or "", reverse=True)
         work = todo[:int(conf["max_per_run"])]
         stop = time.time() + float(conf["minutes"]) * 60
         tenders = [r for r in work if r.get("ty") != "P"]
         calls = [r for r in work if r.get("ty") == "P"]
-        profile = str(conf["profile"]).strip()
-        reic = str(conf["profile_reic"]).strip() or "nevladina organizacija iz BiH (opis nije unesen)"
         # Prvo javni pozivi (manje ih je), zatim tenderi; staje se na pogrešnom ključu ili isteku vremena.
-        if _run(key, conf, CALLS.format(profile=profile, profile_reic=reic), calls, info, stop, True):
-            _run(key, conf, INSTRUCTIONS.format(profile=profile), tenders, info, stop, False)
+        if _run(key, conf, _system(okvir, True), calls, info, stop, True):
+            _run(key, conf, _system(okvir, False), tenders, info, stop, False)
     info["scored"] = sum(1 for r in pool if "ai" in r)
     info["pending"] = sum(1 for r in pool if "ai" not in r)
     return info

@@ -30,8 +30,8 @@ from collectors import base
 
 # Redoslijed je ujedno prioritet kod duplikata: objavu zadržava izvor koji je prvi na listi.
 # Interni izvori uvijek dolaze poslije javnih, pa istu objavu zadržava javni izvor.
-# developmentaid.py ostaje u repozitoriju, ali se ne pokreće (pretraga preko API-ja se plaća dodatno).
-MODULES = ["ejn", "enabavki_mk", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
+# developmentaid.py i enabavki_mk.py ostaju u repozitoriju, ali se ne pokreću (vidi config.json, excluded).
+MODULES = ["ejn", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
            "czechaid", "eu_grants", "fzofbih", "ekofondrs", "fmrpo", "mrezamira",
            "giz", "osce"]
 
@@ -213,8 +213,15 @@ def main() -> int:
         r.pop("dup", None)
         prev_by_src.setdefault(r["src"], []).append(r)
     prev_fs = {r["id"]: r.get("fs") for r in prev}
-    # AI ocjene se prenose, da se svaka objava ocjenjuje samo jednom.
-    prev_ai = {r["id"]: r for r in prev if "ai" in r}
+    # AI ocjene se prenose, da se svaka objava ocjenjuje samo jednom. Kad se promijeni okvir za ocjenu
+    # (ai_okvir.md), stare ocjene se ne prenose i sve objave se ocjenjuju ponovo (do max_per_run dnevno).
+    _, okvir_id = ai_score.load_okvir(cfg)
+    old_okvir = (load_json(s_path, {}).get("ai") or {}).get("okvir")
+    ai_key = bool((os.environ.get("ANTHROPIC_API_KEY") or "").strip())
+    rescore = ai_key and bool(okvir_id) and old_okvir != okvir_id
+    prev_ai = {} if rescore else {r["id"]: r for r in prev if "ai" in r}
+    if rescore:
+        print("Okvir za AI ocjenu je promijenjen: sve objave se ocjenjuju ponovo.")
     # AI prijevod naslova se prenosi dok god je naslov isti.
     prev_en = {r["id"]: r for r in prev if "en" in r}
     # Rok koji je alat prvi put zabilježio, da se vidi kad ga naručilac pomjeri.
@@ -279,6 +286,9 @@ def main() -> int:
         for r in items:
             pub = r.get("p")
             r["fs"] = prev_fs.get(r["id"]) or (pub if pub and (new_source or pub < stale) else today)
+            if rescore:  # i zadržane objave (izvor nije uspio) ocjenjuju se po novom okviru
+                for f in ("ai", "air", "aiw"):
+                    r.pop(f, None)
             old_ai = prev_ai.get(r["id"])
             if "ai" not in r and old_ai and old_ai.get("ty") == r.get("ty"):  # tender ili javni poziv
                 for f in ("ai", "air", "aiw"):
@@ -293,8 +303,10 @@ def main() -> int:
         statuses.append(st)
 
     recs = dedup([r for r in recs if alive(r, today, cutoff)])
+    tr_info = ai_score.translate(recs, cfg, private)   # prvo prijevod, da ga AI ocjena vidi
     ai_info = ai_score.score(recs, cfg, private)
-    ai_info["tr"] = ai_score.translate(recs, cfg, private)
+    ai_info["tr"] = tr_info
+    ai_info["okvir"] = okvir_id if ai_key else old_okvir  # bez ključa ostaje stari, da se kasnije ocijeni ponovo
     recs.sort(key=lambda r: (r.get("d") or "9999", r.get("p") or ""))
     collected = Counter(r["src"] for r in recs)
     merged = Counter(r["src"] for r in recs if "dup" in r)

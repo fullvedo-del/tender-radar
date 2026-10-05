@@ -50,6 +50,9 @@ textarea{resize:vertical;min-height:3.2em}
 .checks input,.inline input{margin:3px 0 0;accent-color:var(--accent)}
 .inline{margin-top:6px;color:var(--muted);font-size:.87rem}
 .quick{display:flex;gap:6px;margin-bottom:6px}
+.fsearch{margin:0 0 6px;padding:5px 9px!important;font-size:.87rem}
+.checks label[hidden],.fnone[hidden]{display:none}
+.fnone{margin:4px;font-size:.85rem;color:var(--muted)}
 .quick button{padding:3px 10px;font-size:.87rem;border-radius:14px}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .only-mobile{display:none}
@@ -480,7 +483,7 @@ const markOf = r => (MARKS[r.id] || [])[0] || '';
 /* ---------- stanje ---------- */
 const DEF = {ty: 't', q: '', any: '', none: '', syn: true, ai: [], aiw: [], src: [], c: [], reg: [], k: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', sort: 'due'};
 const PAGE = 100;
-const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false, hasAi: false, synNote: '', nTy: {t: 0, p: 0}, byTy: {}};
+const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false, hasAi: false, synNote: '', nTy: {t: 0, p: 0}, byTy: {}, fq: {}};
 let F = structuredClone(DEF);
 
 const mem = {};
@@ -665,8 +668,32 @@ function apply(keep) {
 }
 
 /* ---------- prikaz ---------- */
+// Brza pretraga unutar filtera s mnogo opcija (država, izvor, CPV...).
+const FQ_MIN = 8;
+const FQ_HINT = {c: 'Traži državu…', src: 'Traži izvor…', cpv: 'Traži oblast…', reg: 'Traži regiju…', bt: 'Traži vrstu naručioca…'};
+let regionEn = null;  // engleski nazivi država, da pretraga nađe i "Germany" i "Njemačka"
+try { regionEn = new Intl.DisplayNames(['en'], {type: 'region'}); } catch (e) { /* stariji preglednik */ }
+const enName = c => { try { return (regionEn && /^[A-Z]{2}$/.test(c) && regionEn.of(c)) || ''; } catch (e) { return ''; } };
+const fqText = (f, v) => norm(f.label(v) + (f.key === 'c' ? ` ${v} ${C_SHORT[v] || ''} ${enName(v)}` : ''));
+const fqShow = (f, v, i, sel, q) => q ? sel.has(v) || fqText(f, v).includes(q) : !!S.expand[f.key] || i < f.top || sel.has(v);
+function filterFacet(inp) {
+  const f = FACETS.find(x => x.key === inp.dataset.fq), sec = inp.closest('section');
+  if (!f || !sec) return;
+  S.fq[f.key] = inp.value;
+  const q = norm(inp.value), sel = new Set(F[f.key]);
+  let n = 0;
+  for (const lab of sec.querySelectorAll('.checks label')) {
+    const show = fqShow(f, lab.querySelector('input').dataset.v, +lab.dataset.i, sel, q);
+    lab.hidden = !show; n += show ? 1 : 0;
+  }
+  const more = sec.querySelector('[data-expand]');
+  if (more) more.hidden = !!q;
+  sec.querySelector('.fnone').hidden = !q || n > 0;
+  sec.querySelector('.checks').classList.toggle('open', !!S.expand[f.key] || !!q);
+}
 function renderFacets() {
-  const activeId = document.activeElement && document.activeElement.id;
+  const act = document.activeElement, activeId = act && act.id;
+  const caret = act && act.dataset && act.dataset.fq ? act.selectionStart : null;
   const html = {A: '', B: ''};
   for (const f of FACETS) {
     if ((f.key === 'ai' || f.key === 'aiw') && !S.hasAi) continue;  // tek kad postoje AI ocjene
@@ -681,17 +708,21 @@ function renderFacets() {
     else if (f.order) vals.sort((a, b) => f.order.indexOf(a) - f.order.indexOf(b));
     else vals.sort((a, b) => (cnt.get(b) || 0) - (cnt.get(a) || 0) || String(f.label(a)).localeCompare(String(f.label(b)), 'bs'));
     const open = !!S.expand[f.key];
-    const shown = open ? vals : vals.filter((v, i) => i < f.top || sel.has(v));
+    const search = vals.length > FQ_MIN, q = search ? norm(S.fq[f.key]) : '';
     const title = f.key === 'ai' && F.ty === 'p' ? 'AI ocjena (CETEOR i REIC)' : f.title;
     h += `<section><h3>${title}${sel.size ? `<span class="badge">${sel.size}</span><button class="link" data-clear="${f.key}">očisti</button>` : ''}</h3>`;
     if (f.key === 'c') h += '<div class="quick"><button data-quick="BA">BiH</button><button data-quick="WB6">Zapadni Balkan</button></div>';
-    h += `<div class="checks${open ? ' open' : ''}">`;
-    for (const v of shown) {
+    if (search) h += `<input type="search" class="fsearch" id="fq-${f.key}" data-fq="${f.key}" value="${esc(S.fq[f.key] || '')}" placeholder="${FQ_HINT[f.key] || 'Traži…'}" autocomplete="off" aria-label="Traži u filteru ${esc(f.title)}">`;
+    h += `<div class="checks${open || q ? ' open' : ''}">`;
+    let n = 0;
+    for (const [i, v] of vals.entries()) {
       const id = ('fx-' + f.key + '-' + v).replace(/[^\w-]/g, '_');
-      h += `<label${cnt.get(v) ? '' : ' class="zero"'}><input type="checkbox" id="${id}" data-f="${f.key}" data-v="${esc(v)}"${sel.has(v) ? ' checked' : ''}><span>${esc(f.label(v))}</span><i>${fmtN(cnt.get(v) || 0)}</i></label>`;
+      const show = fqShow(f, v, i, sel, q);
+      n += show ? 1 : 0;
+      h += `<label data-i="${i}"${cnt.get(v) ? '' : ' class="zero"'}${show ? '' : ' hidden'}><input type="checkbox" id="${id}" data-f="${f.key}" data-v="${esc(v)}"${sel.has(v) ? ' checked' : ''}><span>${esc(f.label(v))}</span><i>${fmtN(cnt.get(v) || 0)}</i></label>`;
     }
-    h += '</div>';
-    if (vals.length > f.top) h += `<button class="link" data-expand="${f.key}">${open ? 'Prikaži manje' : `Prikaži sve (${vals.length})`}</button>`;
+    h += `<p class="fnone"${q && !n ? '' : ' hidden'}>Ništa ne odgovara.</p></div>`;
+    if (vals.length > f.top) h += `<button class="link" data-expand="${f.key}"${q ? ' hidden' : ''}>${open ? 'Prikaži manje' : `Prikaži sve (${vals.length})`}</button>`;
     if (f.key === 'cpv') h += `<label class="inline"><input type="checkbox" id="nocpv"${F.nocpv ? ' checked' : ''}><span>uključi i objave bez CPV koda (većina međunarodnih izvora)</span></label>`;
     h += '</section>';
     html[f.slot] += h;
@@ -699,6 +730,7 @@ function renderFacets() {
   $('facetsA').innerHTML = html.A;
   $('facetsB').innerHTML = html.B;
   if (activeId && activeId.startsWith('fx-') && $(activeId)) $(activeId).focus();
+  else if (activeId && activeId.startsWith('fq-') && $(activeId)) { const el = $(activeId); el.focus(); if (caret !== null) el.setSelectionRange(caret, caret); }
 }
 
 // "Novo": ako alat zna kad si zadnji put gledao podatke, sve što je stiglo poslije toga;
@@ -1267,9 +1299,13 @@ function wire() {
     F[k] = t.checked ? [...new Set([...F[k], v])] : F[k].filter(x => x !== v);
     apply();
   });
+  $('filters').addEventListener('input', e => { if (e.target.dataset.fq) filterFacet(e.target); });
+  $('filters').addEventListener('keydown', e => {
+    if (e.key === 'Escape' && e.target.dataset.fq && e.target.value) { e.preventDefault(); e.stopPropagation(); e.target.value = ''; filterFacet(e.target); }
+  });
   $('filters').addEventListener('click', e => {
     const t = e.target;
-    if (t.dataset.clear) { F[t.dataset.clear] = []; apply(); }
+    if (t.dataset.clear) { F[t.dataset.clear] = []; delete S.fq[t.dataset.clear]; apply(); }
     else if (t.dataset.expand) { S.expand[t.dataset.expand] = !S.expand[t.dataset.expand]; renderFacets(); }
     else if (t.dataset.quick) { F.c = t.dataset.quick === 'WB6' ? WB6.slice() : [t.dataset.quick]; apply(); }
   });
@@ -1280,7 +1316,7 @@ function wire() {
     F = p ? fromHash(p.h) : structuredClone(DEF);
     syncInputs(); apply();
   });
-  for (const id of ['btnReset', 'btnResetSide']) $(id).addEventListener('click', () => { F = structuredClone(DEF); S.profile = ''; syncInputs(); apply(); });
+  for (const id of ['btnReset', 'btnResetSide']) $(id).addEventListener('click', () => { F = structuredClone(DEF); S.profile = ''; S.fq = {}; syncInputs(); apply(); });
   $('btnSave').addEventListener('click', () => { $('profName').value = S.profile; $('dlgSave').showModal(); $('profName').focus(); });
   $('btnSaveCancel').addEventListener('click', () => $('dlgSave').close());
   $('btnSaveOk').addEventListener('click', () => {

@@ -22,7 +22,7 @@ Folder `data` se nikad ne prenosi ručno. U njemu alat čuva podatke i evidencij
 
 ## Korištenje
 
-Filteri su lijevo: moje oznake, ključne riječi, izvor, država, regija u BiH, vrsta ugovora, ko može ponuditi, sektor, oblast po CPV kodu, rok, procijenjena vrijednost i vrsta naručioca. Broj uz svaku opciju pokazuje koliko objava ona daje uz ostale izabrane filtere. Dugme „Očisti sve filtere“ na vrhu menija vraća prikaz svih objava. Dugme „Objavljeno danas“ iznad liste pokazuje objave koje su se pojavile u današnjem osvježavanju; broj na dugmetu kaže koliko ih je, a te objave su u listi na svijetloplavoj podlozi. Objava objavljena prije više od sedmice koju alat tek sada vidi (npr. nova država ili novi izvor) ne računa se kao današnja. Opcije u filterima su poredane po abecedi; e-Nabavke BiH i Bosna i Hercegovina su uvijek prve, a „Ostalo“ zadnje. Na mobitelu i tabletu filteri se otvaraju dugmetom „Filteri“ pored pretrage; broj u zagradi kaže koliko je filtera uključeno.
+Filteri su lijevo: moje oznake, ključne riječi, izvor, država, regija u BiH, vrsta ugovora, ko može ponuditi, sektor, oblast po CPV kodu, rok, procijenjena vrijednost i vrsta naručioca. Broj uz svaku opciju pokazuje koliko objava ona daje uz ostale izabrane filtere. Filteri s mnogo opcija (država, izvor, oblast, regija, vrsta naručioca) imaju polje za brzu pretragu: upiši npr. „njem“ za Njemačku ili „BiH“; Esc briše upisano. Dugme „Očisti sve filtere“ na vrhu menija vraća prikaz svih objava. Dugme „Objavljeno danas“ iznad liste pokazuje objave koje su se pojavile u današnjem osvježavanju; broj na dugmetu kaže koliko ih je, a te objave su u listi na svijetloplavoj podlozi. Objava objavljena prije više od sedmice koju alat tek sada vidi (npr. nova država ili novi izvor) ne računa se kao današnja. Opcije u filterima su poredane po abecedi; e-Nabavke BiH i Bosna i Hercegovina su uvijek prve, a „Ostalo“ zadnje. Na mobitelu i tabletu filteri se otvaraju dugmetom „Filteri“ pored pretrage; broj u zagradi kaže koliko je filtera uključeno.
 
 Ključne riječi se odvajaju zarezom i dovoljan je korijen riječi („energetsk“ nalazi i „energetska“ i „energetske“). Kvačice nisu bitne. Nazivi na ćirilici prikazuju se latinicom (preslovljeno, nije prevod), a izvorni naziv se vidi kad se mišem stane na naziv. Kvačica „traži i istoznačnice na drugim jezicima“ (uključena sama od sebe) dodaje istu riječ na drugim jezicima: „okoliš“ nalazi i „environment“, „Umwelt“ i „životna sredina“. Ispod polja piše šta je dodano.
 
@@ -42,7 +42,7 @@ Oznaka „novo“ stoji uz objave koje su stigle poslije tvoje zadnje posjete. P
 
 Prekidač „Tenderi / Javni pozivi“ iznad liste dijeli objave na nabavke (posao za firmu) i javne pozive za grantove i sredstva. Svaki dio pamti svoje filtere. Javne pozive daju EU programi (Horizon Europe, LIFE, Erasmus+ i drugi), UNDP-ovi pozivi za prijedloge, CzechAid, Fond za zaštitu okoliša FBiH, Eko fond RS, FMRPO, i Mreža mira.
 
-AI javne pozive ocjenjuje za CETEOR i za REIC: ocjena od 0 do 3, za koga je poziv (filter „AI: za koga je poziv“) i kratko obrazloženje s tim ko smije aplicirati. Opis REIC-a je u `config.json`, dio `ai`, polje `profile_reic`; provjeri ga i dopuni. Ko smije aplicirati AI procjenjuje iz naziva poziva, pa uslove uvijek provjeri u samom pozivu.
+AI javne pozive ocjenjuje za CETEOR i za REIC: ocjena od 0 do 3, za koga je poziv (filter „AI: za koga je poziv“) i kratko obrazloženje s tim ko smije aplicirati. Opis REIC-a i pravila za pozive su u fajlu `ai_okvir.md`. Ko smije aplicirati AI procjenjuje iz naziva poziva, pa uslove uvijek provjeri u samom pozivu.
 
 ## DevelopmentAid (isključen)
 
@@ -50,7 +50,7 @@ DevelopmentAid je isključen: pretraga tendera i grantova preko API-ja se plaća
 
 ## AI: ocjena za CETEOR i Pitaj AI
 
-Ocjena za CETEOR: pri svakom osvježavanju AI pročita nove objave i svakoj da ocjenu od 0 do 3 (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za nas) i jednu rečenicu obrazloženja. Na stranici su filter „AI ocjena za CETEOR“, poredak „AI ocjena, najbolje prvo“ i oznaka „AI 3/3“ uz objavu. AI ocjenjuje po opisu firme u `config.json` (dio `ai`, polje `profile`); što je opis tačniji, ocjene su bolje. Svaka objava se ocjenjuje jednom. Pri prvom osvježavanju ocijeni se do 2.000 objava, a ostatak sljedeći dan. Objave internih izvora (GIZ, OSCE) ne šalju se AI servisu dok se u `config.json` ne postavi `"include_private": true`.
+Ocjena za CETEOR: pri svakom osvježavanju AI pročita nove objave i svakoj da ocjenu od 0 do 3 (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za nas) i jednu rečenicu obrazloženja. Na stranici su filter „AI ocjena za CETEOR“, poredak „AI ocjena, najbolje prvo“ i oznaka „AI 3/3“ uz objavu. AI ocjenjuje po okviru iz fajla `ai_okvir.md`: opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3 (vrste posla, geografija, naručioci, individualni eksperti, vrijednost ugovora, javni pozivi) i primjeri iz referenci. Uz svaku objavu AI vidi naziv, engleski prijevod ako ga ima, naručioca, državu, vrstu ugovora i postupka, CPV kod, vrijednost i izvor, ali ne i projektni zadatak. Svaka objava se ocjenjuje jednom. Okvir se mijenja na GitHubu olovkom; svaka izmjena teksta pokreće ponovno ocjenjivanje svih objava pri sljedećem osvježavanju (do 5.000 po osvježavanju i najviše 12 minuta, ostatak sljedeći dan; oko 1,5 USD). Tekst između `<!--` i `-->` je napomena za ljude i AI ga ne vidi. Ocjenjuju se i objave internih izvora (GIZ, OSCE); ocjene ostaju u šifriranom fajlu zajedno s objavama. Ako to ne želiš, u `config.json` postavi `"include_private": false`.
 
 Pitaj AI: dugme pored pretrage. Napišeš običnim jezikom šta tražiš, a AI postavi filtere; „Vrati prethodne“ u poruci vraća stare. Prvi put stranica traži API ključ i pamti ga samo u tom pregledniku.
 
@@ -62,7 +62,7 @@ Postavljanje (jednom):
 4. U fajlu `.github/workflows/daily.yml` (olovka) ispod reda s `TR_PASSPHRASE` mora stajati red `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}`, uvučen isto kao red iznad.
 5. Za Pitaj AI isti ključ (ili poseban) upiši na stranici kad je zatraži.
 
-AI prijevod: naslovi koji nisu na bosanskom, hrvatskom, srpskom, crnogorskom ili engleskom (npr. makedonski, švedski, češki, francuski) dobiju kratak prijevod na engleski. Prijevod je ispod originalnog naslova, ljubičastom bojom i s oznakom EN; pretraga ga uzima u obzir, a ima ga i u CSV-u i u poruci „Pošalji“. Svaki naslov se provjerava jednom. Interni izvori se ne prevode dok se ne postavi `"include_private": true`. Prijevod se isključuje s `"translate": false` u dijelu `ai` u `config.json`.
+AI prijevod: naslovi koji nisu na bosanskom, hrvatskom, srpskom, crnogorskom ili engleskom (npr. švedski, češki, francuski) dobiju kratak prijevod na engleski. Prijevod je ispod originalnog naslova, ljubičastom bojom i s oznakom EN; pretraga ga uzima u obzir, a ima ga i u CSV-u i u poruci „Pošalji“. Svaki naslov se provjerava jednom. Prevode se i interni izvori (npr. GIZ-ovi naslovi na njemačkom). Prijevod se isključuje s `"translate": false` u dijelu `ai` u `config.json`.
 
 Cijena: model je Claude Haiku 4.5 (1 USD na milion ulaznih i 5 USD na milion izlaznih tokena). Prvo ocjenjivanje svih objava košta oko 1 USD, a prva provjera naslova za prijevod manje od 0,50 USD; poslije toga oboje košta nekoliko centi dnevno. Jedno pitanje u Pitaj AI košta manje od jednog centa. Bez ključa sve ostalo radi kao i prije.
 
@@ -71,7 +71,6 @@ Cijena: model je Claude Haiku 4.5 (1 USD na milion ulaznih i 5 USD na milion izl
 | Izvor | Šta se prikuplja | Način |
 |---|---|---|
 | e-Nabavke BiH | Sva otvorena obavještenja o nabavci (robe, usluge, radovi) | Zvanični open data API Agencije za javne nabavke |
-| e-Nabavki Sjeverna Makedonija | Aktuelni oglasi; zadano samo usluge (u `config.json`, dio `mk`, mogu se dodati robe i radovi) | Javna tabela oglasa na e-nabavki.gov.mk |
 | TED (EU) | Zapadni Balkan i Hrvatska: svi ugovori. EU institucije, međunarodne organizacije i razvojne agencije, te švedska agencija za zaštitu okoliša (Naturvårdsverket): usluge | Zvanični API |
 | EU Funding & Tenders | Otvoreni i najavljeni tenderi EU institucija | Zvanični API |
 | Svjetska banka | Svi otvoreni pozivi u svijetu | Zvanični API |
@@ -88,7 +87,7 @@ Cijena: model je Claude Haiku 4.5 (1 USD na milion ulaznih i 5 USD na milion izl
 | Eko fond RS | Javni konkursi za tekuću godinu | Stranice konkursa na ekofondrs.org |
 | FMRPO | Javni pozivi i konkursi ministarstva | RSS feed kategorije na fmrpo.gov.ba |
 
-Dvanaest izvora nije uključeno i treba ih pregledati ručno. DevelopmentAid: pretraga preko API-ja se plaća dodatno, a stranica ne dozvoljava automatsko preuzimanje. Nacionalni portali Hrvatske (EOJN RH) i Srbije (Portal javnih nabavki) u robots.txt zabranjuju automatski pristup; hrvatske nabavke iznad EU praga ipak stižu preko TED-a. Albanska agencija (APP) ima dnevni CSV izvoz, ali ga robots.txt zabranjuje robotima. Za portale Crne Gore (CEJN) i Kosova (e-Prokurimi) nije pronađen javni popis tendera koji se može čitati bez prijave. Naturvårdsverket svoje nabavke vodi na Mercellu, koji je aplikacija bez javnog popisa; njegove nabavke usluga iznad EU praga stižu preko TED-a. UNGM u uslovima korištenja zabranjuje preuzimanje sadržaja u druge sisteme bez pisane dozvole. UNOPS i FAO objavljuju preko UNGM-a i nemaju vlastitu javnu listu. EBRD-ov portal ECEPP, na kojem je većina tendera iz EBRD projekata, odbija automatski pristup, kao i sajtovi Energy Community i WWF Adria.
+Trinaest izvora nije uključeno i treba ih pregledati ručno. DevelopmentAid: pretraga preko API-ja se plaća dodatno, a stranica ne dozvoljava automatsko preuzimanje. Portal Sjeverne Makedonije (e-Nabavki) radi s drugih mreža, ali njegova zaštita od robota odbija GitHub servere. Nacionalni portali Hrvatske (EOJN RH) i Srbije (Portal javnih nabavki) u robots.txt zabranjuju automatski pristup; hrvatske nabavke iznad EU praga ipak stižu preko TED-a. Albanska agencija (APP) ima dnevni CSV izvoz, ali ga robots.txt zabranjuje robotima. Za portale Crne Gore (CEJN) i Kosova (e-Prokurimi) nije pronađen javni popis tendera koji se može čitati bez prijave. Naturvårdsverket svoje nabavke vodi na Mercellu, koji je aplikacija bez javnog popisa; njegove nabavke usluga iznad EU praga stižu preko TED-a. UNGM u uslovima korištenja zabranjuje preuzimanje sadržaja u druge sisteme bez pisane dozvole. UNOPS i FAO objavljuju preko UNGM-a i nemaju vlastitu javnu listu. EBRD-ov portal ECEPP, na kojem je većina tendera iz EBRD projekata, odbija automatski pristup, kao i sajtovi Energy Community i WWF Adria.
 
 Na e-Nabavkama se ne prikupljaju javni pozivi za usluge iz Aneksa II, direktni sporazumi i poništeni postupci.
 
@@ -112,7 +111,7 @@ Ako podaci nisu osvježeni duže od jednog dana, otvori karticu Actions. GitHub 
 
 ## Postavke
 
-Fajl `config.json` određuje šta se prikuplja. U dijelu `ted` su države za koje se s TED-a uzimaju sve objave i nazivi agencija čije se usluge prate (oznaka `@SE` znači: samo naručilac iz te države). U dijelu `mk` su vrste ugovora koje se preuzimaju iz Sjeverne Makedonije. U listi `private_sources` su ključevi izvora koji se vode kao interni, uz one koji su to po svojoj prirodi (GIZ, OSCE). U dijelu `excluded` su izvori koji su namjerno izostavljeni i razlog. Izmjena važi od sljedećeg osvježavanja.
+Fajl `config.json` određuje šta se prikuplja. U dijelu `ted` su države za koje se s TED-a uzimaju sve objave i nazivi agencija čije se usluge prate (oznaka `@SE` znači: samo naručilac iz te države). U listi `private_sources` su ključevi izvora koji se vode kao interni, uz one koji su to po svojoj prirodi (GIZ, OSCE). U dijelu `excluded` su izvori koji su namjerno izostavljeni i razlog. Izmjena važi od sljedećeg osvježavanja.
 
 Izvor se isključuje brisanjem njegovog naziva iz liste `MODULES` na vrhu fajla `collect.py`.
 
@@ -122,6 +121,6 @@ Stranica je javna za svakoga ko ima link, ali je označena tako da je pretraživ
 
 ## Tehnički
 
-`collect.py` pokreće kolektore iz foldera `collectors` i piše `data/tenders.json`, `data/status.json` i šifrirani `data/private.json`. `ai_score.py` je AI ocjena objava. `index.html` je cijela stranica. `.github/workflows/daily.yml` je dnevni raspored. Pravila za pisanje novog kolektora su u `collectors/CONTRACT.md`.
+`collect.py` pokreće kolektore iz foldera `collectors` i piše `data/tenders.json`, `data/status.json` i šifrirani `data/private.json`. `ai_score.py` je AI ocjena i AI prijevod objava, a `ai_okvir.md` okvir po kojem AI ocjenjuje. `index.html` je cijela stranica. `.github/workflows/daily.yml` je dnevni raspored. Pravila za pisanje novog kolektora su u `collectors/CONTRACT.md`.
 
 Lokalno pokretanje: `pip install -r requirements.txt`, zatim `python collect.py`. Samo jedan izvor: `python collect.py --only TED`. Interni izvori se lokalno preuzimaju samo ako je postavljena varijabla okruženja `TR_PASSPHRASE`.

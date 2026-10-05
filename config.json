@@ -32,19 +32,12 @@
       "Naturvårdsverket@SE"
     ]
   },
-  "mk": {
-    "_napomena": "Sjeverna Makedonija (e-nabavki.gov.mk): koje vrste ugovora se preuzimaju. Moguće: Services (usluge), Goods (robe), Works (radovi).",
-    "types": [
-      "Services"
-    ]
-  },
   "ai": {
-    "_napomena": "AI ocjena relevantnosti. Radi samo ako je na GitHubu postavljen secret ANTHROPIC_API_KEY. Tendere ocjenjuje po opisu u polju profile (CETEOR), a javne pozive po poljima profile i profile_reic (REIC); opise slobodno mijenjaj. include_private: da li se i objave internih izvora šalju AI servisu na ocjenu.",
+    "_napomena": "AI ocjena relevantnosti i AI prijevod naslova. Rade samo ako je na GitHubu postavljen secret ANTHROPIC_API_KEY. AI ocjenjuje po okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3, primjeri); izmjena tog fajla pokreće ponovno ocjenjivanje svih objava. max_per_run: najviše novih ocjena po osvježavanju. include_private: da li se i objave internih izvora (GIZ, OSCE) šalju AI servisu na ocjenu i prijevod; ocjene i prijevodi ostaju u šifriranom fajlu.",
     "model": "claude-haiku-4-5-20251001",
-    "max_per_run": 2000,
-    "include_private": false,
-    "profile": "CETEOR d.o.o. Sarajevo je konsultantska firma za okoliš, energiju, klimu i zelenu tranziciju, aktivna u Bosni i Hercegovini i na Zapadnom Balkanu. Radi strategije, akcione planove i studije (izvodljivosti, politika, tržišta); energetsku efikasnost i obnovljive izvore energije; zelene i održive finansije, ESG i izvještavanje o održivosti; cirkularnu ekonomiju i upravljanje otpadom; procjene uticaja na okoliš; prilagođavanje klimatskim promjenama i smanjenje emisija; obuke, e-učenje i jačanje kapaciteta; tehničku pomoć javnim institucijama, bankama, međunarodnim organizacijama i firmama. Ne isporučuje robu, opremu ni građevinske radove.",
-    "profile_reic": "REIC (Regionalni edukativni i informativni centar za održivi razvoj) je nevladina organizacija iz Bosne i Hercegovine koja radi edukaciju, informisanje, istraživanja i projekte u oblastima održivog razvoja, okoliša, klimatskih promjena i prilagođavanja, energije i zelene tranzicije. Aplicira na EU programe (npr. Horizon Europe) i donatorske pozive za nevladine organizacije, sama ili kao partner u konzorcijima."
+    "okvir": "ai_okvir.md",
+    "max_per_run": 5000,
+    "include_private": true
   },
   "private_sources": [],
   "excluded": [
@@ -101,6 +94,12 @@
       "name": "Portal javnih nabavki (Srbija)",
       "home": "https://jnportal.ujn.gov.rs",
       "reason": "robots.txt zabranjuje automatski pristup svemu osim naslovne strane."
+    },
+    {
+      "key": "ESJN",
+      "name": "e-Nabavki (Sjeverna Makedonija)",
+      "home": "https://e-nabavki.gov.mk/PublicAccess/home.aspx#/notices",
+      "reason": "Zaštita od robota (Cloudflare) odbija pristup sa GitHub servera (HTTP 403). Objave treba pregledati ručno; nabavke iz EU sredstava stižu preko TED-a."
     },
     {
       "key": "APP",
