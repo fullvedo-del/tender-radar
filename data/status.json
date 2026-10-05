@@ -1,7 +1,7 @@
 {
- "generated": "2026-10-04T14:03:03Z",
- "total": 3561,
- "total_private": 80,
+ "generated": "2026-10-05T10:39:35Z",
+ "total": 3626,
+ "total_private": 78,
  "fx": {
   "BAM": 1.0,
   "EUR": 1.95583,
@@ -44,10 +44,10 @@
  "ai": {
   "model": "claude-haiku-4-5-20251001",
   "on": true,
-  "new": 1960,
-  "error": "Expecting ',' delimiter: line 4 column 86 (char 248)",
-  "scored": 1960,
-  "pending": 1601
+  "new": 1669,
+  "error": null,
+  "scored": 3625,
+  "pending": 1
  },
  "sources": [
   {
@@ -57,9 +57,9 @@
    "scope": "Sva obavještenja o nabavci (robe, usluge, radovi) kojima rok za ponude ili zahtjeve za učešće nije istekao; bez poništenih postupaka, direktnih sporazuma i javnih poziva za usluge iz Aneksa II.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
-   "sec": 87.0,
-   "count": 1944,
+   "last_ok": "2026-10-05T10:39:35Z",
+   "sec": 73.9,
+   "count": 1985,
    "merged": 0
   },
   {
@@ -69,9 +69,9 @@
    "scope": "Otvoreni pozivi (rok nije istekao): svi tipovi ugovora za Zapadni Balkan (mjesto izvršenja ili naručilac) te usluge koje naručuju EU institucije, međunarodne organizacije i razvojne agencije i banke (GIZ, KfW, EIB, AFD, Enabel i dr.).",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
-   "sec": 5.0,
-   "count": 338,
+   "last_ok": "2026-10-05T10:39:35Z",
+   "sec": 9.4,
+   "count": 356,
    "merged": 0
   },
   {
@@ -81,10 +81,10 @@
    "scope": "Otvoreni i najavljeni pozivi za tendere institucija i agencija EU; bez poziva za grantove.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
-   "sec": 13.7,
-   "count": 193,
-   "merged": 114
+   "last_ok": "2026-10-05T10:39:35Z",
+   "sec": 15.5,
+   "count": 201,
+   "merged": 117
   },
   {
    "key": "WB",
@@ -93,9 +93,9 @@
    "scope": "Svi otvoreni pozivi za ponude, izraze interesa i pretkvalifikaciju iz projekata Svjetske banke u cijelom svijetu; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
-   "sec": 3.3,
-   "count": 609,
+   "last_ok": "2026-10-05T10:39:35Z",
+   "sec": 18.8,
+   "count": 614,
    "merged": 0
   },
   {
@@ -105,9 +105,9 @@
    "scope": "Sve otvorene objave s UNDP-ovog portala nabavki (UNDP, UNCDF, UNV) u cijelom svijetu, iz zvaničnog RSS feeda.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
-   "sec": 3.0,
-   "count": 557,
+   "last_ok": "2026-10-05T10:39:35Z",
+   "sec": 1.8,
+   "count": 552,
    "merged": 0
   },
   {
@@ -117,7 +117,7 @@
    "scope": "Otvoreni pozivi s liste objava na ebrd.com za projekte koje finansira EBRD (tenderi, prijedlozi, izražavanje interesa, pretkvalifikacija); bez portala ECEPP i vlastitih korporativnih i konsultantskih nabavki EBRD-a.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
+   "last_ok": "2026-10-05T10:39:35Z",
    "sec": 3.4,
    "count": 2,
    "merged": 2
@@ -129,8 +129,8 @@
    "scope": "Svi otvoreni pozivi sa RCC stranice „Open Calls“ (konsultantske usluge, individualni konsultanti, druge nabavke); oglasi za zapošljavanje nisu uključeni. Poziv koji ne imenuje državu vodi se pod svih šest zemalja Zapadnog Balkana.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
-   "sec": 1.0,
+   "last_ok": "2026-10-05T10:39:35Z",
+   "sec": 0.8,
    "count": 1,
    "merged": 0
   },
@@ -141,9 +141,9 @@
    "scope": "Otvorene nabavke Expertise France (sjedište i sve njegove jedinice) objavljene na francuskoj državnoj platformi PLACE; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
-   "sec": 48.4,
-   "count": 36,
+   "last_ok": "2026-10-05T10:39:35Z",
+   "sec": 51.8,
+   "count": 37,
    "merged": 3
   },
   {
@@ -154,10 +154,10 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
-   "sec": 11.6,
-   "count": 84,
-   "merged": 20
+   "last_ok": "2026-10-05T10:39:35Z",
+   "sec": 12.0,
+   "count": 81,
+   "merged": 19
   },
   {
    "key": "OSCE",
@@ -167,7 +167,7 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-04T14:03:03Z",
+   "last_ok": "2026-10-05T10:39:35Z",
    "sec": 3.1,
    "count": 16,
    "merged": 0
