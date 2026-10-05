@@ -30,9 +30,10 @@ from collectors import base
 
 # Redoslijed je ujedno prioritet kod duplikata: objavu zadržava izvor koji je prvi na listi.
 # Interni izvori uvijek dolaze poslije javnih, pa istu objavu zadržava javni izvor.
-MODULES = ["ejn", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
+# developmentaid.py ostaje u repozitoriju, ali se ne pokreće (pretraga preko API-ja se plaća dodatno).
+MODULES = ["ejn", "enabavki_mk", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
            "czechaid", "eu_grants", "fzofbih", "ekofondrs", "fmrpo", "mrezamira",
-           "giz", "osce", "developmentaid"]
+           "giz", "osce"]
 
 KEEP_NO_DEADLINE_DAYS = 60   # objave bez roka ostaju ovoliko dana od objave
 SUSPICIOUS_EMPTY = 10        # 0 objava je sumnjivo ako ih je zadnji put bilo bar ovoliko
@@ -214,6 +215,8 @@ def main() -> int:
     prev_fs = {r["id"]: r.get("fs") for r in prev}
     # AI ocjene se prenose, da se svaka objava ocjenjuje samo jednom.
     prev_ai = {r["id"]: r for r in prev if "ai" in r}
+    # AI prijevod naslova se prenosi dok god je naslov isti.
+    prev_en = {r["id"]: r for r in prev if "en" in r}
     # Rok koji je alat prvi put zabilježio, da se vidi kad ga naručilac pomjeri.
     first_due = {r["id"]: r.get("d0") or r.get("d") for r in prev}
 
@@ -221,6 +224,9 @@ def main() -> int:
     stamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     today = now.date().isoformat()
     cutoff = (now.date() - dt.timedelta(days=KEEP_NO_DEADLINE_DAYS)).isoformat()
+    # Objava koju alat prvi put vidi, a objavljena je prije više od sedmice (npr. novi izvor ili
+    # proširen filter), ne računa se kao nova: kao "prvi put viđena" uzima se datum objave.
+    stale = (now.date() - dt.timedelta(days=7)).isoformat()
 
     recs, statuses, any_ok = [], [], False
     for mod in mods:
@@ -269,19 +275,26 @@ def main() -> int:
                           last_ok=old.get("last_ok"))
             st["sec"] = round(time.time() - t0, 1)
 
-        new_source = key not in prev_status or old.get("off")
+        new_source = not old.get("last_ok") or old.get("off")  # izvor koji još nije uspio
         for r in items:
-            r["fs"] = prev_fs.get(r["id"]) or ((r.get("p") or today) if new_source else today)
+            pub = r.get("p")
+            r["fs"] = prev_fs.get(r["id"]) or (pub if pub and (new_source or pub < stale) else today)
             old_ai = prev_ai.get(r["id"])
             if "ai" not in r and old_ai and old_ai.get("ty") == r.get("ty"):  # tender ili javni poziv
                 for f in ("ai", "air", "aiw"):
                     if f in old_ai:
                         r[f] = old_ai[f]
+            old_en = prev_en.get(r["id"])
+            if "en" not in r and old_en and old_en.get("t") == r["t"]:
+                r["en"] = old_en["en"]
+                if old_en.get("lg"):
+                    r["lg"] = old_en["lg"]
         recs.extend(items)
         statuses.append(st)
 
     recs = dedup([r for r in recs if alive(r, today, cutoff)])
     ai_info = ai_score.score(recs, cfg, private)
+    ai_info["tr"] = ai_score.translate(recs, cfg, private)
     recs.sort(key=lambda r: (r.get("d") or "9999", r.get("p") or ""))
     collected = Counter(r["src"] for r in recs)
     merged = Counter(r["src"] for r in recs if "dup" in r)

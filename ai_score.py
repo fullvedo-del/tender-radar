@@ -6,6 +6,9 @@ ANTHROPIC_API_KEY (na GitHubu: secret istog imena). Bez ključa korak se preska�
 Ocjenjuju se samo objave koje još nemaju ocjenu, najnovije prve; ocjene se prenose iz dana u dan.
 Polja u zapisu: ai (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za firmu) i air (kratko
 obrazloženje na bosanskom). Profil firme i model su u config.json, dio "ai".
+
+translate() daje kratak engleski prijevod naslova koji nisu na bosanskom, hrvatskom, srpskom,
+crnogorskom ili engleskom: polje en (prijevod; prazno ako prijevod ne treba) i lg (jezik originala).
 """
 from __future__ import annotations
 
@@ -25,6 +28,10 @@ DEFAULTS = {
     "include_private": False,
     "profile": "",
     "profile_reic": "",
+    "translate": True,       # prijevod stranih naslova na engleski
+    "translate_batch": 80,
+    "translate_max": 3000,   # najviše naslova po osvježavanju
+    "translate_minutes": 6,
 }
 INSTRUCTIONS = """Ti si analitičar tendera za konsultantsku firmu. Profil firme:
 {profile}
@@ -58,6 +65,13 @@ Odgovori isključivo JSON listom, bez ikakvog drugog teksta, s jednim elementom 
 U obrazloženju ne koristi navodnike; ako je poznato, navedi ko smije aplicirati.
 [{{"i": 1, "s": 2, "w": "CR", "r": "obrazloženje na bosanskom, najviše 12 riječi"}}]"""
 KINDS = {"S": "usluge", "G": "robe", "W": "radovi"}
+TRANSLATE = """You get numbered titles of public tenders and calls for proposals.
+For every title that is NOT written in English, Bosnian, Croatian, Serbian or Montenegrin
+(Latin or Cyrillic script), give a short, faithful English translation of at most 25 words and the
+ISO 639-1 code of the title's language. Skip titles that are already in those languages.
+Reply only with a JSON list and nothing else, for example:
+[{"i": 2, "l": "mk", "e": "Maintenance of lifts in the ministry building"}]
+Return [] when no title needs a translation. Do not use double quotes inside translations."""
 
 
 class Fatal(Exception):
@@ -130,6 +144,82 @@ def _parse(text: str, n: int) -> dict:
             w = "".join(x for x in "CR" if x in str(w or "").upper())
             out[i] = (sc, w, re.sub(r"\s+", " ", str(r or "")).replace('\\"', '"').strip()[:160])
     return out
+
+
+TR_RX = re.compile(r'"i"\s*:\s*(\d+)\s*,\s*"l"\s*:\s*"([A-Za-z-]*)"\s*,\s*"e"\s*:\s*"(.*?)"\s*\}', re.S)
+
+
+def _parse_tr(text: str, n: int) -> dict:
+    """Odgovor na upit za prijevod: {broj: (prijevod, jezik)}. Prazna lista je ispravan odgovor."""
+    m = re.search(r"\[.*\]", text, re.S)
+    if not m:
+        raise ValueError("AI nije vratio prijevode u očekivanom obliku")
+    try:
+        items = [(x.get("i"), x.get("l"), x.get("e")) for x in json.loads(m.group(0)) if isinstance(x, dict)]
+    except ValueError:
+        items = TR_RX.findall(text)
+        if not items and m.group(0).strip("[] \n"):
+            raise ValueError("AI nije vratio prijevode u očekivanom obliku") from None
+    out = {}
+    for i, lang, en in items:
+        try:
+            i = int(i)
+        except (TypeError, ValueError):
+            continue
+        en = re.sub(r"\s+", " ", str(en or "")).replace('\\"', '"').strip()[:300]
+        lang = str(lang or "").lower()
+        if 1 <= i <= n and en:
+            out[i] = (en, lang if re.fullmatch(r"[a-z]{2,3}", lang) else "")
+    return out
+
+
+HOME_LANGS = {"en", "bs", "hr", "sr", "sh", "cnr", "me"}
+
+
+def _plain(text: str) -> str:
+    return re.sub(r"[\W_]+", " ", str(text or "").lower()).strip()
+
+
+def translate(recs: list, cfg: dict, private: set) -> dict:
+    """Dodaje polja en i lg zapisima koji ih nemaju. Vraća stanje za status.json."""
+    conf = {**DEFAULTS, **(cfg.get("ai") or {})}
+    key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    pool = [r for r in recs if not r.get("dup")
+            and (conf["include_private"] or r["src"] not in private)]
+    info = {"on": bool(key and conf["translate"]), "new": 0, "error": None}
+    if info["on"]:
+        todo = [r for r in pool if "en" not in r]
+        todo.sort(key=lambda r: r.get("fs") or r.get("p") or "", reverse=True)
+        work = todo[:int(conf["translate_max"])]
+        stop = time.time() + float(conf["translate_minutes"]) * 60
+        size = max(1, int(conf["translate_batch"]))
+        for k in range(0, len(work), size):
+            if time.time() > stop:
+                info["error"] = "isteklo vrijeme za prijevode; ostatak se prevodi pri sljedećem osvježavanju"
+                break
+            chunk = work[k:k + size]
+            body = {"model": conf["model"], "max_tokens": 45 * len(chunk) + 200, "system": TRANSLATE,
+                    "messages": [{"role": "user", "content": "\n".join(
+                        f"{i}. {r['t'][:300]}" for i, r in enumerate(chunk, 1))}]}
+            try:
+                got = _parse_tr(_call(key, body), len(chunk))
+            except Fatal as e:
+                info["error"] = str(e)
+                break
+            except Exception as e:  # jedan neuspjeli upit ne zaustavlja ostale
+                info["error"] = f"{e}"[:300] or type(e).__name__
+                continue
+            for i, r in enumerate(chunk, 1):
+                en, lang = got.get(i, ("", ""))
+                if lang in HOME_LANGS or _plain(en) == _plain(r["t"]):
+                    en, lang = "", ""  # naslov je već na domaćem jeziku ili engleskom
+                r["en"] = en
+                if lang:
+                    r["lg"] = lang
+                info["new"] += 1 if en else 0
+    info["done"] = sum(1 for r in pool if r.get("en"))
+    info["pending"] = sum(1 for r in pool if "en" not in r) if info["on"] else 0
+    return info
 
 
 def _run(key: str, conf: dict, system: str, work: list, info: dict, stop: float, calls: bool) -> bool:

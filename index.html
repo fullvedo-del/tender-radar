@@ -5,9 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Tender radar</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%2300633f'/><g fill='none' stroke='%239fdcbf' stroke-width='3'><circle cx='32' cy='32' r='23'/><circle cx='32' cy='32' r='13'/></g><path d='M32 32V9a23 23 0 0 1 19.92 11.5z' fill='%2362c99c' fill-opacity='.6'/><path d='M32 32 51.92 20.5' stroke='%23fff' stroke-width='3.5' stroke-linecap='round'/><circle cx='41' cy='17.5' r='3.6' fill='%23fff'/><circle cx='21' cy='41' r='2.6' fill='%239fdcbf'/><circle cx='32' cy='32' r='3.4' fill='%23fff'/></svg>">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#00633f">
 <style>
-:root{--bg:#f5f6f3;--panel:#fff;--ink:#16201a;--muted:#5c6a62;--line:#dde3dd;--accent:#00633f;--accent-ink:#fff;--accent-soft:#e2f0e9;--warn:#8a5200;--warn-soft:#fcefd2;--danger:#b3261e;--danger-soft:#fce5e2;--chip:#edf0ec;--new:#0b57d0}
-@media (prefers-color-scheme:dark){:root{--bg:#101411;--panel:#181d1a;--ink:#e6ebe7;--muted:#98a59d;--line:#29312c;--accent:#62c99c;--accent-ink:#0a1a11;--accent-soft:#1c3227;--warn:#f0b452;--warn-soft:#3a2c10;--danger:#ff8a80;--danger-soft:#3e1b18;--chip:#222924;--new:#8ab4f8}}
+:root{--bg:#f5f6f3;--panel:#fff;--ink:#16201a;--muted:#5c6a62;--line:#dde3dd;--accent:#00633f;--accent-ink:#fff;--accent-soft:#e2f0e9;--warn:#8a5200;--warn-soft:#fcefd2;--danger:#b3261e;--danger-soft:#fce5e2;--chip:#edf0ec;--new:#0b57d0;--today:#e6effd;--today-line:#bcd2f6;--tr:#6a3db8;--tr-soft:#efe8fb}
+@media (prefers-color-scheme:dark){:root{--bg:#101411;--panel:#181d1a;--ink:#e6ebe7;--muted:#98a59d;--line:#29312c;--accent:#62c99c;--accent-ink:#0a1a11;--accent-soft:#1c3227;--warn:#f0b452;--warn-soft:#3a2c10;--danger:#ff8a80;--danger-soft:#3e1b18;--chip:#222924;--new:#8ab4f8;--today:#16243b;--today-line:#2c4672;--tr:#c6abff;--tr-soft:#2b2240}}
 *{box-sizing:border-box}
 html{font-size:15px}
 body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
@@ -64,6 +67,7 @@ main{min-width:0}
 .seg button:first-child{border-radius:8px 0 0 8px}
 .seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
 .modes button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#btnToday:not(.on){background:var(--today);border-color:var(--today-line)}
 .modes i{font-style:normal;font-weight:400;opacity:.85;margin-left:6px;font-variant-numeric:tabular-nums}
 .summary b{font-size:1.1rem}
 .alert{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.93rem}
@@ -96,6 +100,10 @@ main{min-width:0}
 .air{font-size:.84rem;color:var(--muted);margin-top:3px}
 #askKeyBox[hidden],#btnAskForget[hidden]{display:none}
 .row.tracked{box-shadow:inset 4px 0 0 var(--accent)}
+.row.today{background:var(--today)}
+.ten{margin-top:2px;color:var(--tr);font-style:italic;overflow-wrap:anywhere}
+.ten b{font-style:normal;font-size:.68rem;font-weight:700;letter-spacing:.04em;color:var(--tr);background:var(--tr-soft);border-radius:4px;padding:1px 5px;margin-right:6px;vertical-align:1px}
+.row.hid .ten{color:var(--muted)}
 .row.hid .title,.row.hid .buyer{color:var(--muted)}
 .acts{display:grid;grid-template-columns:auto auto;gap:4px;justify-content:end;margin-top:6px}
 .acts [data-share]{grid-column:1/-1}
@@ -522,14 +530,15 @@ const FACETS = [
   // order: opcije se prikazuju tim redom i uvijek sve, i kad uz ostale filtere nemaju objava
   {key: 'ai', slot: 'A', title: 'AI ocjena za CETEOR', vals: r => [r._ai], label: v => AI_LABEL[v] || v, order: ['3', '2', '1', '0', 'N'], top: 5},
   {key: 'aiw', slot: 'A', title: 'AI: za koga je poziv', vals: r => r._aiw, label: v => ({C: 'CETEOR', R: 'REIC'})[v] || v, order: ['C', 'R'], top: 2},
-  {key: 'src', slot: 'A', title: 'Izvor', vals: r => r._src, label: srcLabel, order: [], top: 20},
-  {key: 'c', slot: 'A', title: 'Država', vals: r => r._c, label: countryName, top: 6},
-  {key: 'reg', slot: 'A', title: 'Regija, entitet, kanton', vals: r => r.reg ? [r.reg] : [], label: v => v, top: 4},
+  // abc: po abecedi; pin: -1 uvijek na vrhu, 1 uvijek na dnu
+  {key: 'src', slot: 'A', title: 'Izvor', vals: r => r._src, label: srcLabel, order: [], abc: true, pin: v => v === 'EJN' ? -1 : 0, top: 20},
+  {key: 'c', slot: 'A', title: 'Država', vals: r => r._c, label: countryName, abc: true, pin: v => v === 'BA' ? -1 : 0, top: 6},
+  {key: 'reg', slot: 'A', title: 'Regija, entitet, kanton', vals: r => r.reg ? [r.reg] : [], label: v => v, abc: true, top: 4},
   {key: 'k', slot: 'A', title: 'Vrsta ugovora', vals: r => [r.k], label: v => K_LABEL[v] || v, order: ['S', 'G', 'W', 'O'], top: 4},
   {key: 'who', slot: 'A', title: 'Ko može ponuditi', vals: r => [r._who], label: v => WHO_LABEL[v] || v, order: ['ORG', 'IND', 'OTH', 'UNK'], top: 4},
   {key: 'sec', slot: 'A', title: 'Sektor', vals: r => r._sec, label: v => SEC_LABEL[v] || v, order: ['E', 'O', 'X'], top: 3},
-  {key: 'cpv', slot: 'A', title: 'Oblast (CPV)', vals: r => r._cpv, label: v => `${v} · ${CPV[v] || 'ostalo'}`, top: 6},
-  {key: 'bt', slot: 'B', title: 'Vrsta naručioca', vals: r => [r.bt], label: v => BT_LABEL[v] || v, top: 6},
+  {key: 'cpv', slot: 'A', title: 'Oblast (CPV)', vals: r => r._cpv, label: v => `${CPV[v] || 'Ostalo'} · ${v}`, abc: true, pin: v => CPV[v] ? 0 : 1, top: 6},
+  {key: 'bt', slot: 'B', title: 'Vrsta naručioca', vals: r => [r.bt], label: v => BT_LABEL[v] || v, abc: true, pin: v => v === 'other' ? 1 : 0, top: 6},
 ];
 
 /* ---------- istoznačnice na više jezika ---------- */
@@ -668,7 +677,8 @@ function renderFacets() {
     const fixed = f.key === 'src' && F.ty === 'p' ? [] : (f.order || []);
     const vals = [...new Set([...fixed, ...cnt.keys(), ...sel])];
     if (!vals.length) continue;
-    if (f.order) vals.sort((a, b) => f.order.indexOf(a) - f.order.indexOf(b));
+    if (f.abc) vals.sort((a, b) => (f.pin ? f.pin(a) - f.pin(b) : 0) || String(f.label(a)).localeCompare(String(f.label(b)), 'bs', {sensitivity: 'base'}));
+    else if (f.order) vals.sort((a, b) => f.order.indexOf(a) - f.order.indexOf(b));
     else vals.sort((a, b) => (cnt.get(b) || 0) - (cnt.get(a) || 0) || String(f.label(a)).localeCompare(String(f.label(b)), 'bs'));
     const open = !!S.expand[f.key];
     const shown = open ? vals : vals.filter((v, i) => i < f.top || sel.has(v));
@@ -693,6 +703,8 @@ function renderFacets() {
 
 // "Novo": ako alat zna kad si zadnji put gledao podatke, sve što je stiglo poslije toga;
 // inače ono što je prvi put viđeno danas ili jučer.
+// Jezik originala za oznaku AI prijevoda (ISO 639-1, u genitivu: "s makedonskog").
+const LANG = {mk: 'makedonskog', sq: 'albanskog', sv: 'švedskog', cs: 'češkog', sk: 'slovačkog', sl: 'slovenačkog', fr: 'francuskog', de: 'njemačkog', it: 'italijanskog', es: 'španskog', pt: 'portugalskog', ro: 'rumunskog', bg: 'bugarskog', el: 'grčkog', hu: 'mađarskog', pl: 'poljskog', nl: 'holandskog', da: 'danskog', fi: 'finskog', no: 'norveškog', nb: 'norveškog', et: 'estonskog', lv: 'latvijskog', lt: 'litvanskog', tr: 'turskog', ru: 'ruskog', uk: 'ukrajinskog', ar: 'arapskog'};
 const isNew = r => r._f !== null && (S.prevDay !== null ? r._f > S.prevDay : TODAY - r._f <= 1);
 
 function rowHtml(r) {
@@ -718,7 +730,8 @@ function rowHtml(r) {
   const mk = markOf(r);
   const tip = [r.ref ? 'Broj objave: ' + r.ref : '', r._t0 ? 'Izvorno: ' + r._t0 : ''].filter(Boolean).join(' | ');
   const acts = `<div class="acts"><button class="mini${mk === 'p' ? ' on' : ''}" data-mark="p" data-id="${esc(r.id)}" aria-pressed="${mk === 'p'}">${mk === 'p' ? 'Pratim ✓' : 'Pratim'}</button><button class="mini" data-mark="h" data-id="${esc(r.id)}">${mk === 'h' ? 'Vrati' : 'Sakrij'}</button><button class="mini" data-share data-id="${esc(r.id)}" title="Pošalji objavu e-mailom">Pošalji</button></div>`;
-  return `<article class="row${mk === 'p' ? ' tracked' : mk === 'h' ? ' hid' : ''}"><div class="due${cls}">${due}</div><div><a class="title" href="${esc(r.u)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${esc(r.t)}</a>${isNew(r) ? '<span class="new">novo</span>' : ''}<div class="buyer">${esc(r.b || 'Naručilac nije naveden')}</div>${r.ai >= 2 && r.air ? `<div class="air">AI: ${esc(r.air)}</div>` : ''}<div class="chips">${chips.join('')}${also ? `<span class="also">također na: ${also}</span>` : ''}</div></div><div class="pub"><span>objavljeno</span><b>${r.p ? fmtDate(r.p) : 'nije navedeno'}</b>${acts}</div></article>`;
+  const ten = r.en ? `<div class="ten" lang="en" title="AI prijevod${LANG[r.lg] ? ' s ' + LANG[r.lg] : ''} na engleski"><b>EN</b>${esc(r.en)}</div>` : '';
+  return `<article class="row${mk === 'p' ? ' tracked' : mk === 'h' ? ' hid' : ''}${r._f === TODAY ? ' today' : ''}"><div class="due${cls}">${due}</div><div><a class="title" href="${esc(r.u)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${esc(r.t)}</a>${isNew(r) ? '<span class="new">novo</span>' : ''}${ten}<div class="buyer">${esc(r.b || 'Naručilac nije naveden')}</div>${r.ai >= 2 && r.air ? `<div class="air">AI: ${esc(r.air)}</div>` : ''}<div class="chips">${chips.join('')}${also ? `<span class="also">također na: ${also}</span>` : ''}</div></div><div class="pub"><span>objavljeno</span><b>${r.p ? fmtDate(r.p) : 'nije navedeno'}</b>${acts}</div></article>`;
 }
 
 function renderList() {
@@ -803,7 +816,7 @@ function renderStatus() {
 function aiStatus(ai) {
   if (!ai) return '';
   if (!ai.on || /isključena/.test(ai.error || '')) return `<p class="hint">${esc(ai.error || 'AI ocjena je isključena.')}</p>`;
-  return `<p class="hint">AI ocjena (${esc(ai.model)}): ocijenjeno ${fmtN(ai.scored || 0)} ${plural(ai.scored || 0, 'objava', 'objave', 'objava')}, u zadnjem osvježavanju ${fmtN(ai.new || 0)} novih${ai.pending ? `, čeka ${fmtN(ai.pending)}` : ''}.${ai.error ? ' Zadnja greška: ' + esc(ai.error) + '.' : ''}</p>`;
+  return `<p class="hint">AI ocjena (${esc(ai.model)}): ocijenjeno ${fmtN(ai.scored || 0)} ${plural(ai.scored || 0, 'objava', 'objave', 'objava')}, u zadnjem osvježavanju ${fmtN(ai.new || 0)} novih${ai.pending ? `, čeka ${fmtN(ai.pending)}` : ''}.${ai.error ? ' Zadnja greška: ' + esc(ai.error) + '.' : ''}</p>` + (ai.tr && ai.tr.on ? `<p class="hint">AI prijevod na engleski: ${fmtN(ai.tr.done || 0)} ${plural(ai.tr.done || 0, 'naslov preveden', 'naslova prevedena', 'naslova prevedeno')}, u zadnjem osvježavanju ${fmtN(ai.tr.new || 0)} novih${ai.tr.pending ? `, čeka provjeru ${fmtN(ai.tr.pending)}` : ''}.${ai.tr.error ? ' Zadnja greška: ' + esc(ai.tr.error) + '.' : ''}</p>` : '');
 }
 function refreshAi() {
   S.hasAi = S.data.some(r => r.ai != null);
@@ -884,10 +897,10 @@ function setMark(id, m) {
 }
 
 function exportCsv() {
-  const head = ['Rok', 'Vrijeme', 'Naziv', 'Naručilac', 'Država', 'Regija', 'Mjesto', 'Vrsta ugovora', 'Vrsta postupka', 'CPV', 'Sektor', 'Ko može ponuditi', 'Vrsta naručioca', 'Izvor', 'Objavljeno', 'Procijenjena vrijednost', 'Valuta', 'Vrijednost u KM', 'Raniji rok', 'Moja oznaka', 'Referenca', 'Link', 'AI ocjena', 'AI obrazloženje', 'Vrsta objave'];
+  const head = ['Rok', 'Vrijeme', 'Naziv', 'Naziv na engleskom (AI prijevod)', 'Naručilac', 'Država', 'Regija', 'Mjesto', 'Vrsta ugovora', 'Vrsta postupka', 'CPV', 'Sektor', 'Ko može ponuditi', 'Vrsta naručioca', 'Izvor', 'Objavljeno', 'Procijenjena vrijednost', 'Valuta', 'Vrijednost u KM', 'Raniji rok', 'Moja oznaka', 'Referenca', 'Link', 'AI ocjena', 'AI obrazloženje', 'Vrsta objave'];
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
   const lines = [head.map(q).join(';')];
-  for (const r of S.view) lines.push([r.d || '', r.dt || '', r.t, r.b || '', (r.c || []).map(countryName).join(', '), r.reg || '', r.loc || '', r.k === 'O' ? '' : K_LABEL[r.k], r.n || '', (r.cpv || []).join(' '), r._sec.map(x => SEC_LABEL[x]).join(', '), WHO_LABEL[r._who], BT_LABEL[r.bt] || '', srcName(r.src), r.p || '', r.v || '', r.cur || '', r._v === null ? '' : Math.round(r._v), r.d0 || '', {p: 'pratim', h: 'sakriveno'}[markOf(r)] || '', r.ref || '', r.u, r.ai ?? '', r.air || '', r._ty === 'p' ? 'Javni poziv' + (r._aiw.length ? ' (' + r._aiw.map(x => ({C: 'CETEOR', R: 'REIC'})[x]).join(', ') + ')' : '') : 'Tender'].map(q).join(';'));
+  for (const r of S.view) lines.push([r.d || '', r.dt || '', r.t, r.en || '', r.b || '', (r.c || []).map(countryName).join(', '), r.reg || '', r.loc || '', r.k === 'O' ? '' : K_LABEL[r.k], r.n || '', (r.cpv || []).join(' '), r._sec.map(x => SEC_LABEL[x]).join(', '), WHO_LABEL[r._who], BT_LABEL[r.bt] || '', srcName(r.src), r.p || '', r.v || '', r.cur || '', r._v === null ? '' : Math.round(r._v), r.d0 || '', {p: 'pratim', h: 'sakriveno'}[markOf(r)] || '', r.ref || '', r.u, r.ai ?? '', r.air || '', r._ty === 'p' ? 'Javni poziv' + (r._aiw.length ? ' (' + r._aiw.map(x => ({C: 'CETEOR', R: 'REIC'})[x]).join(', ') + ')' : '') : 'Tender'].map(q).join(';'));
   download(`tenderi-${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}.csv`, String.fromCharCode(0xFEFF) + lines.join('\r\n'), 'text/csv;charset=utf-8');
 }
 function download(name, text, type) {
@@ -934,6 +947,7 @@ function shareFields(r) {
   const add = (label, value, drop, url) => { if (value) out.push({label, value: String(value), drop, url: !!url}); };
   const cs = r.c || [];
   add('Naziv', r.t, 0);
+  add('Naziv na engleskom (AI prijevod)', r.en, 2.5);
   add('Naručilac', r.b, 0);
   add(r._ty === 'p' ? 'Rok za prijave' : 'Rok za ponude', r.d ? fmtDate(r.d) + (r.dt ? ' u ' + r.dt : '') + (r.d0 ? ` (pomjeren, ranije ${fmtDate(r.d0)})` : '') : 'nije naveden', 0);
   add('Objavljeno', r.p && fmtDate(r.p), 3);
@@ -1410,7 +1424,7 @@ function prep(r) {
   if (hasCyr(r.loc)) r.loc = toLatin(r.loc);
   r._v = r.v && S.fx[r.cur] ? r.v * S.fx[r.cur] : null;  // vrijednost u KM, za filter
   r._who = bidder(r);
-  r._s = norm([r.t, r.b, r.loc, r.reg, r.ref, r.n, (r.cpv || []).join(' ')].filter(Boolean).join(' '));
+  r._s = norm([r.t, r.en, r.b, r.loc, r.reg, r.ref, r.n, (r.cpv || []).join(' ')].filter(Boolean).join(' '));
   r._sw = ' ' + r._s;  // za istoznačnice: traže se na početku riječi
   r._ai = r.ai == null ? 'N' : String(r.ai);
   r._aiw = r.aiw ? [...r.aiw] : [];

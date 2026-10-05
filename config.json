@@ -7,7 +7,8 @@
       "ME",
       "MK",
       "AL",
-      "XK"
+      "XK",
+      "HR"
     ],
     "strict_eu": true,
     "buyer_names": [
@@ -27,7 +28,14 @@
       "European Central Bank",
       "Union for the Mediterranean",
       "Scuola Europea",
-      "European School"
+      "European School",
+      "Naturvårdsverket@SE"
+    ]
+  },
+  "mk": {
+    "_napomena": "Sjeverna Makedonija (e-nabavki.gov.mk): koje vrste ugovora se preuzimaju. Moguće: Services (usluge), Goods (robe), Works (radovi).",
+    "types": [
+      "Services"
     ]
   },
   "ai": {
@@ -77,10 +85,40 @@
       "reason": "Sajt automatski pristup odbija zaštitom od robota (HTTP 403). Objave treba pregledati ručno."
     },
     {
-      "key": "SEPA",
-      "name": "Naturvårdsverket (Švedska agencija za zaštitu okoliša)",
-      "home": "https://www.naturvardsverket.se/en/international/cooperation/bilateral/western-balkans/",
-      "reason": "Agencija nema javnu listu nabavki ni poziva za Zapadni Balkan; u regionu vodi program o kvalitetu zraka sa SMHI i UNICEF-om. Ako nešto nabavlja za BiH, to se objavljuje na TED-u, koji se već prati."
+      "key": "DA",
+      "name": "DevelopmentAid",
+      "home": "https://www.developmentaid.org",
+      "reason": "Pretraga tendera i grantova preko API-ja se plaća dodatno uz članarinu, a uslovi stranice i zaštita od robota ne dozvoljavaju automatsko preuzimanje."
+    },
+    {
+      "key": "EOJN",
+      "name": "EOJN RH (Hrvatska)",
+      "home": "https://eojn.hr",
+      "reason": "robots.txt zabranjuje automatski pristup svemu osim naslovne strane. Hrvatske nabavke iznad EU praga stižu preko TED-a, koji se prati."
+    },
+    {
+      "key": "JNRS",
+      "name": "Portal javnih nabavki (Srbija)",
+      "home": "https://jnportal.ujn.gov.rs",
+      "reason": "robots.txt zabranjuje automatski pristup svemu osim naslovne strane."
+    },
+    {
+      "key": "APP",
+      "name": "Agjencia e Prokurimit Publik (Albanija)",
+      "home": "https://www.app.gov.al",
+      "reason": "Službeni dnevni CSV izvoz postoji, ali ga robots.txt izričito zabranjuje robotima."
+    },
+    {
+      "key": "CEJN",
+      "name": "CEJN (Crna Gora)",
+      "home": "https://cejn.gov.me",
+      "reason": "Portal je aplikacija; nije pronađen javni popis tendera koji se može čitati bez prijave."
+    },
+    {
+      "key": "EPRK",
+      "name": "e-Prokurimi (Kosovo)",
+      "home": "https://e-prokurimi.rks-gov.net",
+      "reason": "Stari sistem bez javnog izvoza ili API-ja; za sada nije pronađen stabilan javni popis tendera."
     }
   ]
 }
