@@ -31,7 +31,7 @@ from collectors import base
 # Redoslijed je ujedno prioritet kod duplikata: objavu zadržava izvor koji je prvi na listi.
 # Interni izvori uvijek dolaze poslije javnih, pa istu objavu zadržava javni izvor.
 MODULES = ["ejn", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
-           "czechaid", "eu_grants", "fzofbih", "ekofondrs", "fmrpo",
+           "czechaid", "eu_grants", "fzofbih", "ekofondrs", "fmrpo", "mrezamira",
            "giz", "osce", "developmentaid"]
 
 KEEP_NO_DEADLINE_DAYS = 60   # objave bez roka ostaju ovoliko dana od objave

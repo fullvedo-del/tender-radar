@@ -22,7 +22,7 @@ Folder `data` se nikad ne prenosi ručno. U njemu alat čuva podatke i evidencij
 
 ## Korištenje
 
-Filteri su lijevo: moje oznake, ključne riječi, izvor, država, regija u BiH, vrsta ugovora, ko može ponuditi, sektor, oblast po CPV kodu, rok, procijenjena vrijednost i vrsta naručioca. Broj uz svaku opciju pokazuje koliko objava ona daje uz ostale izabrane filtere. Dugme „Očisti sve filtere“ na vrhu menija vraća prikaz svih objava. Na mobitelu i tabletu filteri se otvaraju dugmetom „Filteri“ pored pretrage; broj u zagradi kaže koliko je filtera uključeno.
+Filteri su lijevo: moje oznake, ključne riječi, izvor, država, regija u BiH, vrsta ugovora, ko može ponuditi, sektor, oblast po CPV kodu, rok, procijenjena vrijednost i vrsta naručioca. Broj uz svaku opciju pokazuje koliko objava ona daje uz ostale izabrane filtere. Dugme „Očisti sve filtere“ na vrhu menija vraća prikaz svih objava. Dugme „Objavljeno danas“ iznad liste pokazuje objave koje su se pojavile u današnjem osvježavanju; broj na dugmetu kaže koliko ih je. Na mobitelu i tabletu filteri se otvaraju dugmetom „Filteri“ pored pretrage; broj u zagradi kaže koliko je filtera uključeno.
 
 Ključne riječi se odvajaju zarezom i dovoljan je korijen riječi („energetsk“ nalazi i „energetska“ i „energetske“). Kvačice nisu bitne. Nazivi na ćirilici prikazuju se latinicom (preslovljeno, nije prevod), a izvorni naziv se vidi kad se mišem stane na naziv. Kvačica „traži i istoznačnice na drugim jezicima“ (uključena sama od sebe) dodaje istu riječ na drugim jezicima: „okoliš“ nalazi i „environment“, „Umwelt“ i „životna sredina“. Ispod polja piše šta je dodano.
 
@@ -40,7 +40,7 @@ Oznaka „novo“ stoji uz objave koje su stigle poslije tvoje zadnje posjete. P
 
 ## Javni pozivi (grantovi)
 
-Prekidač „Tenderi / Javni pozivi“ iznad liste dijeli objave na nabavke (posao za firmu) i javne pozive za grantove i sredstva. Svaki dio pamti svoje filtere. Javne pozive daju EU programi (Horizon Europe, LIFE, Erasmus+ i drugi), UNDP-ovi pozivi za prijedloge, CzechAid, Fond za zaštitu okoliša FBiH, Eko fond RS, FMRPO i, kad DevelopmentAid omogući pretragu, DevelopmentAid.
+Prekidač „Tenderi / Javni pozivi“ iznad liste dijeli objave na nabavke (posao za firmu) i javne pozive za grantove i sredstva. Svaki dio pamti svoje filtere. Javne pozive daju EU programi (Horizon Europe, LIFE, Erasmus+ i drugi), UNDP-ovi pozivi za prijedloge, CzechAid, Fond za zaštitu okoliša FBiH, Eko fond RS, FMRPO, Mreža mira i, kad DevelopmentAid omogući pretragu, DevelopmentAid.
 
 AI javne pozive ocjenjuje za CETEOR i za REIC: ocjena od 0 do 3, za koga je poziv (filter „AI: za koga je poziv“) i kratko obrazloženje s tim ko smije aplicirati. Opis REIC-a je u `config.json`, dio `ai`, polje `profile_reic`; provjeri ga i dopuni. Ko smije aplicirati AI procjenjuje iz naziva poziva, pa uslove uvijek provjeri u samom pozivu.
 
@@ -80,7 +80,8 @@ Cijena: model je Claude Haiku 4.5 (1 USD na milion ulaznih i 5 USD na milion izl
 | OSCE (interni) | Svi otvoreni tenderi sekretarijata, institucija i misija | Javna lista na procurement.osce.org |
 | CzechAid | Tenderi i pozivi za dotacije Češke razvojne agencije | Vijesti i lista dotacija na czechaid.gov.cz |
 | EU programi (grantovi) | Otvoreni i najavljeni pozivi EU programa | Zvanični API (isti kao EU Funding & Tenders) |
-| Fond za zaštitu okoliša FBiH | Javni pozivi i natječaji za dodjelu sredstava | RSS feedovi kategorija na fzofbih.org.ba |
+| Fond za zaštitu okoliša FBiH | Otvoreni javni pozivi i konkursi; pozivi koje Fond objavi kao zatvorene se izostavljaju | Stranice kategorija na fzofbih.org.ba |
+| Mreža mira | Pozivi za projekte, grantove i programe koje mreža prenosi za organizacije iz BiH | RSS feed kategorije (sadržaj pod licencom CC BY-SA 3.0) |
 | Eko fond RS | Javni konkursi za tekuću godinu | Stranice konkursa na ekofondrs.org |
 | FMRPO | Javni pozivi i konkursi ministarstva | RSS feed kategorije na fmrpo.gov.ba |
 | DevelopmentAid (interni) | Tenderi za Zapadni Balkan i grantovi za organizacije iz BiH | API uz članarinu |

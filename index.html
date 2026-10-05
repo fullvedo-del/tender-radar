@@ -57,10 +57,12 @@ main{min-width:0}
 .bar select{width:auto;max-width:260px;color:var(--ink)}
 #q{flex:1;min-width:200px;font-size:1.05rem;padding:9px 12px}
 .summary{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin:0 2px}
-.modes{display:flex;margin-bottom:10px}
-.modes button{border-radius:0;padding:7px 14px;font-weight:600}
-.modes button:first-child{border-radius:8px 0 0 8px}
-.modes button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.modes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.seg{display:flex}
+.modes button{padding:7px 14px;font-weight:600}
+.seg button{border-radius:0}
+.seg button:first-child{border-radius:8px 0 0 8px}
+.seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
 .modes button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .modes i{font-style:normal;font-weight:400;opacity:.85;margin-left:6px;font-variant-numeric:tabular-nums}
 .summary b{font-size:1.1rem}
@@ -241,7 +243,7 @@ td a{color:var(--accent)}
       <button id="btnAsk" title="Opiši običnim jezikom šta tražiš, a AI postavi filtere">Pitaj AI</button>
       <button id="btnFilters" class="only-mobile">Filteri</button>
     </div>
-    <div class="modes" role="tablist" aria-label="Vrsta objava"><button id="modeT" data-ty="t" role="tab">Tenderi<i></i></button><button id="modeP" data-ty="p" role="tab">Javni pozivi<i></i></button></div>
+    <div class="modes"><span class="seg" role="tablist" aria-label="Vrsta objava"><button id="modeT" data-ty="t" role="tab">Tenderi<i></i></button><button id="modeP" data-ty="p" role="tab">Javni pozivi<i></i></button></span><button id="btnToday" title="Objave koje su se pojavile u današnjem osvježavanju" aria-pressed="false">Objavljeno danas<i></i></button></div>
     <div class="bar">
       <label>Profil <select id="profile"></select></label>
       <button id="btnSave">Sačuvaj profil</button>
@@ -806,8 +808,8 @@ function aiStatus(ai) {
 function refreshAi() {
   S.hasAi = S.data.some(r => r.ai != null);
   $('sortAi').hidden = !S.hasAi;
-  S.nTy = {t: 0, p: 0};
-  for (const r of S.data) S.nTy[r._ty]++;
+  S.nTy = {t: 0, p: 0}; S.nToday = {t: 0, p: 0};
+  for (const r of S.data) { S.nTy[r._ty]++; if (r._f === TODAY) S.nToday[r._ty]++; }
 }
 function renderModes() {
   for (const [id, ty] of [['modeT', 't'], ['modeP', 'p']]) {
@@ -815,6 +817,9 @@ function renderModes() {
     b.classList.toggle('on', F.ty === ty); b.setAttribute('aria-selected', F.ty === ty);
     b.querySelector('i').textContent = fmtN(S.nTy[ty] || 0);
   }
+  const t = $('btnToday'), on = F.fresh === '1';
+  t.classList.toggle('on', on); t.setAttribute('aria-pressed', on);
+  t.querySelector('i').textContent = fmtN((S.nToday || {})[F.ty] || 0);
 }
 // Tenderi i javni pozivi imaju svaki svoje filtere; prekidač pamti filtere onog drugog.
 function setMode(ty) {
@@ -1221,6 +1226,8 @@ function wire() {
   for (const id of ['q', 'any', 'none', 'min', 'vmin', 'vmax']) $(id).addEventListener('input', text);
   $('nov').addEventListener('change', () => { F.nov = $('nov').checked; apply(); });
   for (const id of ['modeT', 'modeP']) $(id).addEventListener('click', e => setMode(e.currentTarget.dataset.ty));
+  // "Objavljeno danas": objave koje su prvi put viđene u današnjem osvježavanju (isto kao "Novo u zadnjih 1 dan").
+  $('btnToday').addEventListener('click', () => { F.fresh = F.fresh === '1' ? '' : '1'; syncInputs(); apply(); window.scrollTo(0, 0); });
   $('syn').addEventListener('change', () => { F.syn = $('syn').checked; apply(); });
   $('mark').addEventListener('change', () => { F.mark = $('mark').value; apply(); });
   $('summary').addEventListener('click', e => { if ('fresh' in e.target.dataset) { F.fresh = e.target.dataset.fresh; syncInputs(); apply(); } });
