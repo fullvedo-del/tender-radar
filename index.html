@@ -1405,7 +1405,7 @@ const enc = s => { try { return encodeURIComponent(s); } catch (e) { return enco
 const encAddr = a => enc(a).replace(/%40/g, '@');
 const mailtoUrl = (to, subject, body) => `mailto:${to.map(encAddr).join(',')}?subject=${enc(subject)}&body=${enc(body)}`;
 const gmailUrl = (to, subject, body) => `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(to.join(','))}&su=${enc(subject)}&body=${enc(body)}`;
-const WAYS = {outlook: 'Otvori u Outlooku', app: 'Otvori e-mail', gmail: 'Otvori u Gmailu'};
+const WAYS = {outlook: 'Otvori u Outlooku', app: 'Otvori e-mail', gmail: 'Otvori u Gmailu', share: 'Podijeli'};
 const WAY_HINT = {
   outlook: '„Otvori u Outlooku“ preuzme gotovu poruku s tabelom; klikni preuzeti fajl i Outlook je otvori spremnu za slanje.',
   app: '„Otvori e-mail“ otvara poruku u programu za poštu i usput kopira tabelu: u poruci označi redove s podacima i pritisni Ctrl+V.',
@@ -1416,8 +1416,22 @@ const WAY_HELP = {
   app: 'Ako se program za poštu nije otvorio, na ovom uređaju nije podešen. Klikni „Otvori u Outlooku“ ili „Otvori u Gmailu“.',
   gmail: 'Ako se Gmail nije otvorio, preglednik je blokirao novu karticu. Dozvoli je za ovu stranicu ili izaberi drugi način ispod.',
 };
-// Zadnji korišteni način pamti se u pregledniku; početni je Outlook, a na telefonu program za poštu.
-const mailVia = () => { const v = store.get('tr.mailway'); return ['outlook', 'app', 'gmail'].includes(v) ? v : matchMedia('(pointer: coarse)').matches ? 'app' : 'outlook'; };
+// Telefon i tablet (ekran na dodir): poruka se otvara odmah, bez kopiranja tabele (vidi sendShare),
+// nema Outlook fajla (.eml), a „Podijeli“ otvara izbor aplikacija (pošta, Viber, WhatsApp…).
+const isTouch = () => matchMedia('(pointer: coarse)').matches;
+const WAY_HINT_TOUCH = {
+  app: '„Otvori e-mail“ otvara novu poruku u aplikaciji za poštu, s podacima o objavi i linkom.',
+  share: '„Podijeli“ otvara izbor aplikacija na telefonu (pošta, Viber, WhatsApp, Teams…), s podacima o objavi i linkom.',
+  gmail: '„Otvori u Gmailu“ otvara novu poruku u Gmailu, s podacima o objavi i linkom.',
+};
+const WAY_HELP_TOUCH = {
+  app: 'Ako se aplikacija za poštu nije otvorila, na telefonu nije izabrana aplikacija za e-mail. Izaberi drugi način ispod.',
+  share: 'Ako se izbor aplikacija nije otvorio, ovaj preglednik ne dozvoljava dijeljenje. Izaberi drugi način ispod.',
+  gmail: 'Ako se Gmail nije otvorio, preglednik je blokirao novu karticu. Izaberi drugi način ispod.',
+};
+// Načini slanja na ovom uređaju; prvi je početni. Zadnji korišteni način pamti se u pregledniku.
+const waysHere = () => isTouch() ? ['app', ...(navigator.share ? ['share'] : []), 'gmail'] : ['outlook', 'app', 'gmail'];
+const mailVia = () => { const v = store.get('tr.mailway'), ways = waysHere(); return ways.includes(v) ? v : ways[0]; };
 
 // Preostalo dana do roka, računato od današnjeg dana; boje kao u listi: do 3 dana crveno,
 // do 7 narandžasto, više zeleno, istekao ili bez roka sivo.
@@ -1573,8 +1587,8 @@ function loadMails() {
 function renderShare() {
   const way = mailVia();
   $('btnShareMail').textContent = WAYS[way];
-  $('shareHint').innerHTML = WAY_HINT[way] + ' Može i drugačije: ' +
-    Object.keys(WAYS).filter(k => k !== way).map(k => `<button class="link" data-via="${k}">${WAYS[k]}</button>`).join(' ili ') + '.';
+  $('shareHint').innerHTML = (isTouch() ? WAY_HINT_TOUCH : WAY_HINT)[way] + ' Može i drugačije: ' +
+    waysHere().filter(k => k !== way).map(k => `<button class="link" data-via="${k}">${WAYS[k]}</button>`).join(' ili ') + '.';
   const cur = new Set(parseAddrs($('shareTo').value).ok);
   $('shareHist').innerHTML = !MAILS.length ? '' : '<span class="muted">Ranije:</span>' +
     MAILS.map(a => `<button${cur.has(a) ? ' class="on"' : ''} data-addr="${esc(a)}" aria-pressed="${cur.has(a)}">${esc(a)}</button>`).join('') +
@@ -1606,6 +1620,20 @@ async function sendShare(via) {
   const note = keep.note.trim().replace(/\r?\n/g, '\r\n');
   if (ok.length) { MAILS = [...new Set([...ok, ...MAILS])].slice(0, 12); store.set('tr.mailhist', JSON.stringify(MAILS)); }
   store.set('tr.mailway', via);
+  if (isTouch() && via !== 'outlook') {
+    // Telefon: poruka se otvara odmah, u istom dodiru. Preglednik na telefonu ne otvara poruku
+    // ako prije toga čeka na nešto drugo (npr. kopiranje tabele), a tabela za Ctrl+V tu ne treba.
+    const m = mailParts(recs, ok, note);
+    let msg = via === 'share' ? 'Izaberi aplikaciju kojom šalješ.' : via === 'gmail' ? 'Poruka se otvara u Gmailu.' : 'Poruka se otvara u aplikaciji za poštu.';
+    $('dlgShare').close();
+    if (via === 'share') {
+      try { navigator.share({title: m.subject, text: (note ? note + '\n\n' : '') + sharePlain(recs, '\n')}).catch(() => { /* odustao ili nije dozvoljeno */ }); }
+      catch (e) { msg = WAY_HELP_TOUCH.share; }
+    } else if (via === 'gmail') window.open(gmailUrl(ok, m.subject, m.body), '_blank', 'noopener');
+    else { const a = document.createElement('a'); a.href = mailtoUrl(ok, m.subject, m.body); document.body.appendChild(a); a.click(); a.remove(); }
+    toast(msg, null, {label: 'Nije se otvorila?', run: () => openShare(recs.map(x => x.id), {...keep, msg: WAY_HELP_TOUCH[via]})});
+    return;
+  }
   let msg;
   if (via === 'outlook') {
     download(emlName(recs), emlText(recs, ok, note), 'message/rfc822');
@@ -1628,9 +1656,34 @@ async function sendShare(via) {
   $('dlgShare').close();
   toast(msg, null, {label: 'Nije se otvorila?', run: () => openShare(recs.map(x => x.id), {...keep, msg: WAY_HELP[via]})});
 }
+// Kopiranje odmah, u istom dodiru, preko privremeno označenog teksta (tako radi i na iPhoneu).
+// U međuspremnik idu tabela (HTML, za poštu) i tekst (za Viber, WhatsApp, SMS). Vraća true ako je
+// preglednik kopirao.
+function copyNow(html, text) {
+  const box = $('dlgShare').open ? $('dlgShare') : document.body;  // izvan otvorenog prozora ništa se ne može označiti
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.readOnly = true;
+  ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;opacity:0;font-size:16px';
+  box.appendChild(ta);
+  const back = document.activeElement;
+  ta.focus(); ta.select();
+  try { ta.setSelectionRange(0, text.length); } catch (e) { /* stariji preglednik: select() je dovoljan */ }
+  const fill = e => { if (!e.clipboardData) return; e.clipboardData.setData('text/plain', text); e.clipboardData.setData('text/html', html); e.preventDefault(); };
+  document.addEventListener('copy', fill);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  document.removeEventListener('copy', fill);
+  ta.remove();
+  if (back && back.focus) back.focus({preventScroll: true});
+  return ok;
+}
 // Tabela u međuspremnik, kao HTML (za poštu i Word) i kao tekst. Vraća true ako je uspjelo.
 async function copyTable() {
   const html = shareHtml(shareRecs), text = sharePlain(shareRecs, '\r\n');
+  if (isTouch()) {
+    if (copyNow(html, text)) return true;
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) { return false; }
+  }
   try {
     await navigator.clipboard.write([new ClipboardItem({'text/html': new Blob([html], {type: 'text/html'}), 'text/plain': new Blob([text], {type: 'text/plain'})})]);
     return true;
@@ -1648,6 +1701,11 @@ async function copyTable() {
 async function copyShare() {
   if (!shareRecs.length) return;
   const ok = await copyTable();
+  if (isTouch()) {
+    const alt = waysHere().filter(k => k !== 'gmail').map(k => `„${WAYS[k]}“`).join(' ili ');
+    $('shareMsg').textContent = ok ? 'Kopirano. U poruci ili chatu dugo pritisni prazno mjesto i izaberi Zalijepi.' : `Ovaj preglednik ne dozvoljava kopiranje. Koristi ${alt}.`;
+    return;
+  }
   $('shareMsg').textContent = ok ? 'Tabela je kopirana. Zalijepi je sa Ctrl+V u poruku ili dokument.' : 'Kopiranje nije uspjelo. Tabela je označena: pritisni Ctrl+C.';
 }
 // Kalendar (.ics): rok kao događaj s podsjetnikom 3 dana prije; najava na očekivani datum poziva.
@@ -3514,6 +3572,7 @@ function prep(r) {
   r._d = r.d ? dayNum(r.d) : null;
   r._p = r.p ? dayNum(r.p) : null;
   r._f = r.fs ? dayNum(r.fs) : r._p;
+  if (r._f !== null && r._f > TODAY) r._f = null;  // npr. poziv koji se tek otvara: datum u budućnosti nije „viđeno danas“ ni „novo“
   r._c = r.c && r.c.length ? r.c : ['??'];
   r._src = [r.src, ...(r.also || []).map(a => a.src)];  // objava se nalazi i pod izvorima iz "also"
   r._cpv = r.cpv ? [...new Set(r.cpv.map(x => x.slice(0, 2)))] : [];

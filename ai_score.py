@@ -36,7 +36,7 @@ DEFAULTS = {
     "profile": "",
     "profile_reic": "",
     "translate": True,       # prijevod stranih naslova na engleski
-    "translate_batch": 80,
+    "translate_batch": 40,   # u većoj grupi AI zna preskočiti poneki naslov
     "translate_max": 3000,   # najviše naslova po osvježavanju
     "translate_minutes": 6,
     "summary": True,         # kratak AI sažetak opisa za objave s ocjenom 2 i 3
@@ -87,12 +87,12 @@ def _system(okvir: str, calls: bool) -> str:
 
 KINDS = {"S": "usluge", "G": "robe", "W": "radovi"}
 TRANSLATE = """You get numbered titles of public tenders and calls for proposals.
-For every title that is NOT written in English, Bosnian, Croatian, Serbian or Montenegrin
-(Latin or Cyrillic script), give a short, faithful English translation of at most 25 words and the
-ISO 639-1 code of the title's language. Skip titles that are already in those languages.
-Reply only with a JSON list and nothing else, for example:
-[{"i": 2, "l": "mk", "e": "Maintenance of lifts in the ministry building"}]
-Return [] when no title needs a translation. Do not use double quotes inside translations."""
+For EVERY title give the ISO 639-1 code of the language it is written in, as "l".
+If that language is not English, Bosnian, Croatian, Serbian or Montenegrin (Latin or Cyrillic
+script), also give a short, faithful English translation of at most 25 words, as "e".
+Reply only with a JSON list with exactly one element per title and nothing else, for example:
+[{"i": 1, "l": "en"}, {"i": 2, "l": "mk", "e": "Maintenance of lifts in the ministry building"}, {"i": 3, "l": "bs"}]
+Do not use double quotes inside translations."""
 
 
 class Fatal(Exception):
@@ -172,11 +172,12 @@ def _parse(text: str, n: int) -> dict:
     return out
 
 
-TR_RX = re.compile(r'"i"\s*:\s*(\d+)\s*,\s*"l"\s*:\s*"([A-Za-z-]*)"\s*,\s*"e"\s*:\s*"(.*?)"\s*\}', re.S)
+TR_RX = re.compile(r'"i"\s*:\s*(\d+)\s*,\s*"l"\s*:\s*"([A-Za-z-]*)"(?:\s*,\s*"e"\s*:\s*"(.*?)")?\s*\}', re.S)
 
 
 def _parse_tr(text: str, n: int) -> dict:
-    """Odgovor na upit za prijevod: {broj: (prijevod, jezik)}. Prazna lista je ispravan odgovor."""
+    """Odgovor na upit za prijevod: {broj: (prijevod, jezik)}. Prijevod je prazan za naslove na
+    engleskom i domaćim jezicima. Naslova kojeg nema u odgovoru nema ni ovdje."""
     m = re.search(r"\[.*\]", text, re.S)
     if not m:
         raise ValueError("AI nije vratio prijevode u očekivanom obliku")
@@ -194,8 +195,9 @@ def _parse_tr(text: str, n: int) -> dict:
             continue
         en = re.sub(r"\s+", " ", str(en or "")).replace('\\"', '"').strip()[:300]
         lang = str(lang or "").lower()
-        if 1 <= i <= n and en:
-            out[i] = (en, lang if re.fullmatch(r"[a-z]{2,3}", lang) else "")
+        lang = lang if re.fullmatch(r"[a-z]{2,3}", lang) else ""
+        if 1 <= i <= n and (en or lang):
+            out[i] = (en, lang)
     return out
 
 
@@ -283,8 +285,9 @@ def translate(recs: list, cfg: dict, private: set) -> dict:
             and (conf["include_private"] or r["src"] not in private)]
     info = {"on": bool(key and conf["translate"]), "new": 0, "error": None}
     if info["on"]:
-        todo = [r for r in pool if "en" not in r]
-        todo.sort(key=lambda r: r.get("fs") or r.get("p") or "", reverse=True)
+        todo = [r for r in pool if _needs_tr(r)]
+        # nove objave prvo, pa ponovna provjera starih; unutar toga najnovije prvo
+        todo.sort(key=lambda r: ("en" not in r, r.get("fs") or r.get("p") or ""), reverse=True)
         work = todo[:int(conf["translate_max"])]
         stop = time.time() + float(conf["translate_minutes"]) * 60
         size = max(1, int(conf["translate_batch"]))
@@ -293,7 +296,7 @@ def translate(recs: list, cfg: dict, private: set) -> dict:
                 info["error"] = "isteklo vrijeme za prijevode; ostatak se prevodi pri sljedećem osvježavanju"
                 break
             chunk = work[k:k + size]
-            body = {"model": conf["model"], "max_tokens": 45 * len(chunk) + 200, "system": TRANSLATE,
+            body = {"model": conf["model"], "max_tokens": 60 * len(chunk) + 300, "system": TRANSLATE,
                     "messages": [{"role": "user", "content": "\n".join(
                         f"{i}. {r['t'][:300]}" for i, r in enumerate(chunk, 1))}]}
             try:
@@ -305,16 +308,26 @@ def translate(recs: list, cfg: dict, private: set) -> dict:
                 info["error"] = f"{e}"[:300] or type(e).__name__
                 continue
             for i, r in enumerate(chunk, 1):
-                en, lang = got.get(i, ("", ""))
+                if i not in got:
+                    continue  # AI je preskočio naslov: provjerava se pri sljedećem osvježavanju
+                en, lang = got[i]
                 if lang in HOME_LANGS or _plain(en) == _plain(r["t"]):
-                    en, lang = "", ""  # naslov je već na domaćem jeziku ili engleskom
-                r["en"] = en
-                if lang:
-                    r["lg"] = lang
-                info["new"] += 1 if en else 0
+                    r["en"], r["lg"] = "", lang or "en"  # naslov je već na engleskom ili domaćem jeziku
+                elif en:
+                    r["en"] = en
+                    if lang:
+                        r["lg"] = lang
+                    info["new"] += 1
+                # strani jezik bez prijevoda: provjerava se pri sljedećem osvježavanju
     info["done"] = sum(1 for r in pool if r.get("en"))
-    info["pending"] = sum(1 for r in pool if "en" not in r) if info["on"] else 0
+    info["pending"] = sum(1 for r in pool if _needs_tr(r)) if info["on"] else 0
     return info
+
+
+def _needs_tr(r: dict) -> bool:
+    """Naslov još nije provjeren za prijevod. Prazan prijevod bez jezika ostao je od ranijeg načina,
+    kad je AI u velikoj grupi znao preskočiti strani naslov; takav se provjerava još jednom."""
+    return "en" not in r or (not r["en"] and not r.get("lg"))
 
 
 def _run(key: str, conf: dict, system: str, work: list, info: dict, stop: float, calls: bool, mark: str) -> bool:

@@ -183,6 +183,18 @@ def alive(r, today, cutoff):
     return r.get("p") is None or r["p"] >= cutoff
 
 
+def first_seen(old, pub, new_source, today, stale):
+    """Datum kad je alat prvi put vidio objavu (polje fs), po njemu idu „Objavljeno danas“ i „novo“.
+    Nikad nije u budućnosti: javni poziv koji se tek otvara ima datum objave u budućnosti."""
+    if old:
+        return stale if old > today else old  # raniji zapis s datumom u budućnosti: nije nov
+    if pub and pub > today:  # poziv koji se tek otvara: nov je samo ako ga je izvor danas donio
+        return stale if new_source else today
+    # Objava koju alat prvi put vidi, a objavljena je prije više od sedmice (npr. novi izvor ili
+    # proširen filter), ne računa se kao nova: kao "prvi put viđena" uzima se datum objave.
+    return pub if pub and (new_source or pub < stale) else today
+
+
 def check(items, key):
     if not isinstance(items, list):
         raise base.SourceChanged("kolektor nije vratio listu")
@@ -348,8 +360,7 @@ def main() -> int:
 
         new_source = not old.get("last_ok") or old.get("off")  # izvor koji još nije uspio
         for r in items:
-            pub = r.get("p")
-            r["fs"] = prev_fs.get(r["id"]) or (pub if pub and (new_source or pub < stale) else today)
+            r["fs"] = first_seen(prev_fs.get(r["id"]), r.get("p"), new_source, today, stale)
             old_ai = prev_ai.get(r["id"])
             if "ai" not in r and old_ai and old_ai.get("ty") == r.get("ty"):  # tender ili javni poziv
                 for f in ("ai", "air", "aiw", "ak"):
