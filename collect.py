@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Tender radar: pokreće kolektore i piše data/tenders.json, data/status.json i,
-za interne izvore, šifrirani data/private.json.
+za interne izvore, šifrirani data/private.json. Uz to: AI ocjena, prijevod i sažetak (ai_score.py),
+dobitnici ugovora u data/awards.json (awards.py) i, ako je na GitHubu šifrirana lista referenci
+(reference.enc.json), slične reference u šifriranom data/refmatch.json (refmatch.py).
 
     python collect.py                 # svi izvori
     python collect.py --only TED,WB   # samo navedeni; ostali zadržavaju zadnje podatke
@@ -26,6 +28,8 @@ import unicodedata
 from collections import Counter
 
 import ai_score
+import awards
+import refmatch
 from collectors import base
 
 # Redoslijed je ujedno prioritet kod duplikata: objavu zadržava izvor koji je prvi na listi.
@@ -36,6 +40,8 @@ MODULES = ["ejn", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise
            "giz", "osce"]
 
 KEEP_NO_DEADLINE_DAYS = 60   # objave bez roka ostaju ovoliko dana od objave
+RUN_MINUTES = 25             # koliko smije trajati cijelo prikupljanje (posao na GitHubu ima 30 minuta)
+REFS_FILE = "reference.enc.json"  # šifrirana lista referenci u glavnom folderu repozitorija
 SUSPICIOUS_EMPTY = 10        # 0 objava je sumnjivo ako ih je zadnji put bilo bar ovoliko
 KDF_ITERATIONS = 250_000     # PBKDF2-SHA256; isti postupak radi i stranica u pregledniku
 
@@ -102,6 +108,31 @@ def decrypt_records(blob, passphrase: str):
 
 
 # --------------------------------------------------------------------------- pomoćno
+
+def capped(cfg: dict, keys: tuple, left: float) -> dict:
+    """Kopija postavki za AI u kojoj nijedan vremenski okvir nije duži od preostalog vremena."""
+    conf = {**ai_score.DEFAULTS, **(cfg.get("ai") or {})}
+    for k in keys:
+        conf[k] = max(0.0, min(float(conf[k]), left))
+    return {**cfg, "ai": conf}
+
+
+def find_refs(passphrase: str):
+    """Lista referenci iz šifriranog fajla, ili (None, poruka) ako je nema ili se ne može otvoriti."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), REFS_FILE)
+    if not os.path.exists(path):
+        return None, f"lista referenci nije postavljena na GitHub (fajl {REFS_FILE})."
+    if not passphrase:
+        return None, "lista referenci se ne može otvoriti: nije postavljena šifra TR_PASSPHRASE."
+    refs = decrypt_records(load_json(path, None), passphrase)
+    if refs is None:
+        return None, (f"fajl {REFS_FILE} se ne može otvoriti ovom šifrom; šifriraj ga ponovo na stranici "
+                      "(Interni izvori) i zamijeni na GitHubu.")
+    refs = [r for r in refs if isinstance(r, dict) and str(r.get("t") or "").strip()]
+    if not refs:
+        return None, f"fajl {REFS_FILE} ne sadrži nijednu referencu."
+    return refs, None
+
 
 def load_json(path, default):
     try:
@@ -174,6 +205,7 @@ def dedup(recs):
 # --------------------------------------------------------------------------- glavni tok
 
 def main() -> int:
+    t_start = time.time()
     ap = argparse.ArgumentParser(description="Tender radar: prikupljanje objava")
     ap.add_argument("--only", default="", help="ključevi izvora odvojeni zarezom, npr. TED,WB")
     ap.add_argument("--data", default="data", help="folder za izlazne fajlove")
@@ -185,6 +217,13 @@ def main() -> int:
     t_path = os.path.join(args.data, "tenders.json")
     s_path = os.path.join(args.data, "status.json")
     p_path = os.path.join(args.data, "private.json")
+    a_path = os.path.join(args.data, "awards.json")
+    m_path = os.path.join(args.data, "refmatch.json")
+    run_minutes = float(cfg.get("run_minutes") or RUN_MINUTES)
+
+    def left() -> float:
+        """Preostale minute, uz dvije minute rezerve za pisanje fajlova."""
+        return run_minutes - (time.time() - t_start) / 60 - 2
 
     mods = [importlib.import_module(f"collectors.{name}") for name in MODULES]
     private = {m.META["key"] for m in mods if m.META.get("private")} \
@@ -216,16 +255,16 @@ def main() -> int:
         prev_by_src.setdefault(r["src"], []).append(r)
     prev_fs = {r["id"]: r.get("fs") for r in prev}
     # AI ocjene se prenose, da se svaka objava ocjenjuje samo jednom. Kad se promijeni okvir za ocjenu
-    # (ai_okvir.md), stare ocjene se ne prenose i sve objave se ocjenjuju ponovo (do max_per_run dnevno).
+    # (ai_okvir.md), stare ocjene ostaju dok AI postepeno ne ocijeni objave po novom okviru (polje ak).
     _, okvir_id = ai_score.load_okvir(cfg)
     old_okvir = (load_json(s_path, {}).get("ai") or {}).get("okvir")
     ai_key = bool((os.environ.get("ANTHROPIC_API_KEY") or "").strip())
-    rescore = ai_key and bool(okvir_id) and old_okvir != okvir_id
-    prev_ai = {} if rescore else {r["id"]: r for r in prev if "ai" in r}
-    if rescore:
-        print("Okvir za AI ocjenu je promijenjen: sve objave se ocjenjuju ponovo.")
-    # AI prijevod naslova se prenosi dok god je naslov isti.
+    if ai_key and okvir_id and old_okvir != okvir_id:
+        print("Okvir za AI ocjenu je promijenjen: objave se postepeno ocjenjuju ponovo.")
+    prev_ai = {r["id"]: r for r in prev if "ai" in r}
+    # AI prijevod naslova i AI sažetak opisa prenose se dok god je naslov isti.
     prev_en = {r["id"]: r for r in prev if "en" in r}
+    prev_sm = {r["id"]: r for r in prev if r.get("sm")}
     # Rok koji je alat prvi put zabilježio, da se vidi kad ga naručilac pomjeri.
     first_due = {r["id"]: r.get("d0") or r.get("d") for r in prev}
 
@@ -288,12 +327,9 @@ def main() -> int:
         for r in items:
             pub = r.get("p")
             r["fs"] = prev_fs.get(r["id"]) or (pub if pub and (new_source or pub < stale) else today)
-            if rescore:  # i zadržane objave (izvor nije uspio) ocjenjuju se po novom okviru
-                for f in ("ai", "air", "aiw"):
-                    r.pop(f, None)
             old_ai = prev_ai.get(r["id"])
             if "ai" not in r and old_ai and old_ai.get("ty") == r.get("ty"):  # tender ili javni poziv
-                for f in ("ai", "air", "aiw"):
+                for f in ("ai", "air", "aiw", "ak"):
                     if f in old_ai:
                         r[f] = old_ai[f]
             old_en = prev_en.get(r["id"])
@@ -301,14 +337,43 @@ def main() -> int:
                 r["en"] = old_en["en"]
                 if old_en.get("lg"):
                     r["lg"] = old_en["lg"]
+            old_sm = prev_sm.get(r["id"])
+            if "sm" not in r and old_sm and old_sm.get("t") == r["t"]:
+                r["sm"] = old_sm["sm"]
         recs.extend(items)
         statuses.append(st)
 
     recs = dedup([r for r in recs if alive(r, today, cutoff)])
-    tr_info = ai_score.translate(recs, cfg, private)   # prvo prijevod, da ga AI ocjena vidi
-    ai_info = ai_score.score(recs, cfg, private)
+    # AI koraci i dobitnici, svaki u svom vremenskom okviru, ali ne duže od vremena koje je ostalo za ovo
+    # osvježavanje. Redoslijed je prioritet: prijevod (treba ga AI ocjena), ocjena, dobitnici, sažeci.
+    tr_info = ai_score.translate(recs, capped(cfg, ("translate_minutes",), left()), private)
+    ai_info = ai_score.score(recs, capped(cfg, ("minutes",), left()), private)
     ai_info["tr"] = tr_info
     ai_info["okvir"] = okvir_id if ai_key else old_okvir  # bez ključa ostaje stari, da se kasnije ocijeni ponovo
+
+    # Dobitnici ugovora (data/awards.json). U probnom pokretanju s --only samo ako je naveden AWD.
+    aw_info = None
+    if not only or "AWD" in only:
+        try:
+            aw_info = awards.run(cfg, a_path, left())
+        except Exception as e:  # dobitnici ne smiju srušiti osvježavanje objava
+            traceback.print_exc()
+            aw_info = dict((load_json(s_path, {}) or {}).get("awards") or {"on": True}, error=f"{e}"[:300])
+    elif os.path.exists(a_path):
+        aw_info = (load_json(s_path, {}) or {}).get("awards")
+
+    ai_info["sm"] = ai_score.summarize(recs, capped(cfg, ("summary_minutes",), left()), private)
+
+    # Slične reference: lista je šifrirana, a rezultat se piše šifriran (vidi se tek nakon otključavanja).
+    refs, ref_error = find_refs(passphrase)
+    ref_info = {"on": False, "error": ref_error}
+    if refs:
+        found = refmatch.match(recs, refs)
+        with open(m_path, "w", encoding="utf-8") as f:
+            json.dump(encrypt_records(found, passphrase, stamp), f)
+        ref_info = {"on": True, "n": len(refs), "matched": len(found["m"]), "error": None}
+    elif os.path.exists(m_path):
+        os.remove(m_path)  # stari rezultat ne smije ostati kad liste više nema
     recs.sort(key=lambda r: (r.get("d") or "9999", r.get("p") or ""))
     collected = Counter(r["src"] for r in recs)
     merged = Counter(r["src"] for r in recs if "dup" in r)
@@ -334,18 +399,29 @@ def main() -> int:
                          "error": ex.get("reason", ""), "last_ok": None})
 
     fx, fx_date = exchange_rates()
+    # Pomoćna polja (npr. _desc, opis za AI sažetak) se ne pišu u fajlove.
+    for r in recs:
+        for k in [k for k in r if k.startswith("_")]:
+            del r[k]
     write_json_lines(t_path, public)
     if private and not locked_reason:
         with open(p_path, "w", encoding="utf-8") as f:
             json.dump(encrypt_records(internal, passphrase, stamp), f)
     with open(s_path, "w", encoding="utf-8") as f:
         json.dump({"generated": stamp, "total": total, "total_private": total_private,
-                   "fx": fx, "fx_date": fx_date, "ai": ai_info, "sources": statuses},
-                  f, ensure_ascii=False, indent=1)
+                   "fx": fx, "fx_date": fx_date, "ai": ai_info, "awards": aw_info, "refs": ref_info,
+                   "sources": statuses}, f, ensure_ascii=False, indent=1)
 
     print(f"\nUkupno {total} javnih i {total_private} internih objava ({stamp})")
     print(f"AI ocjena: {ai_info['new']} novih, ukupno {ai_info['scored']}, čeka {ai_info['pending']}"
+          + (f", po novom okviru čeka {ai_info['stale']}" if ai_info.get("stale") else "")
           + (f" ({ai_info['error']})" if ai_info["error"] else ""))
+    print(f"AI sažetak: {ai_info['sm'].get('new', 0)} novih, ukupno {ai_info['sm'].get('done', 0)}"
+          + (f" ({ai_info['sm']['error']})" if ai_info["sm"].get("error") else ""))
+    if aw_info:
+        print("Dobitnici:", json.dumps(aw_info, ensure_ascii=False)[:300])
+    print("Slične reference:", f"{ref_info['matched']} objava" if ref_info["on"] else ref_info["error"])
+    print(f"Trajanje: {(time.time() - t_start) / 60:.1f} min")
     for st in statuses:
         flag = "isključen" if st.get("off") else ("OK" if st["ok"] else "GREŠKA")
         note = "interni" if st.get("private") and not st.get("off") else (st.get("error") or "")

@@ -127,6 +127,7 @@ FIELDS = [
     "place-of-performance-city-proc", "procedure-type",
     "estimated-value-proc", "estimated-value-cur-proc",
     "future-notice",  # kod najave: kad se očekuje poziv
+    "description-proc",  # opis postupka, za AI sažetak
 ]
 
 
@@ -189,9 +190,9 @@ def _queries(t: dict, day: str, names: list, since: str | None = None) -> list[s
     return [f"{head} AND ({geo})", b]
 
 
-def _search(s, query: str) -> list[dict]:
+def _search(s, query: str, fields: list | None = None) -> list[dict]:
     """Sve objave za upit, stranicu po stranicu (ITERATION: token vodi na sljedeću stranicu)."""
-    body = {"query": query, "fields": FIELDS, "limit": PAGE, "scope": "ALL",
+    body = {"query": query, "fields": fields or FIELDS, "limit": PAGE, "scope": "ALL",
             "paginationMode": "ITERATION",
             "onlyLatestVersions": True}  # samo zadnja verzija svake objave (ispravke, vidi gore)
     out: list[dict] = []
@@ -280,7 +281,7 @@ def _record(n: dict, today: str, names: list, pin: bool = False) -> dict:
     except (TypeError, ValueError):
         value = 0.0
 
-    return base.rec(
+    rec = base.rec(
         META["key"], sid,
         # Čist naslov postupka (isti kao na drugim izvorima, npr. EU F&T); objave po staroj
         # šemi imaju samo TED-ov složeni naslov "Država – CPV – naslov".
@@ -297,6 +298,10 @@ def _record(n: dict, today: str, names: list, pin: bool = False) -> dict:
         btype=btype, btype_raw=btype_raw,
         value=value, currency=n.get("estimated-value-cur-proc") if value > 0 else None,
         ref=sid)
+    desc = (_texts(n.get("description-proc")) or [""])[0]
+    if desc:
+        rec["_desc"] = desc[:3000]  # samo za AI sažetak; ne piše se u podatke
+    return rec
 
 
 def _pin_extra(rec: dict, n: dict, today: dt.date) -> dict:

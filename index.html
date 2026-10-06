@@ -101,6 +101,36 @@ main{min-width:0}
 .chip.ai3{background:var(--accent);color:var(--accent-ink)}
 .chip.ai2{background:var(--accent-soft);color:var(--accent)}
 .air{font-size:.84rem;color:var(--muted);margin-top:3px}
+/* Ispod objave: AI sažetak, slične reference, ranije dodjele naručioca */
+.xtra{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 16px;margin-top:5px;font-size:.86rem}
+.xtra details[open]{flex-basis:100%}
+.xtra summary{cursor:pointer;color:var(--accent);width:max-content;max-width:100%}
+.xtra summary:hover{text-decoration:underline}
+.xtra .box{margin:4px 0 2px;background:var(--chip);border-radius:8px;padding:7px 11px;color:var(--ink)}
+.xtra ol.box{padding-left:30px}
+.xtra ol.box li{margin:2px 0}
+.xtra .box .muted{font-size:.8rem}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.04em;border-radius:4px;padding:0 5px;margin-left:6px;vertical-align:1px;background:var(--accent-soft);color:var(--accent)}
+.xtra button.link{font-size:.86rem;text-decoration:none}
+.xtra button.link:hover{text-decoration:underline}
+#dlgAwards{width:min(1100px,96vw)}
+.aw-bar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin:10px 0 8px}
+.aw-bar select{width:auto}
+.aw-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.aw-head .seg button{padding:5px 12px;font-weight:600}
+.aw-head .seg button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.aw-chip{display:inline-flex;gap:6px;align-items:center;background:var(--accent-soft);color:var(--accent);border-radius:14px;padding:2px 4px 2px 10px;font-size:.84rem;max-width:100%}
+.aw-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aw-chip button{border:0;background:none;padding:0 6px;color:inherit;font-weight:700}
+#awTable{max-height:58vh}
+#awTable td{font-size:.86rem}
+#awTable td.t{min-width:240px}
+#awTable .sub{display:block;color:var(--muted);font-size:.78rem}
+#awTable th{position:sticky;top:0;background:var(--panel);z-index:1}
+#awTable button.link{text-align:left;white-space:normal}
+#lockTools{border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
+#lockTools h3{font-size:.95rem;margin-bottom:4px}
+@media (max-width:700px){.aw-bar{grid-template-columns:1fr 1fr}.aw-bar input{grid-column:1/-1}}
 #askKeyBox[hidden],#btnAskForget[hidden]{display:none}
 .row.tracked{box-shadow:inset 4px 0 0 var(--accent)}
 .row.today{background:var(--today)}
@@ -157,7 +187,7 @@ body.picking .more{padding-bottom:72px}
 table{border-collapse:collapse;width:100%;font-size:.9rem}
 th,td{text-align:left;padding:7px 10px 7px 0;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
-td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 td a{color:var(--accent)}
 .st-ok{color:var(--accent)}.st-bad{color:var(--danger)}.st-off{color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:8px;padding:8px 14px;font-size:.9rem;z-index:20;max-width:92vw}
@@ -210,6 +240,7 @@ td a{color:var(--accent)}
   <div class="brand"><h1>Tender radar</h1><span id="stamp" class="muted"></span></div>
   <span class="spacer"></span>
   <button id="btnLock" hidden></button>
+  <button id="btnAwards" hidden title="Ko dobija ugovore za usluge i po kojoj cijeni">Dobitnici</button>
   <button id="btnSources">Izvori<span id="srcDot" class="dot" hidden></span></button>
 </header>
 
@@ -309,7 +340,28 @@ td a{color:var(--accent)}
   <label class="field" id="lockField">Šifra
     <input id="lockPass" type="password" autocomplete="current-password"></label>
   <p class="hint" id="lockMsg"></p>
+  <div id="lockTools" hidden>
+    <h3>Lista referenci (slične reference uz objave)</h3>
+    <p class="hint" id="refInfo"></p>
+    <p class="hint">Nešifrirani fajl reference.json izaberi ovdje: stranica ga šifrira tvojom šifrom i preuzme kao reference.enc.json. Na GitHub, u glavni folder repozitorija, postavi samo taj šifrirani fajl. Nešifrirani fajl nikad ne postavljaj na GitHub.</p>
+    <label class="filebtn" style="display:inline-block;margin-top:8px">Šifriraj fajl za GitHub<input type="file" id="encFile" accept=".json,application/json" hidden></label>
+    <p class="hint" id="encMsg" role="status"></p>
+  </div>
   <menu><button id="btnLockForget">Zaključaj u ovom pregledniku</button><button id="btnLockClose">Zatvori</button><button id="btnLockOk" class="primary">Otključaj</button></menu>
+</dialog>
+
+<dialog id="dlgAwards">
+  <h2>Dobitnici ugovora</h2>
+  <p class="hint" id="awInfo"></p>
+  <div class="aw-bar">
+    <input type="search" id="awQ" placeholder="Traži u nazivu, naručiocu ili dobitniku (npr. energetsk, okoliš)" autocomplete="off" aria-label="Traži dodjele">
+    <select id="awC" aria-label="Država"></select>
+    <select id="awP" aria-label="Period"><option value="365">zadnjih 12 mjeseci</option><option value="180">zadnjih 6 mjeseci</option><option value="90">zadnja 3 mjeseca</option></select>
+  </div>
+  <div class="aw-head"><div class="seg" role="tablist"><button id="awTabW" role="tab">Najčešći dobitnici</button><button id="awTabA" role="tab">Ugovori</button></div><span id="awChips"></span><span class="spacer"></span><span class="muted" id="awSum"></span></div>
+  <div class="tbl" id="awTable"></div>
+  <p class="hint" id="awNote"></p>
+  <menu><button id="btnAwCsv">Preuzmi CSV</button><button id="btnAwClose" class="primary">Zatvori</button></menu>
 </dialog>
 
 <dialog id="dlgShare">
@@ -497,7 +549,8 @@ const markOf = r => (MARKS[r.id] || [])[0] || '';
 /* ---------- stanje ---------- */
 const DEF = {ty: 't', q: '', any: '', none: '', syn: true, ai: [], aiw: [], src: [], c: [], reg: [], k: [], fz: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', sort: 'due'};
 const PAGE = 100;
-const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false, hasAi: false, synNote: '', nTy: {t: 0, p: 0}, byTy: {}, fq: {}, pick: new Set()};
+const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false, hasAi: false, synNote: '', nTy: {t: 0, p: 0}, byTy: {}, fq: {}, pick: new Set(),
+  ver: '', open: new Set(), refm: null, aw: null, awF: {q: '', c: '', p: 365, tab: 'w', win: '', winLabel: '', buyer: '', buyerLabel: '', shown: 0}};
 let F = structuredClone(DEF);
 
 const mem = {};
@@ -781,7 +834,25 @@ function rowHtml(r) {
   const tip = [r.ref ? 'Broj objave: ' + r.ref : '', r._t0 ? 'Izvorno: ' + r._t0 : ''].filter(Boolean).join(' | ');
   const acts = `<div class="acts"><button class="mini${mk === 'p' ? ' on' : ''}" data-mark="p" data-id="${esc(r.id)}" aria-pressed="${mk === 'p'}">${mk === 'p' ? 'Pratim ✓' : 'Pratim'}</button><button class="mini" data-mark="h" data-id="${esc(r.id)}">${mk === 'h' ? 'Vrati' : 'Sakrij'}</button><button class="mini" data-share data-id="${esc(r.id)}" title="Pošalji objavu e-mailom">Pošalji</button>${r.d || r.fn ? `<button class="mini" data-cal data-id="${esc(r.id)}" title="${r.d ? 'Rok u kalendar, s podsjetnikom 3 dana prije' : 'Očekivani poziv u kalendar'}">Kalendar</button>` : ''}</div>`;
   const ten = r.en ? `<div class="ten" lang="en" title="AI prijevod${LANG[r.lg] ? ' s ' + LANG[r.lg] : ''} na engleski"><b>EN</b>${esc(r.en)}</div>` : '';
-  return `<article class="row${mk === 'p' ? ' tracked' : mk === 'h' ? ' hid' : ''}${r._f === TODAY ? ' today' : ''}${picked ? ' picked' : ''}"><div class="due${cls}${days === null && r._pin ? ' pin' : ''}"><input type="checkbox" class="pick" data-pick="${esc(r.id)}" aria-label="Označi objavu"${picked ? ' checked' : ''}>${due}</div><div><a class="title" href="${esc(r.u)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${esc(r.t)}</a>${isNew(r) ? '<span class="new">novo</span>' : ''}${ten}<div class="buyer">${esc(r.b || 'Naručilac nije naveden')}</div>${r.ai >= 2 && r.air ? `<div class="air">AI: ${esc(r.air)}</div>` : ''}<div class="chips">${chips.join('')}${also ? `<span class="also">također na: ${also}</span>` : ''}</div></div><div class="pub"><span>objavljeno</span><b>${r.p ? fmtDate(r.p) : 'nije navedeno'}</b>${acts}</div></article>`;
+  return `<article class="row${mk === 'p' ? ' tracked' : mk === 'h' ? ' hid' : ''}${r._f === TODAY ? ' today' : ''}${picked ? ' picked' : ''}"><div class="due${cls}${days === null && r._pin ? ' pin' : ''}"><input type="checkbox" class="pick" data-pick="${esc(r.id)}" aria-label="Označi objavu"${picked ? ' checked' : ''}>${due}</div><div><a class="title" href="${esc(r.u)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${esc(r.t)}</a>${isNew(r) ? '<span class="new">novo</span>' : ''}${ten}<div class="buyer">${esc(r.b || 'Naručilac nije naveden')}</div>${r.ai >= 2 && r.air ? `<div class="air">AI: ${esc(r.air)}</div>` : ''}${xtraHtml(r)}<div class="chips">${chips.join('')}${also ? `<span class="also">također na: ${also}</span>` : ''}</div></div><div class="pub"><span>objavljeno</span><b>${r.p ? fmtDate(r.p) : 'nije navedeno'}</b>${acts}</div></article>`;
+}
+
+// Ispod objave: AI sažetak opisa, slične reference (tek nakon otključavanja) i ranije dodjele
+// ugovora istog naručioca. Otvoreni sažetak ili reference ostaju otvoreni i kad se lista ponovo iscrta.
+function xtraHtml(r) {
+  const parts = [];
+  const open = k => S.open.has(r.id + '|' + k) ? ' open' : '';
+  if (r.sm) parts.push(`<details data-x="sm" data-id="${esc(r.id)}"${open('sm')}><summary>Sažetak (AI)</summary><p class="box">${esc(r.sm)}</p></details>`);
+  const rf = S.refm && S.refm.m && S.refm.m[r.id];
+  if (rf && rf.length) parts.push(`<details data-x="rf" data-id="${esc(r.id)}"${open('rf')}><summary>Slične reference (${rf.length})</summary><ol class="box">${rf.map(([i]) => refLine(S.refm.refs[i])).join('')}</ol></details>`);
+  const na = S.aw && r._bk ? S.aw.buyers.get(r._bk) || 0 : 0;
+  if (na) parts.push(`<button class="link" data-awb="${esc(r.id)}" title="Ugovori za usluge koje je ovaj naručilac dodijelio u zadnjih 12 mjeseci: ko ih je dobio i po kojoj cijeni">Ranije dodjele naručioca (${na})</button>`);
+  return parts.length ? `<div class="xtra">${parts.join('')}</div>` : '';
+}
+function refLine(x) {
+  if (!x) return '';
+  const meta = [x.k, x.y, x.z, x.v].filter(Boolean).join(' · ');
+  return `<li>${esc(x.t)}${x.s ? `<span class="tag">${esc(x.s)}</span>` : ''}${meta ? `<br><span class="muted">${esc(meta)}</span>` : ''}</li>`;
 }
 
 function renderList() {
@@ -864,13 +935,29 @@ function renderStatus() {
   const fmtTs = t => { if (!t) return 'nikad'; const d = new Date(t); return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}. ${p2(d.getHours())}:${p2(d.getMinutes())}`; };
   $('srcTable').innerHTML = '<table><thead><tr><th>Izvor</th><th>Stanje</th><th>Objava</th><th>Zadnje uspješno</th><th>Šta se prikuplja / napomena</th></tr></thead><tbody>' +
     st.sources.map(s => `<tr><td><a href="${esc(s.home)}" target="_blank" rel="noopener">${esc(s.name)}</a><br><span class="muted">${esc(s.key)}${s.private ? ', interni izvor' + (s.off || S.unlocked ? '' : ' (zaključan u ovom pregledniku)') : ''}</span></td><td class="${s.off ? 'st-off' : s.ok ? 'st-ok' : 'st-bad'}">${s.off ? 'isključen' : s.ok ? 'radi' : 'greška'}</td><td class="num">${fmtN(s.count || 0)}${s.merged ? `<br><span class="muted">${fmtN(s.merged)} i na drugom izvoru</span>` : ''}</td><td>${s.off ? '' : fmtTs(s.last_ok)}</td><td>${esc(s.off || !s.ok ? (s.error || '') : (s.scope || ''))}</td></tr>`).join('') +
-    '</tbody></table>' + (off.length ? '<p class="hint">Isključeni izvori se ne preuzimaju; razlog je naveden u napomeni.</p>' : '') + aiStatus(st.ai);
+    '</tbody></table>' + (off.length ? '<p class="hint">Isključeni izvori se ne preuzimaju; razlog je naveden u napomeni.</p>' : '') + aiStatus(st.ai) + extraStatus(st);
+}
+
+// Stanje dobitnika ugovora i sličnih referenci (brojevi, bez sadržaja referenci).
+function extraStatus(st) {
+  let h = '';
+  const aw = st.awards;
+  if (aw && aw.on) {
+    const s = aw.sources || {};
+    const part = (k, name) => s[k] ? `${name} ${fmtN(s[k].count || 0)}${s[k].ok === false ? ` (greška: ${esc(s[k].error || 'nepoznata')})` : s[k].done === false ? ' (prikupljanje još traje)' : ''}` : '';
+    h += `<p class="hint">Dobitnici ugovora, zadnjih 12 mjeseci (dugme „Dobitnici“): ${[part('EJN', 'e-Nabavke BiH'), part('TED', 'TED')].filter(Boolean).join(', ') || 'još nisu preuzeti'}.${aw.error ? ' Greška: ' + esc(aw.error) + '.' : ''}</p>`;
+  }
+  const rf = st.refs;
+  if (rf) h += `<p class="hint">Slične reference: ${rf.on ? `lista od ${fmtN(rf.n || 0)} referenci; slične reference ima ${fmtN(rf.matched || 0)} ${plural(rf.matched || 0, 'objava', 'objave', 'objava')} (vide se nakon otključavanja internih izvora).` : esc(rf.error || 'lista referenci nije postavljena na GitHub (fajl reference.enc.json).')}</p>`;
+  return h;
 }
 
 function aiStatus(ai) {
   if (!ai) return '';
   if (!ai.on || /isključena/.test(ai.error || '')) return `<p class="hint">${esc(ai.error || 'AI ocjena je isključena.')}</p>`;
-  return `<p class="hint">AI ocjena (${esc(ai.model)}): ocijenjeno ${fmtN(ai.scored || 0)} ${plural(ai.scored || 0, 'objava', 'objave', 'objava')}, u zadnjem osvježavanju ${fmtN(ai.new || 0)} novih${ai.pending ? `, čeka ${fmtN(ai.pending)}` : ''}.${ai.error ? ' Zadnja greška: ' + esc(ai.error) + '.' : ''}</p>` + (ai.tr && ai.tr.on ? `<p class="hint">AI prijevod na engleski: ${fmtN(ai.tr.done || 0)} ${plural(ai.tr.done || 0, 'naslov preveden', 'naslova prevedena', 'naslova prevedeno')}, u zadnjem osvježavanju ${fmtN(ai.tr.new || 0)} novih${ai.tr.pending ? `, čeka provjeru ${fmtN(ai.tr.pending)}` : ''}.${ai.tr.error ? ' Zadnja greška: ' + esc(ai.tr.error) + '.' : ''}</p>` : '');
+  return `<p class="hint">AI ocjena (${esc(ai.model)}): ocijenjeno ${fmtN(ai.scored || 0)} ${plural(ai.scored || 0, 'objava', 'objave', 'objava')}, u zadnjem osvježavanju ${fmtN(ai.new || 0)} novih${ai.pending ? `, čeka ${fmtN(ai.pending)}` : ''}${ai.stale ? `; po izmijenjenom okviru ponovo se ocjenjuje još ${fmtN(ai.stale)} (do tada vrijedi stara ocjena)` : ''}.${ai.error ? ' Zadnja greška: ' + esc(ai.error) + '.' : ''}</p>`
+    + (ai.sm && ai.sm.on ? `<p class="hint">AI sažetak opisa (za ocjene 2 i 3): sažetak ima ${fmtN(ai.sm.done || 0)} ${plural(ai.sm.done || 0, 'objava', 'objave', 'objava')}, u zadnjem osvježavanju ${fmtN(ai.sm.new || 0)} novih${ai.sm.pending ? `, čeka ${fmtN(ai.sm.pending)}` : ''}.${ai.sm.error ? ' Napomena: ' + esc(ai.sm.error) + '.' : ''}</p>` : '')
+    + (ai.tr && ai.tr.on ? `<p class="hint">AI prijevod na engleski: ${fmtN(ai.tr.done || 0)} ${plural(ai.tr.done || 0, 'naslov preveden', 'naslova prevedena', 'naslova prevedeno')}, u zadnjem osvježavanju ${fmtN(ai.tr.new || 0)} novih${ai.tr.pending ? `, čeka provjeru ${fmtN(ai.tr.pending)}` : ''}.${ai.tr.error ? ' Zadnja greška: ' + esc(ai.tr.error) + '.' : ''}</p>` : '');
 }
 function refreshAi() {
   S.hasAi = S.data.some(r => r.ai != null);
@@ -951,10 +1038,10 @@ function setMark(id, m) {
 }
 
 function exportCsv() {
-  const head = ['Rok', 'Vrijeme', 'Naziv', 'Naziv na engleskom (AI prijevod)', 'Naručilac', 'Država', 'Regija', 'Mjesto', 'Vrsta ugovora', 'Vrsta postupka', 'CPV', 'Sektor', 'Ko može ponuditi', 'Vrsta naručioca', 'Izvor', 'Objavljeno', 'Procijenjena vrijednost', 'Valuta', 'Vrijednost u KM', 'Raniji rok', 'Moja oznaka', 'Referenca', 'Link', 'AI ocjena', 'AI obrazloženje', 'Vrsta objave'];
+  const head = ['Rok', 'Vrijeme', 'Naziv', 'Naziv na engleskom (AI prijevod)', 'Naručilac', 'Država', 'Regija', 'Mjesto', 'Vrsta ugovora', 'Vrsta postupka', 'CPV', 'Sektor', 'Ko može ponuditi', 'Vrsta naručioca', 'Izvor', 'Objavljeno', 'Procijenjena vrijednost', 'Valuta', 'Vrijednost u KM', 'Raniji rok', 'Moja oznaka', 'Referenca', 'Link', 'AI ocjena', 'AI obrazloženje', 'AI sažetak', 'Vrsta objave'];
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
   const lines = [head.map(q).join(';')];
-  for (const r of S.view) lines.push([r.d || '', r.dt || '', r.t, r.en || '', r.b || '', (r.c || []).map(countryName).join(', '), r.reg || '', r.loc || '', r.k === 'O' ? '' : K_LABEL[r.k], r.n || '', (r.cpv || []).join(' '), r._sec.map(x => SEC_LABEL[x]).join(', '), WHO_LABEL[r._who], BT_LABEL[r.bt] || '', srcName(r.src), r.p || '', r.v || '', r.cur || '', r._v === null ? '' : Math.round(r._v), r.d0 || '', {p: 'pratim', h: 'sakriveno'}[markOf(r)] || '', r.ref || '', r.u, r.ai ?? '', r.air || '', r._ty === 'p' ? 'Javni poziv' + (r._aiw.length ? ' (' + r._aiw.map(x => ({C: 'CETEOR', R: 'REIC'})[x]).join(', ') + ')' : '') : 'Tender'].map(q).join(';'));
+  for (const r of S.view) lines.push([r.d || '', r.dt || '', r.t, r.en || '', r.b || '', (r.c || []).map(countryName).join(', '), r.reg || '', r.loc || '', r.k === 'O' ? '' : K_LABEL[r.k], r.n || '', (r.cpv || []).join(' '), r._sec.map(x => SEC_LABEL[x]).join(', '), WHO_LABEL[r._who], BT_LABEL[r.bt] || '', srcName(r.src), r.p || '', r.v || '', r.cur || '', r._v === null ? '' : Math.round(r._v), r.d0 || '', {p: 'pratim', h: 'sakriveno'}[markOf(r)] || '', r.ref || '', r.u, r.ai ?? '', r.air || '', r.sm || '', r._ty === 'p' ? 'Javni poziv' + (r._aiw.length ? ' (' + r._aiw.map(x => ({C: 'CETEOR', R: 'REIC'})[x]).join(', ') + ')' : '') : 'Tender'].map(q).join(';'));
   download(`tenderi-${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}.csv`, String.fromCharCode(0xFEFF) + lines.join('\r\n'), 'text/csv;charset=utf-8');
 }
 function download(name, text, type) {
@@ -1014,6 +1101,7 @@ function shareFields(r) {
   add('Naziv', r.t, 0);
   add('Naziv na engleskom (AI prijevod)', r.en, 2.5);
   add('Naručilac', r.b, 0);
+  add('Sažetak (AI)', r.sm, 11);
   add(r._ty === 'p' ? 'Rok za prijave' : 'Rok za ponude', dueText(r) + (r.d && r.d0 ? ` (pomjeren, ranije ${fmtDate(r.d0)})` : ''), 0);
   if (r.d) out.push({label: 'Preostalo dana', value: leftText(daysLeft(r)), drop: 0, url: false, tone: leftTone(daysLeft(r))});
   add('Objavljeno', r.p && fmtDate(r.p), 3);
@@ -1535,16 +1623,198 @@ function wire() {
   });
 }
 
+/* ---------- dobitnici ugovora (data/awards.json) ---------- */
+// Dodijeljeni ugovori za usluge s e-Nabavki BiH i TED-a, zadnjih 12 mjeseci. Dobitnik se prepoznaje
+// po nazivu bez pravnog oblika (d.o.o., d.d., GmbH ...), pa ista firma s malo drugačijim zapisom ostaje jedna.
+const AW_PAGE = 200;
+const bkey = s => norm(String(s || '').replace(/\s*\(\+\d+\)\s*$/, ''));
+const LEGAL_RX = /(?:^| )(?:d o o(?: e l)?|doo(?:el)?|d d|dd|a d|gmbh|ltd|llc|s r l|srl|s p a|spa|sh p k|shpk|inc|plc|kft)(?= |$)/g;
+const wkey = s => norm(s).replace(LEGAL_RX, ' ').replace(/\s+/g, ' ').trim() || norm(s);
+const fmtKM = n => fmtN(Math.round(n)) + ' KM';
+const lat = s => hasCyr(s) ? toLatin(s) : s;
+const awUrl = (x, urls) => x.s === 'TED' && urls.TED ? urls.TED.replace('{id}', x.id.replace(/^TED-/, '')) : x.pn && urls.EJN ? urls.EJN.replace('{id}', x.pn) : '';
+
+function prepAwards(d) {
+  const a = Array.isArray(d.a) ? d.a.filter(x => x && x.t && /^\d{4}-\d\d-\d\d$/.test(x.d || '')) : [];
+  const buyers = new Map();
+  for (const x of a) {
+    x.t = lat(x.t); x.b = lat(x.b || ''); if (x.l) x.l = lat(x.l);
+    x.w = (x.w || []).map(lat);
+    x._d = dayNum(x.d);
+    x._b = bkey(x.b);
+    x._w = x.w.map(n => ({n, k: wkey(n)}));
+    x._km = x.v && S.fx[x.cur] ? x.v * S.fx[x.cur] : null;
+    x._s = norm([x.t, x.l, x.b, ...x.w].filter(Boolean).join(' '));
+    buyers.set(x._b, (buyers.get(x._b) || 0) + 1);
+  }
+  return {meta: d, a, buyers};
+}
+async function loadAwards() {
+  if (window.TR_DATA || !(S.status && S.status.awards && S.status.awards.count)) return;  // još nisu preuzeti
+  try {
+    const res = await fetch('data/awards.json' + S.ver);
+    if (!res.ok) return;
+    const aw = prepAwards(await res.json());
+    if (!aw.a.length) return;
+    S.aw = aw;
+    $('btnAwards').hidden = false;
+    renderList();
+  } catch (e) { /* stranica radi i bez dobitnika */ }
+}
+function openAwards(o) {
+  if (!S.aw) return;
+  const f = Object.assign(S.awF, {q: '', c: '', p: 365, tab: 'w', win: '', winLabel: '', buyer: '', buyerLabel: '', shown: AW_PAGE}, o);
+  const cs = [...new Set(S.aw.a.map(x => x.c).filter(Boolean))].sort((x, y) => countryName(x).localeCompare(countryName(y), 'bs'));
+  $('awC').innerHTML = '<option value="">sve države</option>' + cs.map(c => `<option value="${esc(c)}">${esc(countryName(c))}</option>`).join('');
+  $('awC').value = cs.includes(f.c) ? f.c : '';
+  f.c = $('awC').value;
+  $('awQ').value = f.q; $('awP').value = String(f.p);
+  renderAwards();
+  if (!$('dlgAwards').open) $('dlgAwards').showModal();
+  $('awTable').scrollTop = 0;
+}
+function awFiltered() {
+  const f = S.awF, qs = norm(f.q).split(' ').filter(Boolean);
+  return S.aw.a.filter(x => (!f.c || x.c === f.c) && TODAY - x._d <= f.p && (!f.buyer || x._b === f.buyer)
+    && (!f.win || x._w.some(w => w.k === f.win)) && qs.every(t => x._s.includes(t)));
+}
+function renderAwards() {
+  const f = S.awF, list = awFiltered(), meta = S.aw.meta, src = meta.src || {};
+  const parts = [['EJN', 'e-Nabavke BiH'], ['TED', 'TED']].filter(([k]) => src[k]).map(([k, n]) => `${n} ${fmtN(src[k].count || 0)}${src[k].done === false ? ' (prikupljanje još traje)' : ''}${src[k].ok === false ? ' (zadnje preuzimanje nije uspjelo)' : ''}`);
+  $('awInfo').textContent = 'Dodijeljeni ugovori za usluge (studije, konsalting, projektovanje, nadzor, istraživanje; s e-Nabavki i ostale usluge s temama okoliša i energije), bez direktnih sporazuma. '
+    + `${parts.join(', ')}. Podaci od ${fmtDate(String(meta.generated || '').slice(0, 10))}.`;
+  const chips = [];
+  if (f.buyer) chips.push(`<span class="aw-chip"><span title="${esc(f.buyerLabel)}">Naručilac: ${esc(f.buyerLabel)}</span><button data-awx="buyer" aria-label="Ukloni filter naručioca">×</button></span>`);
+  if (f.win) chips.push(`<span class="aw-chip"><span title="${esc(f.winLabel)}">Dobitnik: ${esc(f.winLabel)}</span><button data-awx="win" aria-label="Ukloni filter dobitnika">×</button></span>`);
+  $('awChips').innerHTML = chips.join(' ');
+  for (const [id, t] of [['awTabW', 'w'], ['awTabA', 'a']]) { $(id).classList.toggle('on', f.tab === t); $(id).setAttribute('aria-selected', f.tab === t); }
+  const km = list.reduce((s, x) => s + (x._km || 0), 0);
+  $('awSum').textContent = `${fmtN(list.length)} ${plural(list.length, 'ugovor', 'ugovora', 'ugovora')}${km ? `, ukupno oko ${fmtKM(km)}` : ''}`;
+  $('awTable').innerHTML = f.tab === 'w' ? winnersTable(list) : awardsTable(list);
+  $('awNote').textContent = f.tab === 'w'
+    ? 'Klikni na dobitnika za njegove ugovore. Kod konzorcija se ugovor i njegova puna vrijednost računaju svakom članu. Iznosi u drugim valutama preračunati su u KM.'
+    : 'Vrijednost ugovora je ona koja je objavljena (na e-Nabavkama bez PDV-a). Ako je objavljeno, ispod piše raspon prihvatljivih ponuda. Klik na naručioca ili dobitnika suzi listu.';
+}
+function winnersTable(list) {
+  const m = new Map();
+  for (const x of list) {
+    const seen = new Set();
+    for (const w of x._w) {
+      if (seen.has(w.k)) continue;
+      seen.add(w.k);
+      let e = m.get(w.k);
+      if (!e) m.set(w.k, e = {k: w.k, names: new Map(), n: 0, lead: 0, km: 0, offers: [], last: '', cs: new Set()});
+      e.names.set(w.n, (e.names.get(w.n) || 0) + 1);
+      e.n++; e.km += x._km || 0;
+      if (x._w[0].k === w.k) e.lead++;
+      if (x.n) e.offers.push(x.n);
+      if (x.d > e.last) e.last = x.d;
+      if (x.c) e.cs.add(x.c);
+    }
+  }
+  const all = [...m.values()].sort((a, b) => b.n - a.n || b.km - a.km), rows = all.slice(0, 150);
+  if (!rows.length) return '<p class="empty">Nijedan ugovor ne odgovara filterima.</p>';
+  return '<table><thead><tr><th>#</th><th>Dobitnik</th><th class="num">Ugovora</th><th class="num">Vrijednost ugovora</th><th class="num">Ponuda u prosjeku</th><th>Zadnji ugovor</th><th>Država</th></tr></thead><tbody>'
+    + rows.map((e, i) => {
+      const name = [...e.names.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      const avg = e.offers.length ? (e.offers.reduce((s, v) => s + v, 0) / e.offers.length).toFixed(1).replace('.', ',') : '';
+      return `<tr><td class="num">${i + 1}</td><td><button class="link" data-aww="${esc(e.k)}" data-label="${esc(name)}">${esc(name)}</button>${e.lead < e.n ? `<span class="sub">vodeći član u ${e.lead} od ${e.n}</span>` : ''}</td><td class="num">${e.n}</td><td class="num">${e.km ? fmtKM(e.km) : ''}</td><td class="num">${avg}</td><td>${fmtDate(e.last)}</td><td>${esc([...e.cs].map(c => C_SHORT[c] || countryName(c)).join(', '))}</td></tr>`;
+    }).join('') + '</tbody></table>'
+    + (all.length > rows.length ? `<p class="hint">Prikazano je prvih ${rows.length} od ${fmtN(all.length)} dobitnika; za ostale suzi pretragu.</p>` : '');
+}
+function awardsTable(list) {
+  const f = S.awF, urls = S.aw.meta.urls || {};
+  const rows = list.slice().sort((a, b) => b._d - a._d || (b._km || 0) - (a._km || 0));
+  if (!rows.length) return '<p class="empty">Nijedan ugovor ne odgovara filterima.</p>';
+  const shown = rows.slice(0, f.shown);
+  return '<table><thead><tr><th>Datum</th><th>Ugovor</th><th>Naručilac</th><th>Dobitnik</th><th class="num">Vrijednost</th><th class="num">Ponuda</th><th>Država</th></tr></thead><tbody>'
+    + shown.map(x => {
+      const url = awUrl(x, urls);
+      const title = url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(x.t)}</a>` : esc(x.t);
+      const sub = [x.l, !url && x.ref ? 'broj obavještenja ' + x.ref : '', x.lots ? `${x.lots} lotova` : '', x.dir ? 'direktni sporazum' : ''].filter(Boolean).join(' · ');
+      const val = x.v ? `${fmtN(Math.round(x.v))} ${x.cur === 'BAM' ? 'KM' : esc(x.cur || '')}` : '';
+      const km = x.v && x.cur !== 'BAM' && x._km ? `<span class="sub">oko ${fmtKM(x._km)}</span>` : '';
+      const range = x.lo && x.hi ? `<span class="sub">ponude ${fmtN(Math.round(x.lo))} do ${fmtN(Math.round(x.hi))}</span>` : '';
+      const wins = x._w.map((w, i) => `<button class="link" data-aww="${esc(w.k)}" data-label="${esc(w.n)}">${esc(w.n)}</button>${i === 0 && x._w.length > 1 ? ' <span class="muted">(vodeći)</span>' : ''}`).join('<br>') || '<span class="muted">nije objavljen</span>';
+      return `<tr><td>${fmtDate(x.d)}</td><td class="t">${title}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</td><td><button class="link" data-awbk="${esc(x._b)}" data-label="${esc(x.b)}">${esc(x.b)}</button></td><td>${wins}</td><td class="num">${val}${km}${range}</td><td class="num">${x.n || ''}</td><td>${esc(C_SHORT[x.c] || countryName(x.c || '??'))}<span class="sub">${x.s === 'EJN' ? 'e-Nabavke' : 'TED'}</span></td></tr>`;
+    }).join('') + '</tbody></table>'
+    + (rows.length > shown.length ? `<div class="more"><button data-awmore>Prikaži još ${Math.min(AW_PAGE, rows.length - shown.length)} (preostalo ${fmtN(rows.length - shown.length)})</button></div>` : '');
+}
+function awardsCsv() {
+  const head = ['Datum', 'Naziv', 'Lot', 'Naručilac', 'Dobitnik', 'Vrijednost', 'Valuta', 'Vrijednost u KM', 'Broj ponuda', 'Najniža prihvatljiva ponuda', 'Najviša prihvatljiva ponuda', 'Država', 'Izvor', 'Link', 'Broj obavještenja'];
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const urls = S.aw.meta.urls || {};
+  const lines = [head.map(q).join(';')];
+  for (const x of awFiltered().sort((a, b) => b._d - a._d)) {
+    lines.push([x.d, x.t, x.l || '', x.b, x.w.join(' | '), x.v || '', x.cur || '', x._km === null ? '' : Math.round(x._km), x.n || '', x.lo || '', x.hi || '', countryName(x.c || '??'), x.s === 'EJN' ? 'e-Nabavke BiH' : 'TED', awUrl(x, urls), x.ref || ''].map(q).join(';'));
+  }
+  download(`dobitnici-${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}.csv`, String.fromCharCode(0xFEFF) + lines.join('\r\n'), 'text/csv;charset=utf-8');
+}
+function wireAwards() {
+  $('btnAwards').addEventListener('click', () => openAwards({}));
+  $('btnAwClose').addEventListener('click', () => $('dlgAwards').close());
+  $('btnAwCsv').addEventListener('click', awardsCsv);
+  const redraw = () => { S.awF.shown = AW_PAGE; renderAwards(); $('awTable').scrollTop = 0; };
+  $('awQ').addEventListener('input', debounce(() => { S.awF.q = $('awQ').value; redraw(); }, 200));
+  $('awC').addEventListener('change', () => { S.awF.c = $('awC').value; redraw(); });
+  $('awP').addEventListener('change', () => { S.awF.p = +$('awP').value; redraw(); });
+  $('awTabW').addEventListener('click', () => { S.awF.tab = 'w'; redraw(); });
+  $('awTabA').addEventListener('click', () => { S.awF.tab = 'a'; redraw(); });
+  $('dlgAwards').addEventListener('click', e => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.aww) { Object.assign(S.awF, {win: t.dataset.aww, winLabel: t.dataset.label, tab: 'a'}); redraw(); }
+    else if (t.dataset.awbk) { Object.assign(S.awF, {buyer: t.dataset.awbk, buyerLabel: t.dataset.label, tab: 'a'}); redraw(); }
+    else if (t.dataset.awx) { S.awF[t.dataset.awx] = ''; redraw(); }
+    else if ('awmore' in t.dataset) { S.awF.shown += AW_PAGE; renderAwards(); }
+  });
+  // Iz liste objava: ranije dodjele istog naručioca; otvoreni sažeci i reference se pamte.
+  $('list').addEventListener('click', e => {
+    const b = e.target.closest('[data-awb]');
+    if (!b) return;
+    const r = S.data.find(x => x.id === b.dataset.awb);
+    if (r) openAwards({buyer: r._bk, buyerLabel: String(r.b || '').replace(/\s*\(\+\d+\)\s*$/, ''), tab: 'a'});
+  });
+  $('list').addEventListener('toggle', e => {
+    const d = e.target;
+    if (!d.dataset || !d.dataset.x) return;
+    const k = d.dataset.id + '|' + d.dataset.x;
+    if (d.open) S.open.add(k); else S.open.delete(k);
+  }, true);
+}
+
 /* ---------- interni izvori: šifrirani fajl koji se otključava u pregledniku ---------- */
 // data/private.json je šifriran (AES-256-GCM, ključ iz šifre preko PBKDF2-SHA256). Šifra se
 // pamti samo u ovom pregledniku; bez nje se interni izvori ne vide.
 const fromB64 = t => Uint8Array.from(atob(t), ch => ch.charCodeAt(0));
-async function decryptPrivate(blob, pass) {
+const toB64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+const KDF_ITER = 250000;  // isto kao u collect.py
+async function aesKey(pass, salt, iterations, use) {
   const raw = new TextEncoder().encode(pass.trim().normalize('NFC'));
   const base = await crypto.subtle.importKey('raw', raw, 'PBKDF2', false, ['deriveKey']);
-  const key = await crypto.subtle.deriveKey({name: 'PBKDF2', salt: fromB64(blob.salt), iterations: blob.iter, hash: 'SHA-256'}, base, {name: 'AES-GCM', length: 256}, false, ['decrypt']);
+  return crypto.subtle.deriveKey({name: 'PBKDF2', salt, iterations, hash: 'SHA-256'}, base, {name: 'AES-GCM', length: 256}, false, [use]);
+}
+async function decryptPrivate(blob, pass) {
+  const key = await aesKey(pass, fromB64(blob.salt), blob.iter, 'decrypt');
   const plain = await crypto.subtle.decrypt({name: 'AES-GCM', iv: fromB64(blob.iv)}, key, fromB64(blob.ct));
   return JSON.parse(new TextDecoder().decode(plain));
+}
+// Šifriranje u istom obliku koji čita collect.py (decrypt_records): za listu referenci na GitHubu.
+async function encryptJson(data, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await aesKey(pass, salt, KDF_ITER, 'encrypt');
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(data))));
+  return {v: 1, kdf: 'PBKDF2-SHA256', iter: KDF_ITER, cipher: 'AES-256-GCM', salt: toB64(salt), iv: toB64(iv), ct: toB64(ct), generated: new Date().toISOString().slice(0, 19) + 'Z'};
+}
+// Slične reference: data/refmatch.json je šifriran istom šifrom, pa se čita tek nakon otključavanja.
+async function loadRefs(pass) {
+  if (window.TR_DATA || !(S.status && S.status.refs && S.status.refs.on)) return;
+  try {
+    const res = await fetch('data/refmatch.json' + S.ver);
+    if (!res.ok) return;
+    const d = await decryptPrivate(await res.json(), pass);
+    if (d && d.m && Array.isArray(d.refs) && S.unlocked) { S.refm = d; renderList(); }
+  } catch (e) { /* objave ostaju bez sličnih referenci */ }
 }
 function withoutPrivate() { return S.data.filter(r => !S.privKeys.has(r.src)); }
 function refreshLock() {
@@ -1560,11 +1830,12 @@ async function unlock(pass) {
   refreshAi();
   store.set('tr.pass', pass);
   loadMarks(); refreshLock();
+  loadRefs(pass);
   return recs.length;
 }
 function lockAgain() {
   store.set('tr.pass', '');
-  S.data = withoutPrivate(); S.unlocked = false;
+  S.data = withoutPrivate(); S.unlocked = false; S.refm = null;
   refreshAi();
   refreshLock();
 }
@@ -1581,6 +1852,10 @@ function openLockDialog() {
   $('lockMsg').textContent = S.unlocked ? 'Otključano u ovom pregledniku.' : '';
   $('lockField').hidden = S.unlocked; $('btnLockOk').hidden = S.unlocked; $('btnLockForget').hidden = !S.unlocked;
   $('lockPass').value = '';
+  $('lockTools').hidden = !S.unlocked; $('encMsg').textContent = '';
+  const rf = S.status.refs;
+  $('refInfo').textContent = rf && rf.on ? `Na GitHubu je postavljena lista od ${fmtN(rf.n || 0)} referenci; slične reference ima ${fmtN(rf.matched || 0)} ${plural(rf.matched || 0, 'objava', 'objave', 'objava')}. Za novu listu šifriraj novi fajl i njime zamijeni stari na GitHubu.`
+    : rf && rf.error ? rf.error : 'Lista referenci još nije postavljena na GitHub.';
   $('dlgLock').showModal();
   if (!S.unlocked) $('lockPass').focus();
 }
@@ -1598,6 +1873,28 @@ function wireLock() {
   };
   $('btnLockOk').addEventListener('click', tryUnlock);
   $('lockPass').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); } });
+  // Lista referenci: šifrira se ovdje, u pregledniku, pa na GitHub ide samo šifrirani fajl.
+  $('encFile').addEventListener('change', async e => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    const msg = $('encMsg'), pass = store.get('tr.pass');
+    if (!S.unlocked || !pass) { msg.textContent = 'Prvo otključaj interne izvore.'; return; }
+    let data;
+    try { data = JSON.parse(await f.text()); } catch (err) { msg.textContent = 'Fajl nije ispravan JSON fajl.'; return; }
+    if (data && data.ct && data.salt) { msg.textContent = 'Ovaj fajl je već šifriran: postavi ga na GitHub takav kakav je.'; return; }
+    if (!Array.isArray(data) || !data.length || !data.every(x => x && typeof x === 'object' && typeof x.t === 'string' && x.t.trim())) {
+      msg.textContent = 'Ovo nije lista referenci: očekuje se lista poslova, svaki s nazivom (polje t).'; return;
+    }
+    msg.textContent = 'Šifriram…';
+    try {
+      const blob = await encryptJson(data, pass);
+      const back = await decryptPrivate(blob, pass);  // provjera prije preuzimanja
+      if (!Array.isArray(back) || back.length !== data.length) throw new Error('provjera');
+      download('reference.enc.json', JSON.stringify(blob), 'application/json');
+      msg.textContent = `Šifrirano: ${fmtN(data.length)} referenci. Preuzet je fajl reference.enc.json: postavi ga u glavni folder repozitorija na GitHubu i pokreni osvježavanje (Run workflow).`;
+    } catch (err) { msg.textContent = 'Šifriranje nije uspjelo u ovom pregledniku.'; }
+  });
 }
 
 /* ---------- pokretanje ---------- */
@@ -1608,7 +1905,8 @@ function prep(r) {
   if (hasCyr(r.loc)) r.loc = toLatin(r.loc);
   r._v = r.v && S.fx[r.cur] ? r.v * S.fx[r.cur] : null;  // vrijednost u KM, za filter
   r._who = bidder(r);
-  r._s = norm([r.t, r.en, r.b, r.loc, r.reg, r.ref, r.n, (r.cpv || []).join(' ')].filter(Boolean).join(' '));
+  r._s = norm([r.t, r.en, r.b, r.loc, r.reg, r.ref, r.n, (r.cpv || []).join(' '), r.sm].filter(Boolean).join(' '));
+  r._bk = bkey(r.b);  // naručilac, za ranije dodjele ugovora
   r._sw = ' ' + r._s;  // za istoznačnice: traže se na početku riječi
   r._pin = /najav/i.test(r.n || '');
   r._ai = r.ai == null ? 'N' : String(r.ai);
@@ -1642,7 +1940,7 @@ function init(data, status) {
   else if (saved !== null) { F = fromHash(saved); S.profile = store.get('tr.profile') || ''; }
   else { F = fromHash(STARTERS[0].h); S.profile = STARTERS[0].name; }
   if (!S.profiles.some(p => p.name === S.profile)) S.profile = '';
-  syncInputs(); wire(); wireLock(); wireShare(); wirePick(); wireAsk(); renderStatus(); apply();
+  syncInputs(); wire(); wireLock(); wireShare(); wirePick(); wireAsk(); wireAwards(); renderStatus(); apply();
 }
 
 async function load() {
@@ -1654,11 +1952,13 @@ async function load() {
       const b = await fetch('data/status.json?t=' + Date.now(), {cache: 'no-store'});
       status = b.ok ? await b.json() : null;
       v = '?v=' + encodeURIComponent((status && status.generated) || Math.floor(Date.now() / 3600000));
+      S.ver = v;
       const a = await fetch('data/tenders.json' + v);
       if (!a.ok) throw new Error('podaci još nisu prikupljeni (HTTP ' + a.status + ')');
       data = await a.json();
     }
     init(data, status);
+    loadAwards();  // u pozadini: dugme Dobitnici i ranije dodjele uz objave
     if (!window.TR_DATA && status && status.sources.some(x => x.private && !x.off)) {
       try {
         const c = await fetch('data/private.json' + v);

@@ -1,7 +1,7 @@
 <!--
 Okvir za AI ocjenu objava (Tender radar). AI dobija cijeli ovaj fajl uz svaku grupu objava.
-Mijenja se na GitHubu olovkom. Svaka izmjena teksta pokreće ponovno ocjenjivanje svih objava
-pri sljedećem osvježavanju. Ovakvi komentari se ne šalju AI-u.
+Mijenja se na GitHubu olovkom. Svaka izmjena teksta pokreće ponovno ocjenjivanje svih objava:
+postepeno, poslije novih objava, a do tada vrijedi stara ocjena. Ovakvi komentari se ne šalju AI-u.
 Izvor: korekcije Vedada Suljića (05.10.2026.) i referentna lista CETEOR-a (898 poslova) i REIC-a (53 posla).
 -->
 # Okvir za ocjenu objava
@@ -73,7 +73,7 @@ REIC (Regionalni edukativni i informativni centar za održivi razvoj) je nevladi
 
 ## Naručioci
 
-Po broju poslova: UNDP BiH (oko 45), IPSA Institut (oko 80, kao podizvođač), GIZ (oko 20), Fondacija Heinrich Böll (uglavnom REIC), IFC i GGF/Finance in Motion (zeleni krediti, ESG, due diligence), EBRD, RCC, SEPA i SEI, SIPPO, Erasmus+ i Interreg. Svjetska banka, Expertise France i EU Delegacija su također poželjni naručioci. Podizvođački poslovi i za EURO-ASFALT, AECOM, GOPA, Euroing, DEM i Dorsch.
+Najčešći naručioci: UNDP BiH, IPSA Institut (kao podizvođač), GIZ, Fondacija Heinrich Böll (uglavnom REIC), IFC i GGF/Finance in Motion (zeleni krediti, ESG, due diligence), EBRD, RCC, SEPA i SEI, SIPPO, Erasmus+ i Interreg. Svjetska banka, Expertise France i EU Delegacija su također poželjni naručioci. Podizvođački poslovi i za EURO-ASFALT, AECOM, GOPA, Euroing, DEM i Dorsch.
 
 Domaći naručioci: FMOiT, Fond za zaštitu okoliša FBiH, FMPU, Elektroprivreda BiH i HZHB, JP Autoceste FBiH, Sarajevogas, gradovi i općine, industrijske firme (okolinske dozvole, mjerenja, auditi). Općine se ne izbjegavaju; izbjegava se samo mala nabavka po najnižoj cijeni kad je posao izvan oblasti firme.
 
@@ -88,7 +88,7 @@ Kad je vrijednost objavljena: studija, strategija ili tehnička pomoć ispod 10.
 ## Javni pozivi (grantovi)
 
 - CETEOR: 3 kad je poziv Erasmus+ (stručno obrazovanje, zelene vještine), Interreg ADRION ili Danube, Horizon ili domaći okolišni fond, tema energija, okoliš ili klima, a firme smiju biti partneri; 2 za ostale pozive za MSP i firme. Ranije: Erasmus+ (RAPPORT, INVEST, Buildskills Academy), Interreg ADRION (SAMESEA, PLUS, geoPORtal), Horizon 2020 (TIPPING+), EIT Climate-KIC, Fond za zaštitu okoliša FBiH.
-- REIC: 3 kad smiju nevladine organizacije, a tema je energetska tranzicija, građanska energija i energetske zajednice, klima, kvalitet zraka, cirkularna ekonomija ili okoliš. Najvažniji donatori: Fondacija Heinrich Böll (oko 20 projekata, REIC nosilac), GIZ, ECF, EUKI, CEI, domaći okolišni fondovi (nosilac); Interreg Danube, ADRION i MED, Erasmus+, Horizon i EIT Climate-KIC (partner).
+- REIC: 3 kad smiju nevladine organizacije, a tema je energetska tranzicija, građanska energija i energetske zajednice, klima, kvalitet zraka, cirkularna ekonomija ili okoliš. Najvažniji donatori: Fondacija Heinrich Böll (REIC nosilac), GIZ, ECF, EUKI, CEI, domaći okolišni fondovi (nosilac); Interreg Danube, ADRION i MED, Erasmus+, Horizon i EIT Climate-KIC (partner).
 - 0 kad smiju aplicirati samo građani, poljoprivrednici, općine ili organizacije iz država u kojima CETEOR i REIC ne mogu učestvovati.
 
 ## Primjeri ocjene 3 (stvarni poslovi i ponude)

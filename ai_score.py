@@ -3,11 +3,14 @@
 Pokreće je collect.py pri svakom osvježavanju. Ključ se čita iz varijable okruženja
 ANTHROPIC_API_KEY (na GitHubu: secret istog imena). Bez ključa korak se preskače.
 
-Ocjenjuju se samo objave koje još nemaju ocjenu, najnovije prve; ocjene se prenose iz dana u dan.
-Polja u zapisu: ai (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za firmu) i air (kratko
-obrazloženje na bosanskom). AI ocjenjuje po okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a,
-pravila za ocjene, primjeri); izmjena okvira pokreće ponovno ocjenjivanje svih objava (collect.py).
+Ocjenjuju se objave koje još nemaju ocjenu, najnovije prve; ocjene se prenose iz dana u dan.
+Polja u zapisu: ai (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za firmu), air (kratko
+obrazloženje na bosanskom) i ak (oznaka verzije okvira po kojoj je ocijenjena). AI ocjenjuje po
+okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a, pravila za ocjene, primjeri). Kad se okvir
+promijeni, objave se ponovo ocjenjuju postepeno, poslije novih objava; do tada vrijedi stara ocjena.
 Model i ograničenja su u config.json, dio "ai".
+
+summarize() daje kratak sažetak opisa (polje sm) za objave s ocjenom 2 ili 3, ako izvor daje opis.
 
 translate() daje kratak engleski prijevod naslova koji nisu na bosanskom, hrvatskom, srpskom,
 crnogorskom ili engleskom: polje en (prijevod; prazno ako prijevod ne treba) i lg (jezik originala).
@@ -36,6 +39,10 @@ DEFAULTS = {
     "translate_batch": 80,
     "translate_max": 3000,   # najviše naslova po osvježavanju
     "translate_minutes": 6,
+    "summary": True,         # kratak AI sažetak opisa za objave s ocjenom 2 i 3
+    "summary_batch": 6,
+    "summary_max": 300,      # najviše novih sažetaka po osvježavanju
+    "summary_minutes": 5,
 }
 PROMPT_VERSION = "3"  # promjena načina ocjenjivanja u kodu; kao i izmjena okvira, pokreće ponovno ocjenjivanje
 OUT_TENDER = """Za svaku objavu daj ocjenu s od 0 do 3 isključivo po okviru i kratko obrazloženje na bosanskom,
@@ -199,6 +206,75 @@ def _plain(text: str) -> str:
     return re.sub(r"[\W_]+", " ", str(text or "").lower()).strip()
 
 
+SUMMARY = """Dobijaš numerisane objave: naslov i opis iz poziva ili tendera, na bilo kojem jeziku.
+Za svaku napiši sažetak na bosanskom jeziku, najviše 45 riječi: šta se traži, ko smije ponuditi ili
+aplicirati, budžet ili procijenjena vrijednost, trajanje i ključni eksperti, ako su navedeni.
+Ne izmišljaj: ono čega u opisu nema, izostavi. Bez uvoda i bez ponavljanja naslova.
+Odgovori isključivo JSON listom, bez ikakvog drugog teksta, s jednim elementom za svaku objavu.
+U sažetku ne koristi navodnike.
+[{"i": 1, "m": "sažetak"}]"""
+SM_RX = re.compile(r'"i"\s*:\s*(\d+)\s*,\s*"m"\s*:\s*"(.*?)"\s*\}', re.S)
+
+
+def _parse_sm(text: str, n: int) -> dict:
+    m = re.search(r"\[.*\]", text, re.S)
+    if not m:
+        raise ValueError("AI nije vratio sažetke u očekivanom obliku")
+    try:
+        items = [(x.get("i"), x.get("m")) for x in json.loads(m.group(0)) if isinstance(x, dict)]
+    except ValueError:
+        items = SM_RX.findall(text)
+    out = {}
+    for i, sm in items:
+        try:
+            i = int(i)
+        except (TypeError, ValueError):
+            continue
+        sm = re.sub(r"\s+", " ", str(sm or "")).replace('\\"', '"').strip()[:400]
+        if 1 <= i <= n and sm:
+            out[i] = sm
+    return out
+
+
+def summarize(recs: list, cfg: dict, private: set) -> dict:
+    """Polje sm (sažetak opisa) za objave s AI ocjenom 2 ili 3 koje imaju opis (_desc)."""
+    conf = {**DEFAULTS, **(cfg.get("ai") or {})}
+    key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    pool = [r for r in recs if not r.get("dup") and (conf["include_private"] or r["src"] not in private)
+            and (r.get("ai") or 0) >= 2 and len(r.get("_desc") or "") > 40]
+    info = {"on": bool(key and conf["summary"]), "new": 0, "error": None}
+    if info["on"]:
+        todo = [r for r in pool if not r.get("sm")]
+        todo.sort(key=lambda r: r.get("fs") or r.get("p") or "", reverse=True)
+        todo.sort(key=lambda r: -(r.get("ai") or 0))  # prvo ocjena 3, pa najnovije
+        work = todo[:int(conf["summary_max"])]
+        stop = time.time() + float(conf["summary_minutes"]) * 60
+        size = max(1, int(conf["summary_batch"]))
+        for k in range(0, len(work), size):
+            if time.time() > stop:
+                info["error"] = "isteklo vrijeme za sažetke; ostatak se radi pri sljedećem osvježavanju"
+                break
+            chunk = work[k:k + size]
+            body = {"model": conf["model"], "max_tokens": 180 * len(chunk) + 200, "system": SUMMARY,
+                    "messages": [{"role": "user", "content": "\n\n".join(
+                        f"{i}. NASLOV: {r['t'][:300]}\nOPIS: {r['_desc'][:2500]}" for i, r in enumerate(chunk, 1))}]}
+            try:
+                got = _parse_sm(_call(key, body), len(chunk))
+            except Fatal as e:
+                info["error"] = str(e)
+                break
+            except Exception as e:  # jedan neuspjeli upit ne zaustavlja ostale
+                info["error"] = f"{e}"[:300] or type(e).__name__
+                continue
+            for i, r in enumerate(chunk, 1):
+                if i in got:
+                    r["sm"] = got[i]
+                    info["new"] += 1
+    info["done"] = sum(1 for r in pool if r.get("sm"))
+    info["pending"] = sum(1 for r in pool if not r.get("sm")) if info["on"] else 0
+    return info
+
+
 def translate(recs: list, cfg: dict, private: set) -> dict:
     """Dodaje polja en i lg zapisima koji ih nemaju. Vraća stanje za status.json."""
     conf = {**DEFAULTS, **(cfg.get("ai") or {})}
@@ -241,7 +317,7 @@ def translate(recs: list, cfg: dict, private: set) -> dict:
     return info
 
 
-def _run(key: str, conf: dict, system: str, work: list, info: dict, stop: float, calls: bool) -> bool:
+def _run(key: str, conf: dict, system: str, work: list, info: dict, stop: float, calls: bool, mark: str) -> bool:
     """Ocjenjuje listu u grupama. Vraća False ako treba stati (pogrešan ključ, isteklo vrijeme)."""
     size = max(1, int(conf["batch"]))
     for k in range(0, len(work), size):
@@ -264,20 +340,26 @@ def _run(key: str, conf: dict, system: str, work: list, info: dict, stop: float,
         for i, r in enumerate(chunk, 1):
             if i in got:
                 r["ai"], w, r["air"] = got[i]
+                r["ak"] = mark
                 if calls:
                     r["aiw"] = w
+                elif "aiw" in r:
+                    del r["aiw"]
                 info["new"] += 1
     return True
 
 
 def score(recs: list, cfg: dict, private: set) -> dict:
-    """Dodaje polja ai i air zapisima koji ih nemaju. Vraća stanje za status.json."""
+    """Dodaje polja ai i air zapisima koji ih nemaju, pa ponovo ocjenjuje one ocijenjene po ranijem
+    okviru (polje ak). Vraća stanje za status.json."""
     conf = {**DEFAULTS, **(cfg.get("ai") or {})}
     key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
     pool = [r for r in recs if not r.get("dup")
             and (conf["include_private"] or r["src"] not in private)]
-    todo = [r for r in pool if "ai" not in r]
     okvir, oid = load_okvir(cfg)
+    mark = oid[:6]
+    todo = [r for r in pool if "ai" not in r]
+    stale = [r for r in pool if "ai" in r and r.get("ak") != mark] if mark else []
     info = {"model": conf["model"], "on": bool(key), "new": 0, "error": None, "okvir": oid}
     if not key:
         info["error"] = ("AI ocjena je isključena: na GitHubu nije postavljen secret "
@@ -285,14 +367,20 @@ def score(recs: list, cfg: dict, private: set) -> dict:
     elif not okvir:
         info["error"] = "AI ocjena je isključena: nema okvira za ocjenu (fajl ai_okvir.md)."
     else:
-        todo.sort(key=lambda r: r.get("fs") or r.get("p") or "", reverse=True)
-        work = todo[:int(conf["max_per_run"])]
+        newest = lambda r: r.get("fs") or r.get("p") or ""  # noqa: E731
+        todo.sort(key=newest, reverse=True)
+        stale.sort(key=newest, reverse=True)
         stop = time.time() + float(conf["minutes"]) * 60
-        tenders = [r for r in work if r.get("ty") != "P"]
-        calls = [r for r in work if r.get("ty") == "P"]
-        # Prvo javni pozivi (manje ih je), zatim tenderi; staje se na pogrešnom ključu ili isteku vremena.
-        if _run(key, conf, _system(okvir, True), calls, info, stop, True):
-            _run(key, conf, _system(okvir, False), tenders, info, stop, False)
+        left = int(conf["max_per_run"])
+        # Prvo objave bez ocjene, pa one ocijenjene po ranijem okviru; u svakoj grupi prvo javni
+        # pozivi (manje ih je), zatim tenderi. Staje se na pogrešnom ključu ili isteku vremena.
+        for group in (todo, stale):
+            work = group[:left]
+            left -= len(work)
+            if not all(_run(key, conf, _system(okvir, kind == "P"), [r for r in work if (r.get("ty") == "P") == (kind == "P")],
+                            info, stop, kind == "P", mark) for kind in ("P", "T")):
+                break
     info["scored"] = sum(1 for r in pool if "ai" in r)
     info["pending"] = sum(1 for r in pool if "ai" not in r)
+    info["stale"] = sum(1 for r in pool if "ai" in r and r.get("ak") != mark) if key and mark else 0
     return info

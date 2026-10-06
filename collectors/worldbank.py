@@ -4,6 +4,9 @@ Izvor je javni JSON API koji koristi i pretraga nabavki na projects.worldbank.or
 """
 from __future__ import annotations
 
+import html
+import re
+
 import datetime as dt
 import time
 
@@ -27,7 +30,7 @@ GPN_DAYS = 120  # najava (opšte obavještenje bez roka) ostaje ovoliko dana od 
 FIELDS = ("id,notice_type,submission_date,submission_deadline_date,submission_deadline_time,"
           "bid_description,bid_reference_no,project_name,project_ctry_name,agency_name,"
           "contact_organization,contact_ctry_name,procurement_group,procurement_method_code,"
-          "bid_estimate_amount,bid_currency_code")
+          "bid_estimate_amount,bid_currency_code,notice_text")
 CTYPE = {"CS": base.SERVICES, "NC": base.SERVICES, "GO": base.GOODS, "CW": base.WORKS}
 PAGE = 1000  # najveća stranica koju API vraća
 
@@ -88,7 +91,13 @@ def _rec(r: dict) -> dict | None:
         value=_num(r.get("bid_estimate_amount")), currency=r.get("bid_currency_code"),
         ref=r.get("bid_reference_no"),
         # INDV = izbor individualnog konsultanta; ostale metode (QCBS, CQS, RFB, RFQ ...) su za firme
-        bidder=("ind" if method == "INDV" else "org") if method else None)
+        bidder=("ind" if method == "INDV" else "org") if method else None) | _desc(r)
+
+
+def _desc(r: dict) -> dict:
+    """Tekst objave bez HTML-a, samo za AI sažetak (ne piše se u podatke)."""
+    text = base.clean(re.sub(r"<[^>]+>", " ", html.unescape(str(r.get("notice_text") or ""))))
+    return {"_desc": text[:3000]} if len(text) > 40 else {}
 
 
 def collect(cfg: dict) -> list[dict]:

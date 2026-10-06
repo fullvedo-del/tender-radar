@@ -36,7 +36,7 @@ NOTICE = ("Number,ProcedureId,ProcedureName,ProcedureType,ContractType,Contracti
           "ContractingAuthorityCityName,ContractingAuthorityType,"
           "ContractingAuthorityActivityTypeName,ContractingAuthorityAdministrativeUnitType,"
           "ContractingAuthorityAdministrativeUnitName,ApplicationDeadlineDateTime,Announced")
-LOT = "ProcedureId,No,Status,EstimatedValue,ApplicationDeadlineDateTime"
+LOT = "ProcedureId,No,Status,EstimatedValue,ApplicationDeadlineDateTime,Name,ShortDescription"
 
 CTYPE = {"Goods": base.GOODS, "Services": base.SERVICES, "Works": base.WORKS}
 PROCEDURE = {  # nazivi iz obrasca obavještenja (IV 1. Vrsta postupka)
@@ -228,6 +228,11 @@ def collect(cfg: dict) -> list[dict]:
 
     out = []
     for n, due, whole in found:
+        # opis za AI sažetak: kratki opis postupka i prvih lotova (ne piše se u podatke)
+        parts = [whole.get("ShortDescription") if whole else None] + [
+            f"{x.get('Name') or ''}: {x.get('ShortDescription') or ''}".strip(": ")
+            for x in sorted(lots.get(n["ProcedureId"], []), key=lambda x: x.get("No") or 0) if x.get("No")][:5]
+        desc = base.clean(" | ".join(p for p in parts if p))
         level = n.get("ContractingAuthorityAdministrativeUnitType")
         unit = n.get("ContractingAuthorityAdministrativeUnitName")
         kind = n.get("ContractingAuthorityType")
@@ -249,6 +254,8 @@ def collect(cfg: dict) -> list[dict]:
                 80, placeholder="…"),
             value=value, currency="BAM" if value else None,
             ref=n.get("Number")))
+        if len(desc) > 40:
+            out[-1]["_desc"] = desc[:3000]
     return out
 
 

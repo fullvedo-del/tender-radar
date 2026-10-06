@@ -33,7 +33,7 @@ FIELDS = ["cftId", "identifier", "title", "startDate", "deadlineDate", "twoStage
           "closingDate", "cftEXARegistrationDeadline", "procedureType", "contractType",
           "mainCpvCode", "mainCpv", "placesOfDeliveryOrPerformance",
           "cftLeadContractingAuthorityCode", "cftPartyLegalEntityId", "cftContractNoticeLink",
-          "callIdentifier", "cftEstimatedTotalProcedureValue"]
+          "callIdentifier", "cftEstimatedTotalProcedureValue", "description"]
 CTYPE = {"Services": base.SERVICES, "Supplies": base.GOODS, "Works": base.WORKS}
 PAGE = 100  # API ne vraća više od 100 po stranici
 
@@ -152,6 +152,9 @@ def collect(cfg: dict) -> list[dict]:
             cpv=re.findall(r"\d{8}", _v(m, "mainCpvCode") or "") + (m.get("mainCpv") or []),
             btype="eu", value=float(val[1]) if val else None, currency=val and val[2],
             ref=_ted(m) or _v(m, "callIdentifier"))
+        desc = base.clean(_v(m, "description") or "")
+        if len(desc) > 40:
+            out[sid]["_desc"] = desc[:3000]  # samo za AI sažetak; ne piše se u podatke
     if not any("d" in r for r in out.values()):
         raise base.SourceChanged("EU F&T: nijedan tender nema rok od danas nadalje; "
                                  "vjerovatno su promijenjena polja s rokom.")

@@ -58,7 +58,7 @@ DevelopmentAid je isključen: pretraga tendera i grantova preko API-ja se plaća
 
 ## AI: ocjena za CETEOR i Pitaj AI
 
-Ocjena za CETEOR: pri svakom osvježavanju AI pročita nove objave i svakoj da ocjenu od 0 do 3 (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za nas) i jednu rečenicu obrazloženja. Na stranici su filter „AI ocjena za CETEOR“, poredak „AI ocjena, najbolje prvo“ i oznaka „AI 3/3“ uz objavu. AI ocjenjuje po okviru iz fajla `ai_okvir.md`: opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3 (vrste posla, geografija, naručioci, individualni eksperti, vrijednost ugovora, javni pozivi) i primjeri iz referenci. Uz svaku objavu AI vidi naziv, engleski prijevod ako ga ima, naručioca, državu, vrstu ugovora i postupka, CPV kod, vrijednost i izvor, ali ne i projektni zadatak. Svaka objava se ocjenjuje jednom. Okvir se mijenja na GitHubu olovkom; svaka izmjena teksta pokreće ponovno ocjenjivanje svih objava pri sljedećem osvježavanju (do 5.000 po osvježavanju i najviše 12 minuta, ostatak sljedeći dan; oko 1,5 USD). Tekst između `<!--` i `-->` je napomena za ljude i AI ga ne vidi. Ocjenjuju se i objave internih izvora (GIZ, OSCE); ocjene ostaju u šifriranom fajlu zajedno s objavama. Ako to ne želiš, u `config.json` postavi `"include_private": false`.
+Ocjena za CETEOR: pri svakom osvježavanju AI pročita nove objave i svakoj da ocjenu od 0 do 3 (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za nas) i jednu rečenicu obrazloženja. Na stranici su filter „AI ocjena za CETEOR“, poredak „AI ocjena, najbolje prvo“ i oznaka „AI 3/3“ uz objavu. AI ocjenjuje po okviru iz fajla `ai_okvir.md`: opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3 (vrste posla, geografija, naručioci, individualni eksperti, vrijednost ugovora, javni pozivi) i primjeri iz referenci. Uz svaku objavu AI vidi naziv, engleski prijevod ako ga ima, naručioca, državu, vrstu ugovora i postupka, CPV kod, vrijednost i izvor, ali ne i projektni zadatak. Svaka objava se ocjenjuje jednom. Okvir se mijenja na GitHubu olovkom; svaka izmjena teksta pokreće ponovno ocjenjivanje svih objava, postepeno: prvo se ocjenjuju nove objave, pa stare po novom okviru (najviše 12 minuta po osvježavanju, ostatak sljedeći dan; ukupno oko 1,5 USD). Do tada uz staru objavu ostaje stara ocjena, a u prozoru „Izvori“ piše koliko ih još čeka. Tekst između `<!--` i `-->` je napomena za ljude i AI ga ne vidi. Ocjenjuju se i objave internih izvora (GIZ, OSCE); ocjene ostaju u šifriranom fajlu zajedno s objavama. Ako to ne želiš, u `config.json` postavi `"include_private": false`.
 
 Pitaj AI: dugme pored pretrage. Napišeš običnim jezikom šta tražiš, a AI postavi filtere; „Vrati prethodne“ u poruci vraća stare. Prvi put stranica traži API ključ i pamti ga samo u tom pregledniku.
 
@@ -72,7 +72,37 @@ Postavljanje (jednom):
 
 AI prijevod: naslovi koji nisu na bosanskom, hrvatskom, srpskom, crnogorskom ili engleskom (npr. švedski, češki, francuski) dobiju kratak prijevod na engleski. Prijevod je ispod originalnog naslova, ljubičastom bojom i s oznakom EN; pretraga ga uzima u obzir, a ima ga i u CSV-u i u poruci „Pošalji“. Svaki naslov se provjerava jednom. Prevode se i interni izvori (npr. GIZ-ovi naslovi na njemačkom). Prijevod se isključuje s `"translate": false` u dijelu `ai` u `config.json`.
 
-Cijena: model je Claude Haiku 4.5 (1 USD na milion ulaznih i 5 USD na milion izlaznih tokena). Prvo ocjenjivanje svih objava košta oko 1 USD, a prva provjera naslova za prijevod manje od 0,50 USD; poslije toga oboje košta nekoliko centi dnevno. Jedno pitanje u Pitaj AI košta manje od jednog centa. Bez ključa sve ostalo radi kao i prije.
+AI sažetak: za objave s ocjenom 2 ili 3, kad izvor daje opis posla (TED, e-Nabavke, EU Funding & Tenders, Svjetska banka), AI napiše sažetak do 45 riječi: šta se traži, ko smije ponuditi ili aplicirati, budžet, trajanje i ključni eksperti, ako su navedeni. Ispod objave stoji „Sažetak (AI)“; klik ga otvara. Sažetak je i u CSV-u, u poruci „Pošalji“ i u pretrazi. Pravi se do 300 sažetaka po osvježavanju, prvo za ocjenu 3. Isključuje se s `"summary": false` u dijelu `ai` u `config.json`.
+
+Cijena: model je Claude Haiku 4.5 (1 USD na milion ulaznih i 5 USD na milion izlaznih tokena). Prvo ocjenjivanje svih objava košta oko 1 USD, prva provjera naslova za prijevod manje od 0,50 USD, a prvi sažeci oko 1 USD; poslije toga sve zajedno košta nekoliko centi dnevno. Jedno pitanje u Pitaj AI košta manje od jednog centa. Bez ključa sve ostalo radi kao i prije.
+
+## Dobitnici ugovora
+
+Dugme „Dobitnici“ u zaglavlju pokazuje ko je u zadnjih 12 mjeseci dobio ugovore za usluge i po kojoj cijeni:
+
+- e-Nabavke BiH: dodijeljeni ugovori iz kategorija istraživanje i razvoj, istraživanje tržišta, konsalting u menadžmentu te arhitektonske, inženjerske i naučno-tehničke konsultantske usluge; iz kategorije „Ostale usluge“ samo ugovori čiji naziv govori o okolišu, energiji, emisijama, otpadu, buci, zraku ili studijama. Direktni sporazumi (mali ugovori bez nadmetanja) se ne uzimaju.
+- TED: dodjele ugovora za usluge u državama Zapadnog Balkana i Hrvatskoj, s CPV kodom 71 (arhitektonske i inženjerske usluge), 73 (istraživanje i razvoj), 793 i 794 (istraživanje tržišta i konsalting) i 907 (okolišne usluge).
+
+Kartica „Najčešći dobitnici“ broji ugovore po firmi, s ukupnom vrijednošću i prosječnim brojem ponuda; klik na firmu pokazuje njene ugovore. Kod konzorcija se ugovor i njegova puna vrijednost računaju svakom članu. Kartica „Ugovori“ ima datum, naziv s linkom na objavu, naručioca, dobitnika, vrijednost i broj ponuda; na e-Nabavkama i raspon prihvatljivih ponuda kad je objavljen. Pretraga, država i period sužavaju obje kartice, a „Preuzmi CSV“ preuzima prikazane ugovore.
+
+Uz objavu čiji je naručilac u zadnjih 12 mjeseci dodijelio neki od tih ugovora stoji „Ranije dodjele naručioca (broj)“: klik pokazuje te ugovore. Naručilac se prepoznaje po nazivu, pa se objave i dodjele na TED-u i e-Nabavkama povezuju samo kad naziv glasi isto.
+
+Prvo preuzimanje traje oko dvije minute; poslije toga se svaki dan preuzimaju samo nove i izmijenjene dodjele. Kategorije, riječi i CPV kodovi su u dijelu `awards` u `config.json`; s `"ejn_direct": true` uzimaju se i direktni sporazumi.
+
+## Slične reference
+
+Uz objave s AI ocjenom 2 ili 3 stoji „Slične reference (broj)“: do pet poslova iz liste referenci CETEOR-a i REIC-a koji su najsličniji objavi po nazivu, oblasti, vrsti usluge i opisu, s naručiocem i godinom. Sličnost se računa po riječima, bez AI-a, i služi kao podsjetnik koje reference navesti u ponudi.
+
+Lista referenci je poslovna tajna, pa je na GitHubu samo šifrirana (fajl `reference.enc.json` u glavnom folderu repozitorija), istom šifrom kao interni izvori. Rezultat se također šifrira (`data/refmatch.json`), pa slične reference vidi samo ko otključa „Interni izvori“. U poruci „Pošalji“ ih nema.
+
+Postavljanje i izmjena liste:
+
+1. Na stranici otključaj „Interni izvori“, pa ponovo klikni to dugme.
+2. U prozoru klikni „Šifriraj fajl za GitHub“ i izaberi nešifrirani fajl `reference.json`. Preuzme se `reference.enc.json`.
+3. Na GitHubu, u glavnom folderu repozitorija, klikni Add file, Upload files i prevuci `reference.enc.json` (novi fajl zamijeni stari). Commit changes.
+4. Actions, Osvježi tendere, Run workflow.
+
+Nešifrirani `reference.json` nikad ne postavljaj na GitHub. Nova lista se pravi iz Excel tabele referenci; kad se šifra promijeni, listu treba ponovo šifrirati.
 
 ## Izvori
 
@@ -119,16 +149,16 @@ Ako podaci nisu osvježeni duže od jednog dana, otvori karticu Actions. GitHub 
 
 ## Postavke
 
-Fajl `config.json` određuje šta se prikuplja. U dijelu `ted` su države za koje se s TED-a uzimaju sve objave i nazivi agencija čije se usluge prate (oznaka `@SE` znači: samo naručilac iz te države). U listi `private_sources` su ključevi izvora koji se vode kao interni, uz one koji su to po svojoj prirodi (GIZ, OSCE). U dijelu `excluded` su izvori koji su namjerno izostavljeni i razlog. Izmjena važi od sljedećeg osvježavanja.
+Fajl `config.json` određuje šta se prikuplja. U dijelu `ted` su države za koje se s TED-a uzimaju sve objave i nazivi agencija čije se usluge prate (oznaka `@SE` znači: samo naručilac iz te države). U listi `private_sources` su ključevi izvora koji se vode kao interni, uz one koji su to po svojoj prirodi (GIZ, OSCE). U dijelu `excluded` su izvori koji su namjerno izostavljeni i razlog. U dijelu `awards` su kategorije, riječi i CPV kodovi za dobitnike ugovora. Izmjena važi od sljedećeg osvježavanja.
 
 Izvor se isključuje brisanjem njegovog naziva iz liste `MODULES` na vrhu fajla `collect.py`.
 
 ## Napomena o korištenju podataka
 
-Stranica je javna za svakoga ko ima link, ali je označena tako da je pretraživači ne indeksiraju. Prikazuje samo naziv, naručioca, datume i link na originalnu objavu. Platforma PLACE (izvor za Expertise France) i sajtovi ebrd.com i undp.org u uslovima korištenja imaju opće klauzule koje ograničavaju preuzimanje sadržaja. Ako to želiš izbjeći, prebaci te izvore u interni dio ili ih isključi.
+Stranica je javna za svakoga ko ima link, ali je označena tako da je pretraživači ne indeksiraju. Prikazuje samo naziv, naručioca, datume i link na originalnu objavu. Dobitnici ugovora su iz otvorenih podataka e-Nabavki i TED-a, koji su objavljeni za ponovnu upotrebu. Platforma PLACE (izvor za Expertise France) i sajtovi ebrd.com i undp.org u uslovima korištenja imaju opće klauzule koje ograničavaju preuzimanje sadržaja. Ako to želiš izbjeći, prebaci te izvore u interni dio ili ih isključi.
 
 ## Tehnički
 
-`collect.py` pokreće kolektore iz foldera `collectors` i piše `data/tenders.json`, `data/status.json` i šifrirani `data/private.json`. `ai_score.py` je AI ocjena i AI prijevod objava, a `ai_okvir.md` okvir po kojem AI ocjenjuje. `index.html` je cijela stranica. `.github/workflows/daily.yml` je dnevni raspored. Pravila za pisanje novog kolektora su u `collectors/CONTRACT.md`.
+`collect.py` pokreće kolektore iz foldera `collectors` i piše `data/tenders.json`, `data/status.json` i šifrirani `data/private.json`. `ai_score.py` je AI ocjena, AI prijevod i AI sažetak objava, a `ai_okvir.md` okvir po kojem AI ocjenjuje. `awards.py` preuzima dobitnike ugovora u `data/awards.json`, a `refmatch.py` traži slične reference iz šifriranog `reference.enc.json` i piše šifrirani `data/refmatch.json`. Cijelo osvježavanje traje najviše 25 minuta (GitHub posao smije 30): AI koraci i dobitnici dobijaju onoliko vremena koliko je ostalo, a ostatak se radi sljedeći dan. `index.html` je cijela stranica. `.github/workflows/daily.yml` je dnevni raspored. Pravila za pisanje novog kolektora su u `collectors/CONTRACT.md`.
 
-Lokalno pokretanje: `pip install -r requirements.txt`, zatim `python collect.py`. Samo jedan izvor: `python collect.py --only TED`. Interni izvori se lokalno preuzimaju samo ako je postavljena varijabla okruženja `TR_PASSPHRASE`.
+Lokalno pokretanje: `pip install -r requirements.txt`, zatim `python collect.py`. Samo jedan izvor: `python collect.py --only TED` (dobitnici se tada ne preuzimaju; s njima: `--only TED,AWD`). Interni izvori se lokalno preuzimaju samo ako je postavljena varijabla okruženja `TR_PASSPHRASE`.

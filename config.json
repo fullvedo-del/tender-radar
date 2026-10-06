@@ -33,11 +33,49 @@
     ]
   },
   "ai": {
-    "_napomena": "AI ocjena relevantnosti i AI prijevod naslova. Rade samo ako je na GitHubu postavljen secret ANTHROPIC_API_KEY. AI ocjenjuje po okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3, primjeri); izmjena tog fajla pokreće ponovno ocjenjivanje svih objava. max_per_run: najviše novih ocjena po osvježavanju. include_private: da li se i objave internih izvora (GIZ, OSCE) šalju AI servisu na ocjenu i prijevod; ocjene i prijevodi ostaju u šifriranom fajlu.",
+    "_napomena": "AI ocjena relevantnosti, AI prijevod naslova i AI sažetak opisa (za ocjene 2 i 3). Rade samo ako je na GitHubu postavljen secret ANTHROPIC_API_KEY. AI ocjenjuje po okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3, primjeri); poslije izmjene tog fajla objave se postepeno ocjenjuju ponovo, a do tada vrijedi stara ocjena. max_per_run: najviše ocjena po osvježavanju. include_private: da li se i objave internih izvora (GIZ, OSCE) šalju AI servisu na ocjenu, prijevod i sažetak; rezultati ostaju u šifriranom fajlu.",
     "model": "claude-haiku-4-5-20251001",
     "okvir": "ai_okvir.md",
     "max_per_run": 5000,
     "include_private": true
+  },
+  "awards": {
+    "_napomena": "Dobitnici ugovora (dugme Dobitnici na stranici): dodijeljeni ugovori za usluge u zadnjih 'days' dana. ejn_categories: kategorije usluga na e-Nabavkama (59 istraživanje i razvoj, 61 istraživanje tržišta, 62 konsalting u menadžmentu, 63 arhitektonske, inženjerske i naučno-tehničke konsultantske usluge). ejn_word_categories: kategorije (77 ostale usluge) iz kojih se uzimaju samo ugovori čiji naziv sadrži neku od riječi iz ejn_words. ejn_direct: true uzima i direktne sporazume (mali ugovori bez nadmetanja). ted_cpv: početak CPV koda za TED (države su iste kao za tendere, ted.countries). Izmjena kategorija ili riječi pokreće ponovno preuzimanje s e-Nabavki.",
+    "days": 365,
+    "minutes": 8,
+    "ejn_categories": [
+      59,
+      61,
+      62,
+      63
+    ],
+    "ejn_word_categories": [
+      77
+    ],
+    "ejn_words": [
+      "okoli",
+      "životne sredine",
+      "energetsk",
+      "energijsk",
+      "zagađ",
+      "stakleničk",
+      "klimatsk",
+      "otpadom",
+      "otpadnih voda",
+      "studija",
+      "studije",
+      " buke",
+      "zraka",
+      "održiv"
+    ],
+    "ejn_direct": false,
+    "ted_cpv": [
+      "71",
+      "73",
+      "793",
+      "794",
+      "907"
+    ]
   },
   "private_sources": [],
   "excluded": [
