@@ -106,7 +106,7 @@ Nešifrirani `reference.json` nikad ne postavljaj na GitHub. Nova lista se pravi
 
 ## Eksperti (roster)
 
-Dugme „Eksperti“ u zaglavlju otvara roster eksperata: tabelu s pretragom, filterima (stručna oblast, tip posla, kategorija, engleski) i poretkom. Klik na ime otvara obrazac sa svim podacima: identifikacija i kontakt, odnos s firmom, kvalifikacije, napomene, profil iz CV-ja i priloženi CV-jevi. Iskustvo se računa samo, od početka karijere do danas. „Izvezi CSV“ preuzima prikazane eksperte, a „Uvezi listu“ dodaje eksperte iz JSON fajla (npr. iz Excel tabele); ekspert s istim imenom i prezimenom se ne dodaje dvaput.
+Dugme „Eksperti“ u zaglavlju otvara roster eksperata: tabelu s pretragom i filterima. Stručne oblasti, tip posla i država imaju višestruki izbor: ekspert se prikazuje ako ima bilo koju od označenih vrijednosti. Uz njih su filteri kategorija i engleski. Klik na naslov kolone slaže tabelu rastuće, a ponovni klik opadajuće; prazna polja su uvijek na kraju. Klik na ime otvara obrazac sa svim podacima: identifikacija i kontakt, odnos s firmom, kvalifikacije, napomene, profil iz CV-ja i priloženi CV-jevi. Iskustvo se računa samo, od početka karijere do danas. „Izvezi CSV“ preuzima prikazane eksperte, a „Uvezi listu“ dodaje eksperte iz JSON fajla (npr. iz Excel tabele); ekspert s istim imenom i prezimenom se ne dodaje dvaput.
 
 Roster i CV-jevi su šifrirani istom šifrom kao interni izvori i vide se tek nakon otključavanja. Čuvaju se u repozitoriju: roster u `experts.enc.json`, a svaki CV kao `cv/<slučajni naziv>.enc`. Nazivi fajlova i opisi izmjena na GitHubu ne sadrže imena. Obrisan CV ostaje šifriran u historiji repozitorija.
 

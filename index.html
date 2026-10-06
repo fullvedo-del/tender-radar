@@ -143,6 +143,21 @@ body.view-roster .app{display:none}
 .rv-tbl .sub{display:block;color:var(--muted);font-size:.78rem}
 .rv-tbl .chip{display:inline-block;margin:1px 3px 1px 0}
 .rv-tbl button.link{font-weight:600;font-size:.93rem;text-align:left;white-space:normal}
+.th-sort{border:0;background:none;padding:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;display:inline-flex;gap:4px;align-items:center;white-space:nowrap}
+.th-sort .arr{opacity:.35;font-size:.7rem}
+.th-sort.on{color:var(--ink)}
+.th-sort.on .arr{opacity:1}
+.th-sort:hover{color:var(--ink)}
+/* višestruki izbor u traci roster-a */
+.ms{position:relative;min-width:0}
+.ms summary{list-style:none;cursor:pointer;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 28px 7px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;color:var(--ink)}
+.ms summary::-webkit-details-marker{display:none}
+.ms summary::after{content:"\25BE";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.ms.on summary{border-color:var(--accent)}
+.ms .badge{margin-left:4px}
+.ms-pop{position:absolute;z-index:6;top:calc(100% + 4px);left:0;width:max-content;min-width:100%;max-width:min(360px,92vw);max-height:340px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+.ms-pop .ms-clear{align-self:flex-start;margin:2px 4px 4px}
+#exModul{display:inline-flex;flex-wrap:wrap;gap:4px 14px}
 #dlgExpert{width:min(860px,96vw)}
 #dlgExpert fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;padding:6px 12px 10px}
 #dlgExpert legend{font-weight:600;font-size:.9rem;padding:0 6px}
@@ -384,11 +399,11 @@ td a{color:var(--accent)}
   <p class="alert" id="rvMsg" hidden></p>
   <div class="rv-bar">
     <input type="search" id="rvQ" placeholder="Traži ime, grad, oblast, fakultet, napomenu…" autocomplete="off" aria-label="Traži eksperta">
-    <select id="rvObl" aria-label="Stručna oblast"></select>
-    <select id="rvTip" aria-label="Tip posla"></select>
+    <details class="ms" id="rvObl"></details>
+    <details class="ms" id="rvTip"></details>
+    <details class="ms" id="rvDrz"></details>
     <select id="rvKat" aria-label="Kategorija"><option value="">uposlenici i vanjski</option><option>Uposlenik</option><option>Vanjski saradnik</option></select>
     <select id="rvEng" aria-label="Engleski"><option value="">engleski: svi</option><option value="2">engleski B1/B2 ili bolje</option><option value="3">engleski C1/C2</option></select>
-    <select id="rvSort" aria-label="Poredak"><option value="prezime">po prezimenu</option><option value="iskustvo">najviše iskustva</option><option value="dnevnica">najniža dnevnica</option><option value="created">zadnje uneseni</option></select>
   </div>
   <div class="tbl rv-tbl" id="rvTable"></div>
 </section>
@@ -2028,7 +2043,7 @@ const RF = {
 };
 // Države članice UN-a (ISO kodovi) i Kosovo; nazivi na bosanskom iz preglednika.
 const UN = 'AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI CV KH CM CA CF TD CL CN CO KM CG CR CI HR CU CY CZ KP CD DK DJ DM DO EC EG SV GQ ER EE SZ ET FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HU IS IN ID IR IQ IE IL IT JM JP JO KZ KE KI KW KG LA LV LB LS LR LY LI LT LU MG MW MY MV ML MT MH MR MU MX FM MC MN ME MA MZ MM NA NR NP NL NZ NI NE NG MK NO OM PK PW PA PG PY PE PH PL PT QA KR MD RO RU RW KN LC VC WS SM ST SA SN RS SC SL SG SK SI SB SO ZA SS ES LK SD SR SE CH SY TJ TH TL TG TO TT TN TR TM TV UG UA AE GB TZ US UY UZ VU VE VN YE ZM ZW XK'.split(' ');
-const R = {list: null, sha: null, loading: null, f: {q: '', obl: '', tip: '', kat: '', eng: '', sort: 'prezime'}, edit: null, cvAdd: [], cvDel: [], ai: []};
+const R = {list: null, sha: null, loading: null, f: {q: '', obl: [], tip: [], drz: [], kat: '', eng: '', sort: 'ekspert', dir: 1}, edit: null, cvAdd: [], cvDel: [], ai: []};
 
 function ghConf() {
   let c = {};
@@ -2178,31 +2193,74 @@ function hideRoster() {
   document.body.classList.remove('view-roster');
   $('rosterView').hidden = true;
 }
+// Filteri s višestrukim izborom: ekspert prolazi ako ima bilo koju od označenih vrijednosti.
+const MS_DEF = [
+  {id: 'rvObl', key: 'obl', field: 'oblasti', label: 'Stručne oblasti', base: () => RF.oblasti},
+  {id: 'rvTip', key: 'tip', field: 'tip', label: 'Tip posla', base: () => RF.tip},
+  {id: 'rvDrz', key: 'drz', field: 'drzava', label: 'Država', base: () => []},
+];
+const exVals = (x, field) => { const v = x[field]; return Array.isArray(v) ? v : v ? [v] : []; };
+function msSummary(d) {
+  const n = R.f[d.key].length, el = $(d.id);
+  el.querySelector('summary').innerHTML = esc(d.label) + (n ? `<span class="badge">${n}</span>` : '');
+  el.classList.toggle('on', n > 0);
+}
 function renderRosterFilters() {
-  const f = R.f, all = R.list || [];
-  const opts = (sel, vals, label) => { $(sel).innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option${f[sel === 'rvObl' ? 'obl' : 'tip'] === v ? ' selected' : ''}>${esc(v)}</option>`).join(''); };
-  const extra = (key, base) => [...new Set([...base, ...all.flatMap(x => x[key] || [])])];
-  opts('rvObl', extra('oblasti', RF.oblasti), 'sve stručne oblasti');
-  opts('rvTip', extra('tip', RF.tip), 'svi tipovi posla');
+  for (const d of MS_DEF) {
+    const count = new Map();
+    for (const x of R.list || []) for (const v of new Set(exVals(x, d.field))) count.set(v, (count.get(v) || 0) + 1);
+    const vals = [...new Set([...d.base(), ...count.keys(), ...R.f[d.key]])];
+    const label = v => d.field === 'drzava' ? countryName(v) : v;
+    if (d.field === 'drzava') vals.sort((a, b) => a === 'BA' ? -1 : b === 'BA' ? 1 : label(a).localeCompare(label(b), 'bs'));
+    $(d.id).innerHTML = `<summary></summary><div class="ms-pop checks"><button type="button" class="link ms-clear">Poništi izbor</button>`
+      + (vals.length ? vals.map(v => `<label><input type="checkbox" value="${esc(v)}"${R.f[d.key].includes(v) ? ' checked' : ''}><span>${esc(label(v))}</span><i>${count.get(v) || 0}</i></label>`).join('') : '<p class="fnone">Nema podataka.</p>')
+      + '</div>';
+    msSummary(d);
+  }
+}
+// Poredak po koloni tabele; prazne vrijednosti su uvijek na kraju.
+const RV_COLS = [
+  {k: 'ekspert', t: 'Ekspert'}, {k: 'kategorija', t: 'Kategorija'}, {k: 'oblasti', t: 'Stručne oblasti'}, {k: 'tip', t: 'Tip posla'},
+  {k: 'sprema', t: 'Sprema'}, {k: 'iskustvo', t: 'Iskustvo', num: true}, {k: 'engleski', t: 'Engleski'},
+  {k: 'dnevnica', t: 'Dnevnica', num: true}, {k: 'saradnja', t: 'Saradnja'}, {k: 'cv', t: 'CV', num: true},
+];
+const RV_RANK = {sprema: {'Dipl.': 1, 'MSc.': 2, 'PhD.': 3}, engleski: RF.eng, saradnja: {'Lagana': 1, 'Srednje': 2, 'Teška': 3}};
+function rvSortVal(x, k) {
+  if (k === 'iskustvo') return exYears(x);
+  if (k === 'dnevnica') return x.dnevnica ?? null;
+  if (k === 'cv') return (x.cv || []).length || null;
+  if (k === 'oblasti' || k === 'tip') return (x[k] || []).length ? x[k].join(', ') : null;
+  const v = x[k];
+  if (v === null || v === undefined || v === '') return null;
+  return RV_RANK[k] ? RV_RANK[k][v] ?? 9 : String(v);
+}
+const rvByName = (a, b) => String(a.prezime || '').localeCompare(String(b.prezime || ''), 'bs') || String(a.ime || '').localeCompare(String(b.ime || ''), 'bs') || (+a.id || 0) - (+b.id || 0);
+function rosterCmp(k, dir) {
+  if (k === 'ekspert') return (a, b) => dir * rvByName(a, b);
+  return (a, b) => {
+    const va = rvSortVal(a, k), vb = rvSortVal(b, k);
+    if (va === null || vb === null) return va === vb ? rvByName(a, b) : va === null ? 1 : -1;
+    const c = typeof va === 'number' && typeof vb === 'number' ? va - vb : String(va).localeCompare(String(vb), 'bs');
+    return dir * c || rvByName(a, b);
+  };
 }
 function rosterView() {
   const f = R.f, qs = norm(f.q).split(' ').filter(Boolean);
-  const out = (R.list || []).filter(x => (!f.obl || (x.oblasti || []).includes(f.obl)) && (!f.tip || (x.tip || []).includes(f.tip))
+  const any = (sel, vals) => !sel.length || sel.some(v => vals.includes(v));
+  const out = (R.list || []).filter(x => any(f.obl, exVals(x, 'oblasti')) && any(f.tip, exVals(x, 'tip')) && any(f.drz, exVals(x, 'drzava'))
     && (!f.kat || x.kategorija === f.kat) && (!f.eng || (RF.eng[x.engleski] || 0) >= +f.eng) && (!qs.length || qs.every(t => exText(x).includes(t))));
-  const by = {
-    prezime: (a, b) => String(a.prezime || '').localeCompare(String(b.prezime || ''), 'bs') || String(a.ime || '').localeCompare(String(b.ime || ''), 'bs'),
-    iskustvo: (a, b) => (exYears(b) ?? -1) - (exYears(a) ?? -1),
-    dnevnica: (a, b) => (a.dnevnica ?? 1e9) - (b.dnevnica ?? 1e9),
-    created: (a, b) => String(b.created || '').localeCompare(String(a.created || '')) || b.id - a.id,
-  };
-  return out.sort(by[f.sort] || by.prezime);
+  return out.sort(rosterCmp(f.sort, f.dir));
 }
 function renderRoster() {
   const list = rosterView(), all = R.list || [];
   $('rvStat').textContent = `${fmtN(list.length)} od ${fmtN(all.length)}`;
   if (!all.length) { $('rvTable').innerHTML = '<p class="empty">Roster je prazan. Dodaj eksperta, uvezi listu ili uvezi CV-jeve.</p>'; return; }
   if (!list.length) { $('rvTable').innerHTML = '<p class="empty">Nijedan ekspert ne odgovara pretrazi.</p>'; return; }
-  $('rvTable').innerHTML = '<table><thead><tr><th>Ekspert</th><th>Kategorija</th><th>Stručne oblasti</th><th>Tip posla</th><th>Sprema</th><th class="num">Iskustvo</th><th>Engleski</th><th class="num">Dnevnica</th><th>Saradnja</th><th class="num">CV</th></tr></thead><tbody>'
+  const head = RV_COLS.map(c => {
+    const on = R.f.sort === c.k, up = R.f.dir > 0;
+    return `<th${c.num ? ' class="num"' : ''}${on ? ` aria-sort="${up ? 'ascending' : 'descending'}"` : ''}><button type="button" class="th-sort${on ? ' on' : ''}" data-sort="${c.k}" title="Poredaj po koloni ${esc(c.t)} (klik ponovo za obrnuti poredak)">${esc(c.t)}<span class="arr" aria-hidden="true">${on ? (up ? '\u25B2' : '\u25BC') : '\u2195'}</span></button></th>`;
+  }).join('');
+  $('rvTable').innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>`
     + list.map(x => {
       const place = [x.grad, x.drzava && (C_SHORT[x.drzava] || countryName(x.drzava))].filter(Boolean).join(', ');
       const obl = (x.oblasti || []).slice(0, 4).map(o => `<span class="chip">${esc(o)}</span>`).join('') + ((x.oblasti || []).length > 4 ? `<span class="muted"> +${x.oblasti.length - 4}</span>` : '');
@@ -2573,8 +2631,45 @@ function wireRoster() {
   $('btnRvGh').addEventListener('click', openGhDialog);
   $('rvImport').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importRoster(f); });
   $('rvQ').addEventListener('input', debounce(() => { R.f.q = $('rvQ').value; renderRoster(); }, 150));
-  for (const [id, k] of [['rvObl', 'obl'], ['rvTip', 'tip'], ['rvKat', 'kat'], ['rvEng', 'eng'], ['rvSort', 'sort']]) $(id).addEventListener('change', () => { R.f[k] = $(id).value; renderRoster(); });
-  $('rvTable').addEventListener('click', e => { const b = e.target.closest('[data-exid]'); if (b) { const x = R.list.find(y => String(y.id) === b.dataset.exid); if (x) openExpert(x); } });
+  for (const [id, k] of [['rvKat', 'kat'], ['rvEng', 'eng']]) $(id).addEventListener('change', () => { R.f[k] = $(id).value; renderRoster(); });
+  for (const d of MS_DEF) {
+    const el = $(d.id);
+    el.addEventListener('change', e => {
+      if (e.target.type !== 'checkbox') return;
+      R.f[d.key] = [...el.querySelectorAll('input:checked')].map(i => i.value);
+      msSummary(d); renderRoster();
+    });
+    el.addEventListener('click', e => {
+      if (!e.target.closest('.ms-clear')) return;
+      for (const i of el.querySelectorAll('input:checked')) i.checked = false;
+      R.f[d.key] = []; msSummary(d); renderRoster();
+    });
+    el.addEventListener('toggle', () => {
+      if (!el.open) return;
+      for (const o of document.querySelectorAll('details.ms[open]')) if (o !== el) o.open = false;
+      const pop = el.querySelector('.ms-pop');
+      pop.style.left = '0px';
+      const over = pop.getBoundingClientRect().right - (document.documentElement.clientWidth - 8);
+      if (over > 0) pop.style.left = `${-over}px`;  // da lista ne izlazi preko desne ivice ekrana
+    });
+  }
+  document.addEventListener('click', e => { for (const o of document.querySelectorAll('details.ms[open]')) if (!o.contains(e.target)) o.open = false; });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    for (const o of document.querySelectorAll('details.ms[open]')) { o.open = false; o.querySelector('summary').focus(); }
+  });
+  $('rvTable').addEventListener('click', e => {
+    const s = e.target.closest('[data-sort]');
+    if (s) {
+      const k = s.dataset.sort;
+      R.f.dir = R.f.sort === k ? -R.f.dir : 1; R.f.sort = k;
+      renderRoster(); $('rvTable').scrollTop = 0;
+      const b = $('rvTable').querySelector(`[data-sort="${k}"]`); if (b) b.focus();
+      return;
+    }
+    const b = e.target.closest('[data-exid]');
+    if (b) { const x = R.list.find(y => String(y.id) === b.dataset.exid); if (x) openExpert(x); }
+  });
   $('btnExClose').addEventListener('click', () => $('dlgExpert').close());
   $('btnExSave').addEventListener('click', saveExpert);
   $('btnExDel').addEventListener('click', deleteExpert);
