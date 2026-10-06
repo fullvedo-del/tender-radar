@@ -217,6 +217,9 @@ body.view-refs .app{display:none}
 .cv-item.new span::after{content:" (novo, sprema se uz Sačuvaj)";color:var(--muted)}
 .cv-item.del span{text-decoration:line-through;color:var(--muted)}
 button.danger-link{border:0;background:none;color:var(--danger);padding:0;text-decoration:underline}
+button.danger{background:var(--danger);border-color:var(--danger);color:var(--panel);font-weight:600}
+#dlgConfirm{max-width:min(460px,94vw)}
+#dlgConfirm button:disabled{opacity:.5;cursor:default}
 #dlgCvAi{width:min(900px,96vw)}
 #cvList{margin-top:10px;max-height:52vh}
 #cvList td{font-size:.86rem;vertical-align:top}
@@ -709,6 +712,12 @@ td a{color:var(--accent)}
     <button id="btnExport">Izvezi u fajl</button>
     <label class="filebtn">Uvezi iz fajla<input type="file" id="impFile" accept="application/json,.json" hidden></label>
   </div>
+</dialog>
+
+<dialog id="dlgConfirm" aria-labelledby="cfTitle" aria-describedby="cfText">
+  <h2 id="cfTitle">Da li ste sigurni?</h2>
+  <p id="cfText"></p>
+  <menu><button id="btnCfNo" type="button">Odustani</button><button id="btnCfYes" type="button" class="danger">Obriši</button></menu>
 </dialog>
 
 <script>
@@ -1346,6 +1355,21 @@ function toast(msg, copyText, action) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.remove(), copyText ? 12000 : action ? 6000 : 2500);
 }
+/* Potvrda prije brisanja, u posebnom prozoru. Fokus je na „Odustani“, a dugme za brisanje
+   je pola sekunde neaktivno, pa ni dupli klik ni Enter ne mogu obrisati nešto slučajno. */
+let cfSeq = 0;
+function askConfirm(title, text, ok = 'Obriši') {
+  const d = $('dlgConfirm'), yes = $('btnCfYes'), no = $('btnCfNo');
+  if (d.open) return Promise.resolve(false);
+  $('cfTitle').textContent = title; $('cfText').textContent = text; yes.textContent = ok;
+  const seq = ++cfSeq;
+  yes.disabled = true; d.returnValue = '';
+  yes.onclick = () => d.close('da'); no.onclick = () => d.close('ne');
+  d.onfocus = e => { if (e.target === d) no.focus(); };  // klik pored dugmadi vraća fokus na „Odustani“
+  d.showModal(); no.focus();
+  setTimeout(() => { if (seq === cfSeq) yes.disabled = false; }, 600);
+  return new Promise(res => d.addEventListener('close', () => res(d.returnValue === 'da'), {once: true}));
+}
 function setMark(id, m) {
   if (m) MARKS[id] = [m, TODAY]; else delete MARKS[id];
   saveMarks(); renderMarks(); apply(true);
@@ -1945,12 +1969,10 @@ function wire() {
     S.profile = name; saveProfiles(); $('dlgSave').close(); persist(); toast(`Profil „${name}“ je sačuvan`);
   });
   $('profName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('btnSaveOk').click(); } });
-  let armed = 0;
-  $('btnDelete').addEventListener('click', () => {
+  $('btnDelete').addEventListener('click', async () => {
     if (!S.profile) return;
-    if (Date.now() - armed > 4000) { armed = Date.now(); $('btnDelete').textContent = 'Sigurno obrisati?'; setTimeout(() => { $('btnDelete').textContent = 'Obriši'; }, 4000); return; }
-    armed = 0; $('btnDelete').textContent = 'Obriši';
     const name = S.profile;
+    if (!await askConfirm('Obrisati profil?', `Briše se profil filtera „${name}“ iz ovog preglednika.`)) return;
     S.profiles = S.profiles.filter(p => p.name !== name); S.profile = ''; saveProfiles(); persist(); toast(`Profil „${name}“ je obrisan`);
   });
   $('btnExport').addEventListener('click', () => download('tender-radar-profili.json', JSON.stringify({profiles: S.profiles, marks: MARKS}, null, 1), 'application/json'));
@@ -2537,7 +2559,7 @@ function openExpert(x, preset, after) {
   renderCvList();
   $('exSys').textContent = isNew ? 'ID i datum unosa dodijele se pri spremanju.' : `ID ${e.id}${e.created ? ' · uneseno ' + fmtStamp(e.created) : ''}${e.unio ? ' · unio ' + e.unio : ''}${e.updated ? ' · izmijenjeno ' + fmtStamp(e.updated) : ''}`;
   $('exMsg').textContent = '';
-  $('btnExDel').hidden = isNew; $('btnExDel').textContent = 'Obriši eksperta'; delete $('btnExDel').dataset.armed;
+  $('btnExDel').hidden = isNew;
   $('btnExSave').disabled = false;
   if (!$('dlgExpert').open) $('dlgExpert').showModal();
 }
@@ -2610,10 +2632,9 @@ async function saveExpert() {
   } finally { $('btnExSave').disabled = false; }
 }
 async function deleteExpert() {
-  const b = $('btnExDel');
-  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Klikni ponovo za brisanje'; return; }
   if (!ghConf().token) { $('exMsg').textContent = 'Za brisanje treba GitHub token: otvori „Postavke spremanja“.'; return; }
-  const e = R.edit;
+  const e = R.edit, n = (e.cv || []).length;
+  if (!await askConfirm('Obrisati eksperta?', `Briše se „${exName(e)}“${n ? ` zajedno s CV fajlovima (${n})` : ''}. Na stranici se ovo ne može poništiti.`)) return;
   $('exMsg').textContent = 'Brišem…';
   try {
     await commitRoster(list => { const i = list.findIndex(y => y.id === e.id); if (i >= 0) list.splice(i, 1); }, 'Eksperti: brisanje');
@@ -3122,7 +3143,7 @@ function openRef(x, preset, files) {
   $('rfDup').textContent = dup ? `Pažnja: slična referenca već postoji: „${cut(dup.t || '', 120)}“${dup.y ? ' (' + dup.y + ')' : ''}.` : '';
   $('rfSys').textContent = isNew ? 'ID i datum unosa dodijele se pri spremanju.' : `ID ${e.id}${e.created ? ' · uneseno ' + fmtStamp(e.created) : ''}${e.updated ? ' · izmijenjeno ' + fmtStamp(e.updated) : ''}`;
   $('rfMsg2').textContent = '';
-  $('btnRfDel').hidden = isNew; $('btnRfDel').textContent = 'Obriši referencu'; delete $('btnRfDel').dataset.armed;
+  $('btnRfDel').hidden = isNew;
   $('btnRfSave').disabled = false;
   if (!$('dlgRef').open) $('dlgRef').showModal();
 }
@@ -3180,10 +3201,9 @@ async function saveRef() {
   } finally { $('btnRfSave').disabled = false; }
 }
 async function deleteRef() {
-  const b = $('btnRfDel');
-  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Klikni ponovo za brisanje'; return; }
   if (!ghConf().token) { $('rfMsg2').textContent = 'Za brisanje treba GitHub token: otvori „Postavke spremanja“.'; return; }
-  const e = REF.edit;
+  const e = REF.edit, n = (e.docs || []).length;
+  if (!await askConfirm('Obrisati referencu?', `Briše se „${cut(String(e.t || 'referenca bez naziva'), 90)}“${n ? ` zajedno s priloženim dokumentima (${n})` : ''}. Na stranici se ovo ne može poništiti.`)) return;
   $('rfMsg2').textContent = 'Brišem…';
   try {
     await commitStore(REF, list => { const i = list.findIndex(y => y.id === e.id); if (i >= 0) list.splice(i, 1); }, 'Reference: brisanje');
@@ -3204,7 +3224,7 @@ async function importRefs(file) {
   setRfMsg(`Fajl ima ${fmtN(data.length)} referenci. `, true);
   for (const [mode, label] of [['replace', 'Zamijeni cijelu listu'], ['add', 'Dodaj samo nove'], ['cancel', 'Odustani']]) {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.dataset.imp = mode; b.style.marginLeft = '6px';
-    if (mode === 'replace') b.className = 'primary';
+    if (mode === 'add') b.className = 'primary';
     el.appendChild(b);
   }
 }
@@ -3332,7 +3352,12 @@ function wireRefs() {
   $('btnRfGh').addEventListener('click', openGhDialog);
   $('btnRfClear').addEventListener('click', clearRefFilters);
   $('rfImport').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importRefs(f); });
-  $('rfMsg').addEventListener('click', e => { const b = e.target.closest('[data-imp]'); if (b) applyRefImport(b.dataset.imp); });
+  $('rfMsg').addEventListener('click', async e => {
+    const b = e.target.closest('[data-imp]');
+    if (!b) return;
+    if (b.dataset.imp === 'replace' && !await askConfirm('Zamijeniti cijelu listu?', `Sadašnja lista (${fmtN((REF.list || []).length)} referenci) mijenja se listom iz fajla (${fmtN((REF.pending || []).length)}). Reference kojih nema u fajlu bit će obrisane.`, 'Zamijeni listu')) return;
+    applyRefImport(b.dataset.imp);
+  });
   $('rfQ').addEventListener('input', debounce(() => { REF.f.q = $('rfQ').value; renderRefs(); }, 150));
   wireMs(REF_MS, renderRefs);
   $('refView').addEventListener('click', e => { if (e.target.closest('[data-unlock]')) openLockDialog(); });
@@ -3435,7 +3460,7 @@ function lockAgain() {
   store.set('tr.pass', '');
   S.data = withoutPrivate(); S.unlocked = false; S.refm = null; S.exm = null;
   R.list = null; R.sha = null; REF.list = null; REF.sha = null;  // roster i reference su dešifrovani samo dok je otključano
-  for (const id of ['dlgExpert', 'dlgCvAi', 'dlgRef', 'dlgRefAi']) if ($(id).open) $(id).close();
+  for (const id of ['dlgConfirm', 'dlgExpert', 'dlgCvAi', 'dlgRef', 'dlgRefAi']) if ($(id).open) $(id).close();
   refreshAi();
   refreshLock();
 }
