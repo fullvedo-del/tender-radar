@@ -1,8 +1,8 @@
 """Slične reference: za objave s AI ocjenom 2 ili 3 traži najsličnije poslove iz liste referenci.
 
 Lista referenci je u fajlu reference.enc.json u korijenu repozitorija, šifrirana istom šifrom kao
-interni izvori (TR_PASSPHRASE); šifrira se na stranici (dugme „Interni izvori“). Rezultat se piše
-šifriran u data/refmatch.json, pa ga stranica prikazuje tek nakon unosa šifre.
+interni izvori (TR_PASSPHRASE); piše je stranica (tab Reference). Rezultat se piše šifriran u
+data/refmatch.json, pa ga stranica prikazuje tek nakon unosa šifre.
 
 Sličnost: TF-IDF nad riječima naziva (bosanski i engleski), oblasti, vrste usluge, naručioca i
 opisa; riječi se skraćuju na prvih pet slova, pa se „energetska“ i „energijska“ poklapaju.
@@ -24,7 +24,7 @@ this that these those its into within other new all
 usluge usluga usluzi izrada izradu nabavka nabavke nabava postupak javna javni javne poziv
 services service provision support project projekt projekta projekat contract ugovor ugovora
 """.split())
-FIELDS_REF = (("t", 2.0), ("e", 2.0), ("o", 1.0), ("v", 1.0), ("k", 1.0), ("d", 0.5), ("f", 0.5))
+FIELDS_REF = (("t", 2.0), ("e", 2.0), ("o", 1.0), ("v", 1.0), ("vd", 1.0), ("k", 1.0), ("d", 0.5), ("f", 0.5))
 TOP, MIN_SCORE = 5, 0.18
 
 
@@ -35,7 +35,15 @@ def _norm(text: str) -> str:
     return "".join(ch for ch in text if not unicodedata.combining(ch))
 
 
-def _tokens(text: str) -> list[str]:
+def _text(value) -> str:
+    """Polje reference kao tekst; oblast, vrsta posla i države mogu biti liste."""
+    if isinstance(value, (list, tuple)):
+        return " ".join(str(v) for v in value if v)
+    return str(value or "")
+
+
+def _tokens(text) -> list[str]:
+    text = _text(text)
     out = []
     for w in re.findall(r"[a-z0-9]+", _norm(text)):
         if len(w) < 3 or w in STOP or w.isdigit():
@@ -83,5 +91,5 @@ def match(recs: list, refs: list) -> dict:
     short = [None] * len(used)
     for i, k in used.items():
         ref = refs[i]
-        short[k] = {x: ref[x] for x in ("i", "t", "e", "k", "y", "z", "v", "s") if ref.get(x)}
+        short[k] = {x: ref[x] for x in ("id", "i", "t", "e", "k", "y", "z", "v", "s") if ref.get(x)}
     return {"refs": short, "m": out}

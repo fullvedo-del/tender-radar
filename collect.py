@@ -134,8 +134,8 @@ def find_refs(passphrase: str):
         return None, "lista referenci se ne može otvoriti: nije postavljena šifra TR_PASSPHRASE."
     refs = decrypt_records(load_json(path, None), passphrase)
     if refs is None:
-        return None, (f"fajl {REFS_FILE} se ne može otvoriti ovom šifrom; šifriraj ga ponovo na stranici "
-                      "(Interni izvori) i zamijeni na GitHubu.")
+        return None, (f"fajl {REFS_FILE} se ne može otvoriti ovom šifrom; uvezi listu ponovo na stranici "
+                      "(tab Reference, Uvezi listu).")
     refs = [r for r in refs if isinstance(r, dict) and str(r.get("t") or "").strip()]
     if not refs:
         return None, f"fajl {REFS_FILE} ne sadrži nijednu referencu."

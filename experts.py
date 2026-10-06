@@ -74,6 +74,7 @@ def digest(roster: list, stable: bool = False) -> str:
                  "posao: " + ", ".join(x.get("tip") or []) if x.get("tip") else "",
                  "fakultet: " + ", ".join(x.get("fakultet") or []) if x.get("fakultet") else "",
                  f"engleski {x['engleski']}" if x.get("engleski") else "",
+                 f"maternji jezik {x['maternji']}" if x.get("maternji") else "",
                  "ostali jezici: " + ", ".join(x.get("jezici") or []) if x.get("jezici") else "",
                  ", ".join(p for p in (x.get("grad"), x.get("drzava")) if p),
                  x.get("kategorija") or "", f"saradnja {x['saradnja'].lower()}" if x.get("saradnja") else "",
