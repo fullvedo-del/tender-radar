@@ -77,6 +77,13 @@
       "907"
     ]
   },
+  "experts": {
+    "_napomena": "Preporučeni eksperti: za tendere s AI ocjenom 2 ili 3 za CETEOR AI bira do 'top' eksperata iz roster-a (tab Eksperti na stranici). Radi samo uz secret ANTHROPIC_API_KEY i šifru TR_PASSPHRASE. Poslije izmjene roster-a preporuke se postepeno računaju ponovo. max_per_run: najviše preporuka po osvježavanju.",
+    "on": true,
+    "top": 3,
+    "max_per_run": 400,
+    "minutes": 4
+  },
   "private_sources": [],
   "excluded": [
     {

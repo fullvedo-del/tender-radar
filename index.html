@@ -129,6 +129,42 @@ main{min-width:0}
 #awTable th{position:sticky;top:0;background:var(--panel);z-index:1}
 #awTable button.link{text-align:left;white-space:normal}
 .field[hidden]{display:none}  /* polje za šifru kad je već otključano */
+/* Eksperti */
+body.view-roster .app{display:none}
+.roster{max-width:1440px;margin:0 auto;padding:16px}
+.roster[hidden]{display:none}
+.rv-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.rv-head h2{font-size:1.15rem;margin:0 4px 0 6px}
+.rv-bar{display:grid;grid-template-columns:minmax(220px,1fr) repeat(5,auto);gap:8px;margin-bottom:10px}
+.rv-bar select{width:auto;max-width:240px}
+.rv-tbl{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 12px;max-height:calc(100vh - 210px)}
+.rv-tbl th{position:sticky;top:0;background:var(--panel);z-index:1}
+.rv-tbl td{font-size:.88rem}
+.rv-tbl .sub{display:block;color:var(--muted);font-size:.78rem}
+.rv-tbl .chip{display:inline-block;margin:1px 3px 1px 0}
+.rv-tbl button.link{font-weight:600;font-size:.93rem;text-align:left;white-space:normal}
+#dlgExpert{width:min(860px,96vw)}
+#dlgExpert fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;padding:6px 12px 10px}
+#dlgExpert legend{font-weight:600;font-size:.9rem;padding:0 6px}
+.ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 12px}
+.ex-row{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin-top:8px}
+.ex-row .inline{margin-top:0}
+.ex-sub{font-size:.85rem;color:var(--muted);margin-top:10px}
+.ex-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 10px}
+.ex-checks .inline{margin-top:2px}
+.cv-item{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:4px 0;border-bottom:1px solid var(--line);font-size:.88rem}
+.cv-item span{flex:1;min-width:160px;overflow-wrap:anywhere}
+.cv-item.new span::after{content:" (novo, sprema se uz Sačuvaj)";color:var(--muted)}
+.cv-item.del span{text-decoration:line-through;color:var(--muted)}
+button.danger-link{border:0;background:none;color:var(--danger);padding:0;text-decoration:underline}
+#dlgCvAi{width:min(900px,96vw)}
+#cvList{margin-top:10px;max-height:52vh}
+#cvList td{font-size:.86rem;vertical-align:top}
+#cvList .sub{display:block;color:var(--muted);font-size:.78rem}
+#dlgGh{width:min(640px,94vw)}
+.gh-steps{padding-left:20px}
+.gh-steps li{margin:2px 0}
+@media (max-width:700px){.roster{padding:10px}.rv-bar{grid-template-columns:1fr 1fr}.rv-bar input{grid-column:1/-1}}
 #lockTools{border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
 #dlgCal{width:min(720px,94vw)}
 #calList{margin-top:10px;max-height:50vh}
@@ -247,6 +283,7 @@ td a{color:var(--accent)}
   <div class="brand"><h1>Tender radar</h1><span id="stamp" class="muted"></span></div>
   <span class="spacer"></span>
   <button id="btnLock" hidden></button>
+  <button id="btnRoster" hidden title="Roster eksperata (šifriran, vidi se nakon otključavanja)">Eksperti</button>
   <button id="btnAwards" hidden title="Ko dobija ugovore za usluge i po kojoj cijeni">Dobitnici</button>
   <button id="btnSources">Izvori<span id="srcDot" class="dot" hidden></span></button>
 </header>
@@ -333,6 +370,29 @@ td a{color:var(--accent)}
   </main>
 </div>
 
+<section id="rosterView" class="roster" hidden aria-label="Eksperti">
+  <div class="rv-head">
+    <button id="btnRvBack">Nazad na objave</button>
+    <h2>Eksperti</h2><span class="muted" id="rvStat"></span>
+    <span class="spacer"></span>
+    <button id="btnRvAi" class="primary">Uvezi iz CV-ja (AI)</button>
+    <button id="btnRvNew">Novi ekspert</button>
+    <button id="btnRvCsv">Izvezi CSV</button>
+    <label class="filebtn">Uvezi listu<input type="file" id="rvImport" accept=".json,application/json" hidden></label>
+    <button id="btnRvGh" title="GitHub token za spremanje roster-a">Postavke spremanja</button>
+  </div>
+  <p class="alert" id="rvMsg" hidden></p>
+  <div class="rv-bar">
+    <input type="search" id="rvQ" placeholder="Traži ime, grad, oblast, fakultet, napomenu…" autocomplete="off" aria-label="Traži eksperta">
+    <select id="rvObl" aria-label="Stručna oblast"></select>
+    <select id="rvTip" aria-label="Tip posla"></select>
+    <select id="rvKat" aria-label="Kategorija"><option value="">uposlenici i vanjski</option><option>Uposlenik</option><option>Vanjski saradnik</option></select>
+    <select id="rvEng" aria-label="Engleski"><option value="">engleski: svi</option><option value="2">engleski B1/B2 ili bolje</option><option value="3">engleski C1/C2</option></select>
+    <select id="rvSort" aria-label="Poredak"><option value="prezime">po prezimenu</option><option value="iskustvo">najviše iskustva</option><option value="dnevnica">najniža dnevnica</option><option value="created">zadnje uneseni</option></select>
+  </div>
+  <div class="tbl rv-tbl" id="rvTable"></div>
+</section>
+
 <div class="scrim" id="scrim"></div>
 
 <dialog id="dlgSources">
@@ -355,6 +415,85 @@ td a{color:var(--accent)}
     <p class="hint" id="encMsg" role="status"></p>
   </div>
   <menu><button id="btnLockForget">Zaključaj u ovom pregledniku</button><button id="btnLockClose">Zatvori</button><button id="btnLockOk" class="primary">Otključaj</button></menu>
+</dialog>
+
+<dialog id="dlgExpert">
+  <h2 id="exTitle">Ekspert</h2>
+  <form id="exForm" autocomplete="off" onsubmit="return false">
+    <fieldset><legend>Identifikacija i kontakt</legend>
+      <div class="ex-grid">
+        <label class="field">Ime *<input name="ime" required></label>
+        <label class="field">Prezime *<input name="prezime" required></label>
+        <label class="field">Grad<input name="grad" placeholder="npr. Sarajevo"></label>
+        <label class="field">Država<select name="drzava" id="exDrzava"></select></label>
+        <label class="field">E-mail<input name="email" type="email"></label>
+        <label class="field">Tel.<input name="tel"></label>
+      </div>
+      <div class="ex-row"><span class="muted">Spol:</span><label class="inline"><input type="radio" name="spol" value="M"><span>M</span></label><label class="inline"><input type="radio" name="spol" value="Ž"><span>Ž</span></label></div>
+    </fieldset>
+    <fieldset><legend>Odnos s firmom</legend>
+      <div class="ex-row"><span class="muted">Kategorija:</span><label class="inline"><input type="radio" name="kategorija" value="Uposlenik"><span>Uposlenik</span></label><label class="inline"><input type="radio" name="kategorija" value="Vanjski saradnik"><span>Vanjski saradnik</span></label></div>
+      <div class="ex-row"><label class="inline"><input type="checkbox" name="prethodna"><span>Prethodna saradnja</span></label></div>
+      <div class="ex-row"><span class="muted">Saradnja:</span><label class="inline"><input type="radio" name="saradnja" value="Lagana"><span>Lagana</span></label><label class="inline"><input type="radio" name="saradnja" value="Srednje"><span>Srednje</span></label><label class="inline"><input type="radio" name="saradnja" value="Teška"><span>Teška</span></label></div>
+      <div class="ex-grid">
+        <label class="field">Poznanstvo<input name="poznanstvo" placeholder="ko ga poznaje u firmi"></label>
+        <label class="field">Dnevnica (KM/dan)<input name="dnevnica" type="number" min="0" step="10"></label>
+      </div>
+    </fieldset>
+    <fieldset><legend>Kvalifikacije</legend>
+      <div class="ex-grid">
+        <label class="field">Stručna sprema<select name="sprema"><option value=""></option><option>Dipl.</option><option>MSc.</option><option>PhD.</option></select></label>
+        <label class="field">Fakultet (više odvoji zarezom)<input name="fakultet" list="exFakList" placeholder="npr. Mašinstvo, Ekonomija"></label>
+        <label class="field">Početak karijere<input name="pocetak" type="date"></label>
+        <label class="field">Iskustvo (godina)<input name="iskustvo" readonly tabindex="-1"></label>
+        <label class="field">Engleski<select name="engleski"><option value=""></option><option>A1/A2</option><option>B1/B2</option><option>C1/C2</option></select></label>
+      </div>
+      <datalist id="exFakList"></datalist>
+      <div class="ex-row"><label class="inline"><input type="checkbox" name="ispit"><span>Stručni ispit</span></label><span class="muted" style="margin-left:14px">Modul:</span><span id="exModul"></span></div>
+      <p class="ex-sub">Stručne oblasti</p><div class="ex-checks" id="exOblasti"></div>
+      <p class="ex-sub">Tip posla</p><div class="ex-checks" id="exTip"></div>
+      <label class="field">Napomene<textarea name="napomene" rows="3"></textarea></label>
+      <label class="field">Profil iz CV-ja (AI, može se mijenjati)<textarea name="profil" rows="3"></textarea></label>
+    </fieldset>
+    <fieldset><legend>CV</legend>
+      <div id="exCv"></div>
+      <label class="filebtn" style="display:inline-block;margin-top:6px">Dodaj CV (PDF, Word)<input type="file" id="exCvAdd" accept=".pdf,.doc,.docx,application/pdf" multiple hidden></label>
+    </fieldset>
+    <p class="hint" id="exSys"></p>
+  </form>
+  <p class="hint" id="exMsg" role="status"></p>
+  <menu><button id="btnExDel" class="danger-link">Obriši eksperta</button><span class="spacer"></span><button id="btnExClose">Odustani</button><button id="btnExSave" class="primary">Sačuvaj</button></menu>
+</dialog>
+
+<dialog id="dlgCvAi">
+  <h2>Uvoz iz CV-ja (AI)</h2>
+  <p class="hint">Izaberi jedan ili više CV-jeva (PDF ili Word .docx), jedne ili više osoba. AI popuni podatke koje nađe u CV-ju, a ti ih pregledaš prije spremanja. Postojeći ekspert (isti e-mail ili ime i prezime) se samo dopunjava: popunjena polja se ne mijenjaju. Jedan CV košta oko 2 centa (isti API ključ kao Pitaj AI).</p>
+  <div id="cvKeyBox" hidden>
+    <label class="field">Anthropic API ključ<input id="cvKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…"></label>
+  </div>
+  <label class="filebtn" style="display:inline-block;margin-top:8px">Izaberi CV-jeve<input type="file" id="cvFiles" accept=".pdf,.docx,application/pdf" multiple hidden></label>
+  <div id="cvList" class="tbl"></div>
+  <p class="hint" id="cvMsg" role="status"></p>
+  <menu><button id="btnCvClose">Zatvori</button><button id="btnCvSave" class="primary" disabled>Sačuvaj označene</button></menu>
+</dialog>
+
+<dialog id="dlgGh">
+  <h2>Postavke spremanja (GitHub)</h2>
+  <p class="hint">Roster i CV-jevi se čuvaju šifrirani u repozitoriju na GitHubu. Za spremanje stranici treba GitHub token koji smije pisati samo u ovaj repozitorij. Token se čuva samo u ovom pregledniku.</p>
+  <ol class="hint gh-steps">
+    <li>Na GitHubu: slika profila, Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token. Upiši naziv (npr. tender-radar) i rok trajanja (Expiration); kad token istekne, napraviš novi.</li>
+    <li>Repository access: Only select repositories, izaberi tender-radar.</li>
+    <li>Permissions, Repository permissions: Contents na Read and write. Ostalo ne mijenjaj.</li>
+    <li>Generate token, kopiraj ga i zalijepi ispod.</li>
+  </ol>
+  <label class="field">GitHub token<input id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+  <div class="ex-grid">
+    <label class="field">Vlasnik repozitorija<input id="ghOwner" spellcheck="false"></label>
+    <label class="field">Repozitorij<input id="ghRepo" spellcheck="false"></label>
+    <label class="field">Grana<input id="ghBranch" spellcheck="false"></label>
+  </div>
+  <p class="hint" id="ghMsg" role="status"></p>
+  <menu><button id="btnGhForget">Zaboravi token</button><span class="spacer"></span><button id="btnGhClose">Zatvori</button><button id="btnGhTest">Provjeri</button><button id="btnGhSave" class="primary">Sačuvaj</button></menu>
 </dialog>
 
 <dialog id="dlgCal">
@@ -566,7 +705,7 @@ const markOf = r => (MARKS[r.id] || [])[0] || '';
 const DEF = {ty: 't', q: '', any: '', none: '', syn: true, ai: [], aiw: [], src: [], c: [], reg: [], k: [], fz: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', sort: 'due'};
 const PAGE = 100;
 const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false, hasAi: false, synNote: '', nTy: {t: 0, p: 0}, byTy: {}, fq: {}, pick: new Set(),
-  ver: '', open: new Set(), refm: null, aw: null, awF: {q: '', c: '', p: 365, tab: 'w', win: '', winLabel: '', buyer: '', buyerLabel: '', shown: 0}};
+  ver: '', open: new Set(), refm: null, exm: null, aw: null, awF: {q: '', c: '', p: 365, tab: 'w', win: '', winLabel: '', buyer: '', buyerLabel: '', shown: 0}};
 let F = structuredClone(DEF);
 
 const mem = {};
@@ -861,6 +1000,8 @@ function xtraHtml(r) {
   if (r.sm) parts.push(`<details data-x="sm" data-id="${esc(r.id)}"${open('sm')}><summary>Sažetak (AI)</summary><p class="box">${esc(r.sm)}</p></details>`);
   const rf = S.refm && S.refm.m && S.refm.m[r.id];
   if (rf && rf.length) parts.push(`<details data-x="rf" data-id="${esc(r.id)}"${open('rf')}><summary>Slične reference (${rf.length})</summary><ol class="box">${rf.map(([i]) => refLine(S.refm.refs[i])).join('')}</ol></details>`);
+  const ex = S.exm && S.exm.m && S.exm.m[r.id];
+  if (ex && ex.length) parts.push(`<details data-x="ex" data-id="${esc(r.id)}"${open('ex')}><summary>Preporučeni eksperti (${ex.length})</summary><ol class="box">${ex.map(([id, name, why]) => `<li><button class="link" data-exopen="${esc(id)}">${esc(name)}</button>${why ? `<br><span class="muted">${esc(why)}</span>` : ''}</li>`).join('')}</ol></details>`);
   const na = S.aw && r._bk ? S.aw.buyers.get(r._bk) || 0 : 0;
   if (na) parts.push(`<button class="link" data-awb="${esc(r.id)}" title="Ugovori za usluge koje je ovaj naručilac dodijelio u zadnjih 12 mjeseci: ko ih je dobio i po kojoj cijeni">Ranije dodjele naručioca (${na})</button>`);
   return parts.length ? `<div class="xtra">${parts.join('')}</div>` : '';
@@ -963,6 +1104,8 @@ function extraStatus(st) {
     const part = (k, name) => s[k] ? `${name} ${fmtN(s[k].count || 0)}${s[k].ok === false ? ` (greška: ${esc(s[k].error || 'nepoznata')})` : s[k].done === false ? ' (prikupljanje još traje)' : ''}` : '';
     h += `<p class="hint">Dobitnici ugovora, zadnjih 12 mjeseci (dugme „Dobitnici“): ${[part('EJN', 'e-Nabavke BiH'), part('TED', 'TED')].filter(Boolean).join(', ') || 'još nisu preuzeti'}.${aw.error ? ' Greška: ' + esc(aw.error) + '.' : ''}</p>`;
   }
+  const ex = st.experts;
+  if (ex) h += `<p class="hint">Preporučeni eksperti: ${ex.n ? `roster od ${fmtN(ex.n)} ${plural(ex.n, 'eksperta', 'eksperta', 'eksperata')}; preporuke ima ${fmtN(ex.matched || 0)} ${plural(ex.matched || 0, 'tender', 'tendera', 'tendera')} (vide se nakon otključavanja internih izvora)${ex.pending ? `, čeka ${fmtN(ex.pending)}` : ''}.` : ''}${ex.error ? ' ' + esc(ex.error.charAt(0).toUpperCase() + ex.error.slice(1)) + (/[.]$/.test(ex.error) ? '' : '.') : ''}</p>`;
   const rf = st.refs;
   if (rf) h += `<p class="hint">Slične reference: ${rf.on ? `lista od ${fmtN(rf.n || 0)} referenci; slične reference ima ${fmtN(rf.matched || 0)} ${plural(rf.matched || 0, 'objava', 'objave', 'objava')} (vide se nakon otključavanja internih izvora).` : esc(rf.error || 'lista referenci nije postavljena na GitHub (fajl reference.enc.json).')}</p>`;
   return h;
@@ -1854,6 +1997,8 @@ function wireAwards() {
   });
   // Iz liste objava: ranije dodjele istog naručioca; otvoreni sažeci i reference se pamte.
   $('list').addEventListener('click', e => {
+    const x = e.target.closest('[data-exopen]');
+    if (x) { showRoster(x.dataset.exopen); return; }
     const b = e.target.closest('[data-awb]');
     if (!b) return;
     const r = S.data.find(x => x.id === b.dataset.awb);
@@ -1865,6 +2010,603 @@ function wireAwards() {
     const k = d.dataset.id + '|' + d.dataset.x;
     if (d.open) S.open.add(k); else S.open.delete(k);
   }, true);
+}
+
+/* ---------- eksperti: roster na GitHubu, šifriran ---------- */
+// Roster (experts.enc.json) i CV fajlovi (cv/*.enc) čuvaju se šifrirani u repozitoriju, istom šifrom kao
+// interni izvori. Stranica ih čita i piše preko GitHub API-ja; za pisanje treba token s pravom
+// Contents: Read and write samo za ovaj repozitorij, sačuvan u ovom pregledniku. Nazivi fajlova i poruke
+// commitova ne sadrže imena, jer je repozitorij javan.
+const GH_API = 'https://api.github.com';
+const ROSTER_FILE = 'experts.enc.json';
+const CV_MAX = 15 * 1024 * 1024;
+const RF = {
+  oblasti: ['Energijska efikasnost', 'Obnovljivi izvori energije', 'Klimatske promjene', 'Niskokarbonski razvoj', 'Zaštita okoliša općenito', 'Biodiverzitet', 'Upravljanje otpadom', 'Upravljanje vodama', 'Upravljanje hemikalijama', 'Cirkularna ekonomija', 'Ekonomija / Biznis', 'ESG | EE krediti', 'Građanska energija', 'Urbana mobilnost', 'Sistem daljinskih grijanja', 'Zrak', 'Buka', 'ISO Standardi', 'Zaštita na radu'],
+  tip: ['Studije / Elaborati', 'Policy', 'Predavanje', 'Proračun / Projektovanje', 'Energijski audit / Certifikati', 'Procjena uticaja (SUO / ESIA)', 'Mjerenja', 'Nadzor', 'Upravljanje projektima'],
+  modul: ['M1', 'M2', 'M3'],
+  eng: {'A1/A2': 1, 'B1/B2': 2, 'C1/C2': 3},
+};
+// Države članice UN-a (ISO kodovi) i Kosovo; nazivi na bosanskom iz preglednika.
+const UN = 'AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI CV KH CM CA CF TD CL CN CO KM CG CR CI HR CU CY CZ KP CD DK DJ DM DO EC EG SV GQ ER EE SZ ET FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HU IS IN ID IR IQ IE IL IT JM JP JO KZ KE KI KW KG LA LV LB LS LR LY LI LT LU MG MW MY MV ML MT MH MR MU MX FM MC MN ME MA MZ MM NA NR NP NL NZ NI NE NG MK NO OM PK PW PA PG PY PE PH PL PT QA KR MD RO RU RW KN LC VC WS SM ST SA SN RS SC SL SG SK SI SB SO ZA SS ES LK SD SR SE CH SY TJ TH TL TG TO TT TN TR TM TV UG UA AE GB TZ US UY UZ VU VE VN YE ZM ZW XK'.split(' ');
+const R = {list: null, sha: null, loading: null, f: {q: '', obl: '', tip: '', kat: '', eng: '', sort: 'prezime'}, edit: null, cvAdd: [], cvDel: [], ai: []};
+
+function ghConf() {
+  let c = {};
+  try { c = JSON.parse(store.get('tr.gh') || '{}') || {}; } catch (e) { c = {}; }
+  const host = location.hostname.match(/^([\w-]+)\.github\.io$/i), first = location.pathname.split('/').filter(Boolean)[0] || '';
+  return {owner: c.owner || (host ? host[1] : ''), repo: c.repo || (host && !/\.html?$/i.test(first) ? first : ''), branch: c.branch || 'main', token: c.token || ''};
+}
+class GhError extends Error { constructor(msg, status) { super(msg); this.status = status; } }
+async function gh(method, path, body, accept) {
+  const c = ghConf();
+  if (!c.owner || !c.repo) throw new GhError('U postavkama spremanja nije upisan repozitorij.', 0);
+  // Bez dodatnih zaglavlja (npr. verzije API-ja), da preglednik ne traži dozvolu za njih (CORS).
+  const headers = {'Accept': accept || 'application/vnd.github+json'};
+  if (c.token) headers.Authorization = 'Bearer ' + c.token;
+  if (body) headers['Content-Type'] = 'application/json';
+  let res;
+  try {
+    res = await fetch(`${GH_API}/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}${path}`, {method, headers, body: body ? JSON.stringify(body) : undefined, cache: 'no-store'});
+  } catch (e) { throw new GhError('Nema veze s GitHubom. Provjeri internet.', 0); }
+  return res;
+}
+async function ghFail(res, write) {
+  let m = '';
+  try { m = (await res.json()).message || ''; } catch (e) { /* bez poruke */ }
+  if (res.status === 401) return new GhError('GitHub token nije prihvaćen (istekao ili pogrešan). Postavi novi u „Postavke spremanja“.', 401);
+  if (res.status === 403) return new GhError(/rate limit/i.test(m) ? 'GitHub privremeno odbija zahtjeve (previše zahtjeva). Pokušaj za nekoliko minuta ili postavi token.' : 'Token nema dozvolu za pisanje: u tokenu treba Contents: Read and write za ovaj repozitorij.', 403);
+  if (res.status === 404 && write) return new GhError('Repozitorij nije pronađen ili token nema pristup njemu. Provjeri „Postavke spremanja“.', 404);
+  if (res.status === 409 || (res.status === 422 && /sha/i.test(m))) return new GhError('conflict', 409);
+  return new GhError(`GitHub je vratio grešku ${res.status}${m ? ': ' + m : ''}.`, res.status);
+}
+// Fajl iz repozitorija: {sha, bytes} ili null ako ga nema. Fajlove veće od 1 MB GitHub ne vraća u
+// JSON-u (sadržaj je prazan), pa se tada sadržaj čita posebno, u izvornom obliku.
+async function ghGet(path) {
+  const res = await gh('GET', `/contents/${path}?ref=${encodeURIComponent(ghConf().branch)}`, null, 'application/vnd.github.object');
+  if (res.status === 404) return null;
+  if (!res.ok) throw await ghFail(res, false);
+  const j = await res.json();
+  if (j.content && j.encoding === 'base64') return {sha: j.sha, bytes: fromB64(j.content.replace(/\s/g, ''))};
+  const bytes = await ghRaw(path);
+  return bytes && {sha: j.sha, bytes};
+}
+// Samo sadržaj fajla (do 100 MB), bez oznake verzije.
+async function ghRaw(path) {
+  const res = await gh('GET', `/contents/${path}?ref=${encodeURIComponent(ghConf().branch)}`, null, 'application/vnd.github.raw');
+  if (res.status === 404) return null;
+  if (!res.ok) throw await ghFail(res, false);
+  return new Uint8Array(await res.arrayBuffer());
+}
+async function ghPut(path, bytes, sha, message) {
+  if (!ghConf().token) throw new GhError('Za spremanje treba GitHub token: otvori „Postavke spremanja“.', 401);
+  const res = await gh('PUT', `/contents/${path}`, {message, content: toB64(bytes), branch: ghConf().branch, ...(sha ? {sha} : {})});
+  if (!res.ok) throw await ghFail(res, true);
+  return (await res.json()).content.sha;
+}
+async function ghDelete(path, sha, message) {
+  const res = await gh('DELETE', `/contents/${path}`, {message, sha, branch: ghConf().branch});
+  if (!res.ok && res.status !== 404) throw await ghFail(res, true);
+}
+// CV fajl: 'TRC1', salt (16), iv (12), šifrirani sadržaj; ključ iz šifre kao za ostale fajlove.
+async function encryptBytes(bytes, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await aesKey(pass, salt, KDF_ITER, 'encrypt');
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, bytes));
+  const out = new Uint8Array(32 + ct.length);
+  out.set([84, 82, 67, 49]); out.set(salt, 4); out.set(iv, 20); out.set(ct, 32);
+  return out;
+}
+async function decryptBytes(b, pass) {
+  if (b.length < 33 || String.fromCharCode(b[0], b[1], b[2], b[3]) !== 'TRC1') throw new Error('format');
+  const key = await aesKey(pass, b.slice(4, 20), KDF_ITER, 'decrypt');
+  return new Uint8Array(await crypto.subtle.decrypt({name: 'AES-GCM', iv: b.slice(20, 32)}, key, b.slice(32)));
+}
+const rid = () => [...crypto.getRandomValues(new Uint8Array(8))].map(x => x.toString(16).padStart(2, '0')).join('');
+
+async function loadRoster(force) {
+  if (R.list && !force) return R.list;
+  if (R.loading && !force) return R.loading;
+  R.loading = (async () => {
+    const pass = store.get('tr.pass');
+    const f = await ghGet(ROSTER_FILE);
+    if (!f) { R.list = []; R.sha = null; return R.list; }
+    let data;
+    try { data = await decryptPrivate(JSON.parse(new TextDecoder().decode(f.bytes)), pass); }
+    catch (e) { throw new GhError('Roster se ne može otvoriti ovom šifrom.', 0); }
+    R.list = Array.isArray(data) ? data.filter(x => x && typeof x === 'object' && x.id != null) : [];
+    R.sha = f.sha;
+    return R.list;
+  })();
+  try { return await R.loading; } finally { R.loading = null; }
+}
+// Izmjena roster-a: change(lista) mijenja kopiju; ako je u međuvremenu neko drugi spremio (drugi
+// uređaj), lista se ponovo učita i izmjena primijeni još jednom.
+async function commitRoster(change, message) {
+  for (let attempt = 0; ; attempt++) {
+    const list = structuredClone(R.list || []);
+    const res = change(list);
+    const blob = await encryptJson(list, store.get('tr.pass'));
+    try {
+      R.sha = await ghPut(ROSTER_FILE, new TextEncoder().encode(JSON.stringify(blob)), R.sha, message);
+      R.list = list;
+      return res;
+    } catch (e) {
+      if (e.status !== 409 || attempt) throw e;
+      await loadRoster(true);
+    }
+  }
+}
+const exYears = x => {
+  const t = x && x.pocetak ? Date.parse(x.pocetak) : NaN;
+  return isNaN(t) ? null : Math.max(0, Math.round((Date.now() - t) / (365.25 * DAY) * 10) / 10);
+};
+const exName = x => [x.ime, x.prezime].filter(Boolean).join(' ') || `Ekspert ${x.id}`;
+const exKey = x => norm(exName(x));
+const exText = x => norm([x.ime, x.prezime, x.grad, x.drzava && countryName(x.drzava), x.email, x.tel, x.kategorija, x.poznanstvo, x.sprema, ...(x.fakultet || []), ...(x.oblasti || []), ...(x.tip || []), ...(x.modul || []), x.napomene, x.profil].filter(Boolean).join(' '));
+const fmtYears = n => n === null ? '' : String(n).replace('.', ',');
+
+/* pogled */
+function setRvMsg(text, ok) {
+  const el = $('rvMsg');
+  el.hidden = !text; el.textContent = text || '';
+  el.style.background = ok ? 'var(--accent-soft)' : ''; el.style.color = ok ? 'var(--accent)' : '';
+}
+async function showRoster(openId) {
+  if (!S.unlocked) {
+    openLockDialog();
+    $('lockMsg').textContent = 'Roster eksperata je šifriran: otključaj interne izvore, pa ponovo klikni „Eksperti“.';
+    return;
+  }
+  document.body.classList.add('view-roster');
+  $('rosterView').hidden = false;
+  window.scrollTo(0, 0);
+  if (!R.list) { $('rvTable').innerHTML = '<p class="empty">Učitavam roster…</p>'; setRvMsg(''); }
+  try {
+    await loadRoster();
+    setRvMsg(ghConf().token ? '' : 'Pregled radi bez tokena, a za spremanje izmjena otvori „Postavke spremanja“ i postavi GitHub token.');
+  } catch (e) {
+    $('rvTable').innerHTML = '';
+    setRvMsg(e.message + ' ');
+    const b = document.createElement('button'); b.className = 'link'; b.textContent = 'Pokušaj ponovo';
+    b.addEventListener('click', () => showRoster(openId)); $('rvMsg').appendChild(b);
+    return;
+  }
+  renderRosterFilters(); renderRoster();
+  if (openId != null) { const x = R.list.find(y => String(y.id) === String(openId)); if (x) openExpert(x); }
+}
+function hideRoster() {
+  document.body.classList.remove('view-roster');
+  $('rosterView').hidden = true;
+}
+function renderRosterFilters() {
+  const f = R.f, all = R.list || [];
+  const opts = (sel, vals, label) => { $(sel).innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option${f[sel === 'rvObl' ? 'obl' : 'tip'] === v ? ' selected' : ''}>${esc(v)}</option>`).join(''); };
+  const extra = (key, base) => [...new Set([...base, ...all.flatMap(x => x[key] || [])])];
+  opts('rvObl', extra('oblasti', RF.oblasti), 'sve stručne oblasti');
+  opts('rvTip', extra('tip', RF.tip), 'svi tipovi posla');
+}
+function rosterView() {
+  const f = R.f, qs = norm(f.q).split(' ').filter(Boolean);
+  const out = (R.list || []).filter(x => (!f.obl || (x.oblasti || []).includes(f.obl)) && (!f.tip || (x.tip || []).includes(f.tip))
+    && (!f.kat || x.kategorija === f.kat) && (!f.eng || (RF.eng[x.engleski] || 0) >= +f.eng) && (!qs.length || qs.every(t => exText(x).includes(t))));
+  const by = {
+    prezime: (a, b) => String(a.prezime || '').localeCompare(String(b.prezime || ''), 'bs') || String(a.ime || '').localeCompare(String(b.ime || ''), 'bs'),
+    iskustvo: (a, b) => (exYears(b) ?? -1) - (exYears(a) ?? -1),
+    dnevnica: (a, b) => (a.dnevnica ?? 1e9) - (b.dnevnica ?? 1e9),
+    created: (a, b) => String(b.created || '').localeCompare(String(a.created || '')) || b.id - a.id,
+  };
+  return out.sort(by[f.sort] || by.prezime);
+}
+function renderRoster() {
+  const list = rosterView(), all = R.list || [];
+  $('rvStat').textContent = `${fmtN(list.length)} od ${fmtN(all.length)}`;
+  if (!all.length) { $('rvTable').innerHTML = '<p class="empty">Roster je prazan. Dodaj eksperta, uvezi listu ili uvezi CV-jeve.</p>'; return; }
+  if (!list.length) { $('rvTable').innerHTML = '<p class="empty">Nijedan ekspert ne odgovara pretrazi.</p>'; return; }
+  $('rvTable').innerHTML = '<table><thead><tr><th>Ekspert</th><th>Kategorija</th><th>Stručne oblasti</th><th>Tip posla</th><th>Sprema</th><th class="num">Iskustvo</th><th>Engleski</th><th class="num">Dnevnica</th><th>Saradnja</th><th class="num">CV</th></tr></thead><tbody>'
+    + list.map(x => {
+      const place = [x.grad, x.drzava && (C_SHORT[x.drzava] || countryName(x.drzava))].filter(Boolean).join(', ');
+      const obl = (x.oblasti || []).slice(0, 4).map(o => `<span class="chip">${esc(o)}</span>`).join('') + ((x.oblasti || []).length > 4 ? `<span class="muted"> +${x.oblasti.length - 4}</span>` : '');
+      return `<tr><td><button class="link" data-exid="${esc(x.id)}">${esc(exName(x))}</button>${place ? `<span class="sub">${esc(place)}</span>` : ''}${x.napomene ? `<span class="sub">${esc(cut(x.napomene.replace(/\s+/g, ' '), 70))}</span>` : ''}</td>`
+        + `<td>${esc(x.kategorija || '')}${x.prethodna ? '<span class="sub">ranija saradnja</span>' : ''}</td><td>${obl}</td><td>${esc((x.tip || []).join(', '))}</td><td>${esc(x.sprema || '')}</td>`
+        + `<td class="num">${fmtYears(exYears(x))}</td><td>${esc(x.engleski || '')}</td><td class="num">${x.dnevnica != null ? fmtN(x.dnevnica) : ''}</td><td>${esc(x.saradnja || '')}</td><td class="num">${(x.cv || []).length || ''}</td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+
+/* obrazac */
+function checkGroup(name, values, chosen) {
+  const vals = [...new Set([...values, ...(chosen || [])])];
+  return vals.map(v => `<label class="inline"><input type="checkbox" name="${name}" value="${esc(v)}"${(chosen || []).includes(v) ? ' checked' : ''}><span>${esc(v)}</span></label>`).join('');
+}
+function openExpert(x, preset, after) {
+  const isNew = !x;
+  R.afterSave = after || null;
+  R.edit = isNew ? {id: null, cv: []} : structuredClone(x);
+  if (preset) Object.assign(R.edit, preset);
+  R.cvAdd = preset && preset._files ? preset._files.slice() : [];
+  R.cvDel = [];
+  delete R.edit._files;
+  const e = R.edit, form = $('exForm');
+  form.reset();
+  $('exTitle').textContent = isNew ? 'Novi ekspert' : exName(e);
+  const codes = [...new Set([...UN, e.drzava].filter(Boolean))].sort((a, b) => a === 'BA' ? -1 : b === 'BA' ? 1 : countryName(a).localeCompare(countryName(b), 'bs'));
+  $('exDrzava').innerHTML = '<option value=""></option>' + codes.map(c => `<option value="${c}">${esc(countryName(c))}</option>`).join('');
+  for (const k of ['ime', 'prezime', 'grad', 'email', 'tel', 'poznanstvo', 'napomene', 'profil', 'pocetak']) form.elements[k].value = e[k] || '';
+  form.elements.drzava.value = e.drzava || '';
+  form.elements.dnevnica.value = e.dnevnica ?? '';
+  form.elements.fakultet.value = (e.fakultet || []).join(', ');
+  for (const k of ['sprema', 'engleski']) {
+    const sel = form.elements[k];
+    if (e[k] && ![...sel.options].some(o => o.value === e[k])) sel.add(new Option(e[k], e[k]));
+    sel.value = e[k] || '';
+  }
+  for (const k of ['spol', 'kategorija', 'saradnja']) for (const r of form.querySelectorAll(`input[name="${k}"]`)) r.checked = r.value === e[k];
+  form.elements.prethodna.checked = !!e.prethodna;
+  form.elements.ispit.checked = !!e.ispit;
+  $('exOblasti').innerHTML = checkGroup('oblasti', RF.oblasti, e.oblasti);
+  $('exTip').innerHTML = checkGroup('tip', RF.tip, e.tip);
+  $('exModul').innerHTML = checkGroup('modul', RF.modul, e.modul);
+  $('exFakList').innerHTML = [...new Set((R.list || []).flatMap(y => y.fakultet || []))].sort((a, b) => a.localeCompare(b, 'bs')).map(v => `<option value="${esc(v)}">`).join('');
+  updateYears();
+  renderCvList();
+  $('exSys').textContent = isNew ? 'ID i datum unosa dodijele se pri spremanju.' : `ID ${e.id}${e.created ? ' · uneseno ' + fmtStamp(e.created) : ''}${e.unio ? ' · unio ' + e.unio : ''}${e.updated ? ' · izmijenjeno ' + fmtStamp(e.updated) : ''}`;
+  $('exMsg').textContent = '';
+  $('btnExDel').hidden = isNew; $('btnExDel').textContent = 'Obriši eksperta'; delete $('btnExDel').dataset.armed;
+  $('btnExSave').disabled = false;
+  if (!$('dlgExpert').open) $('dlgExpert').showModal();
+}
+const fmtStamp = t => { const d = new Date(t); return isNaN(d) ? '' : `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}.`; };
+function updateYears() {
+  const n = exYears({pocetak: $('exForm').elements.pocetak.value});
+  $('exForm').elements.iskustvo.value = n === null ? '' : fmtYears(n);
+}
+function renderCvList() {
+  const e = R.edit, kb = n => n > 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' kB';
+  const old = (e.cv || []).map((c, i) => `<div class="cv-item${R.cvDel.includes(c.f) ? ' del' : ''}"><span>${esc(c.n)} <span class="muted">${kb(c.s || 0)}${c.d ? ', ' + fmtDate(c.d) : ''}</span></span><button class="mini" type="button" data-cvget="${i}">Preuzmi</button><button class="mini" type="button" data-cvdel="${i}">${R.cvDel.includes(c.f) ? 'Vrati' : 'Ukloni'}</button></div>`);
+  const add = R.cvAdd.map((f, i) => `<div class="cv-item new"><span>${esc(f.name)} <span class="muted">${kb(f.size)}</span></span><button class="mini" type="button" data-cvundo="${i}">Ukloni</button></div>`);
+  $('exCv').innerHTML = old.concat(add).join('') || '<p class="hint">Nema priloženih CV-jeva.</p>';
+}
+function readExpertForm() {
+  const form = $('exForm'), e = structuredClone(R.edit), v = k => form.elements[k].value.trim();
+  for (const k of ['ime', 'prezime', 'grad', 'email', 'tel', 'poznanstvo', 'drzava', 'sprema', 'engleski', 'pocetak']) e[k] = v(k);
+  e.napomene = form.elements.napomene.value.trim(); e.profil = form.elements.profil.value.trim();
+  const d = v('dnevnica'); e.dnevnica = d === '' ? null : Math.max(0, Math.round(+d));
+  e.fakultet = [...new Set(v('fakultet').split(/[,;]+/).map(t => t.trim()).filter(Boolean))];
+  for (const k of ['spol', 'kategorija', 'saradnja']) e[k] = (form.querySelector(`input[name="${k}"]:checked`) || {}).value || '';
+  e.prethodna = form.elements.prethodna.checked; e.ispit = form.elements.ispit.checked;
+  for (const k of ['oblasti', 'tip', 'modul']) e[k] = [...form.querySelectorAll(`input[name="${k}"]:checked`)].map(x => x.value);
+  return e;
+}
+function cleanExpert(e) {
+  for (const k of Object.keys(e)) if (e[k] === '' || e[k] === null || e[k] === undefined || (Array.isArray(e[k]) && !e[k].length && k !== 'cv')) delete e[k];
+  return e;
+}
+// Novi CV fajlovi se šifriraju i postavljaju prije roster-a; ako roster ne uspije, fajlovi bez zapisa
+// ostaju u repozitoriju, ali bez šifre se ne mogu otvoriti.
+async function uploadCvs(files) {
+  const pass = store.get('tr.pass'), out = [];
+  for (const file of files) {
+    if (file.size > CV_MAX) throw new GhError(`Fajl ${file.name} je veći od 15 MB.`, 0);
+    const f = rid(), enc = await encryptBytes(new Uint8Array(await file.arrayBuffer()), pass);
+    const sha = await ghPut(`cv/${f}.enc`, enc, null, 'CV: novi fajl');
+    out.push({f, n: file.name, t: file.type || '', s: file.size, d: new Date().toISOString().slice(0, 10), sha});
+  }
+  return out;
+}
+async function saveExpert() {
+  const e = readExpertForm();
+  if (!e.ime || !e.prezime) { $('exMsg').textContent = 'Ime i prezime su obavezni.'; return; }
+  if (!ghConf().token) { $('exMsg').textContent = 'Za spremanje treba GitHub token: otvori „Postavke spremanja“.'; return; }
+  $('btnExSave').disabled = true; $('exMsg').textContent = 'Spremam…';
+  try {
+    const added = await uploadCvs(R.cvAdd);
+    const dropped = (e.cv || []).filter(c => R.cvDel.includes(c.f));
+    e.cv = (e.cv || []).filter(c => !R.cvDel.includes(c.f)).concat(added);
+    const stamp = new Date().toISOString().slice(0, 19);
+    const saved = await commitRoster(list => {
+      const rec = cleanExpert(structuredClone(e));
+      if (rec.id == null) { rec.id = list.reduce((m, y) => Math.max(m, +y.id || 0), 0) + 1; rec.created = stamp; list.push(rec); }
+      else { rec.updated = stamp; const i = list.findIndex(y => y.id === rec.id); if (i >= 0) list[i] = rec; else list.push(rec); }
+      return rec;
+    }, R.edit.id == null ? 'Eksperti: novi unos' : 'Eksperti: izmjena');
+    for (const c of dropped) { try { await ghDelete(`cv/${c.f}.enc`, c.sha, 'CV: brisanje'); } catch (err) { /* fajl ostaje, ali bez zapisa */ } }
+    $('dlgExpert').close();
+    renderRosterFilters(); renderRoster();
+    toast(`Sačuvano: ${exName(saved)}`);
+    if (R.afterSave) { R.afterSave(saved); R.afterSave = null; }
+  } catch (err) {
+    $('exMsg').textContent = 'Nije sačuvano. ' + err.message;
+  } finally { $('btnExSave').disabled = false; }
+}
+async function deleteExpert() {
+  const b = $('btnExDel');
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Klikni ponovo za brisanje'; return; }
+  if (!ghConf().token) { $('exMsg').textContent = 'Za brisanje treba GitHub token: otvori „Postavke spremanja“.'; return; }
+  const e = R.edit;
+  $('exMsg').textContent = 'Brišem…';
+  try {
+    await commitRoster(list => { const i = list.findIndex(y => y.id === e.id); if (i >= 0) list.splice(i, 1); }, 'Eksperti: brisanje');
+    for (const c of e.cv || []) { try { await ghDelete(`cv/${c.f}.enc`, c.sha, 'CV: brisanje'); } catch (err) { /* ostaje šifriran */ } }
+    $('dlgExpert').close(); renderRosterFilters(); renderRoster(); toast('Ekspert je obrisan');
+  } catch (err) { $('exMsg').textContent = 'Nije obrisano. ' + err.message; }
+}
+async function downloadCv(c) {
+  $('exMsg').textContent = 'Preuzimam CV…';
+  try {
+    const bytes = await ghRaw(`cv/${c.f}.enc`);
+    if (!bytes) throw new Error('Fajl nije pronađen na GitHubu.');
+    const plain = await decryptBytes(bytes, store.get('tr.pass'));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([plain], {type: c.t || 'application/octet-stream'}));
+    a.download = c.n; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    $('exMsg').textContent = '';
+  } catch (err) { $('exMsg').textContent = 'CV se ne može preuzeti. ' + (err.message === 'format' ? 'Fajl nije u očekivanom obliku.' : err.message); }
+}
+
+/* uvoz liste (npr. iz Excela, kao JSON) i izvoz CSV */
+async function importRoster(file) {
+  let data;
+  try { data = JSON.parse(await file.text()); } catch (e) { setRvMsg('Fajl nije ispravan JSON fajl.'); return; }
+  if (!Array.isArray(data) || !data.every(x => x && typeof x === 'object')) { setRvMsg('Fajl nije lista eksperata.'); return; }
+  if (!ghConf().token) { setRvMsg('Za uvoz treba GitHub token: otvori „Postavke spremanja“.'); return; }
+  setRvMsg('Uvozim…', true);
+  try {
+    const n = await commitRoster(list => {
+      const ids = new Set(list.map(y => String(y.id))), keys = new Set(list.map(exKey));
+      let next = list.reduce((m, y) => Math.max(m, +y.id || 0), 0) + 1, added = 0;
+      for (const x of data) {
+        const rec = cleanExpert(structuredClone(x));
+        if (!rec.ime && !rec.prezime) continue;
+        if (keys.has(exKey(rec))) continue;  // već postoji
+        if (rec.id == null || ids.has(String(rec.id))) rec.id = next++;
+        else next = Math.max(next, +rec.id + 1);
+        rec.cv = Array.isArray(rec.cv) ? rec.cv : [];
+        rec.created = rec.created || new Date().toISOString().slice(0, 19);
+        ids.add(String(rec.id)); keys.add(exKey(rec)); list.push(rec); added++;
+      }
+      return added;
+    }, 'Eksperti: uvoz');
+    renderRosterFilters(); renderRoster();
+    setRvMsg(`Uvezeno: ${n}. Eksperti s istim imenom i prezimenom koji već postoje su preskočeni.`, true);
+  } catch (err) { setRvMsg('Uvoz nije uspio. ' + err.message); }
+}
+function exportRosterCsv() {
+  const head = ['ID', 'Ime', 'Prezime', 'Grad', 'Država', 'E-mail', 'Tel.', 'Spol', 'Kategorija', 'Prethodna saradnja', 'Poznanstvo', 'Saradnja', 'Dnevnica (KM/dan)', 'Stručna sprema', 'Fakultet', 'Stručne oblasti', 'Tip', 'Početak karijere', 'Iskustvo (godina)', 'Engleski', 'Stručni ispit', 'Modul', 'Napomene', 'Profil iz CV-ja', 'CV fajlovi', 'Uneseno'];
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"', yes = b => b ? 'DA' : 'NE';
+  const lines = [head.map(q).join(';')];
+  for (const x of rosterView()) lines.push([x.id, x.ime, x.prezime, x.grad, x.drzava ? countryName(x.drzava) : '', x.email, x.tel, x.spol, x.kategorija, yes(x.prethodna), x.poznanstvo, x.saradnja, x.dnevnica ?? '', x.sprema, (x.fakultet || []).join(', '), (x.oblasti || []).join(', '), (x.tip || []).join(', '), x.pocetak, fmtYears(exYears(x)), x.engleski, yes(x.ispit), (x.modul || []).join(', '), x.napomene, x.profil, (x.cv || []).map(c => c.n).join(', '), x.created].map(q).join(';'));
+  download(`eksperti-${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}.csv`, String.fromCharCode(0xFEFF) + lines.join('\r\n'), 'text/csv;charset=utf-8');
+}
+
+/* AI unos iz CV-jeva */
+// Word (.docx) je zip; tekst je u word/document.xml, raspakuje se u pregledniku.
+async function docxText(bytes) {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('Word fajl nije ispravan (.docx).');
+  let p = dv.getUint32(eocd + 16, true);
+  const count = dv.getUint16(eocd + 10, true);
+  for (let n = 0; n < count; n++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), off = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nlen));
+    if (name === 'word/document.xml') {
+      const start = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true);
+      let data = bytes.subarray(start, start + csize);
+      if (method === 8) data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+      else if (method !== 0) throw new Error('Word fajl koristi nepoznatu kompresiju.');
+      const xml = new TextDecoder().decode(data);
+      const text = xml.replace(/<w:tab\/>/g, '\t').replace(/<\/w:p>|<w:br\/>/g, '\n').replace(/<[^>]+>/g, '')
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+      return text.replace(/\n{3,}/g, '\n\n').trim();
+    }
+    p += 46 + nlen + xlen + clen;
+  }
+  throw new Error('U Word fajlu nema teksta dokumenta.');
+}
+function cvPrompt() {
+  return `Iz priloženog CV-ja izvuci podatke o osobi za roster eksperata konsultantske firme CETEOR (okoliš, energija, klima).
+Vrati isključivo JSON objekat {"osobe": [...]}, bez ikakvog drugog teksta. Obično je jedna osoba; ako fajl sadrži CV-jeve više osoba, navedi svaku.
+Polja (null ako podatka nema; ništa ne izmišljaj):
+- ime, prezime
+- grad: grad u kojem osoba živi ili radi
+- drzava: ISO kod države (npr. BA, RS, HR)
+- email, tel: kako piše u CV-ju
+- spol: "M" ili "Ž", samo ako je jasno iz CV-ja ili imena
+- sprema: najviši završeni nivo: "Dipl.", "MSc." ili "PhD."
+- fakultet: lista oblasti studija, kratko na bosanskom (npr. ["Mašinstvo"] ili ["Ekonomija", "Pravo"])
+- oblasti: lista, samo od ovih: ${RF.oblasti.join('; ')}
+- tip: lista vrsta posla koje radi, samo od ovih: ${RF.tip.join('; ')}
+- pocetak: početak profesionalne karijere (prvi posao poslije studija) kao "YYYY-MM-DD"; ako je poznat samo mjesec ili godina, uzmi prvi dan
+- engleski: "A1/A2", "B1/B2" ili "C1/C2"
+- ispit: true ako CV navodi položen stručni ispit, inače null
+- profil: 2 do 3 rečenice na bosanskom: ključna stručnost, vrste projekata, naručioci i države
+- napomene: do 10 riječi o posebnim vještinama (npr. "GIS Expert", "LEAP modeliranje")
+Primjer: {"osobe": [{"ime": "Ana", "prezime": "Anić", "oblasti": ["Energijska efikasnost"], "pocetak": "2010-09-01"}]}`;
+}
+async function aiReadCv(file, key) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let content;
+  if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') {
+    content = [{type: 'document', source: {type: 'base64', media_type: 'application/pdf', data: toB64(bytes)}}, {type: 'text', text: 'Ovo je CV. Vrati JSON.'}];
+  } else if (/\.docx$/i.test(file.name)) {
+    content = [{type: 'text', text: 'CV:\n\n' + (await docxText(bytes)).slice(0, 60000) + '\n\nVrati JSON.'}];
+  } else throw new Error('podržani su PDF i Word .docx (stari .doc sačuvaj kao .docx ili PDF)');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {method: 'POST', headers: {'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', 'anthropic-dangerous-direct-browser-access': 'true'},
+    body: JSON.stringify({model: (S.status && S.status.ai && S.status.ai.model) || AI_MODEL, max_tokens: 2500, system: cvPrompt(), messages: [{role: 'user', content}]})});
+  if (res.status === 401 || res.status === 403) { store.set('tr.aikey', ''); throw new Error('API ključ nije prihvaćen'); }
+  if (!res.ok) {
+    let m = '';
+    try { m = (await res.json()).error.message || ''; } catch (e) { /* bez poruke */ }
+    throw new Error(res.status === 429 || res.status === 529 ? 'AI je trenutno zauzet, pokušaj za minut' : `AI greška ${res.status}${m ? ': ' + m : ''}`);
+  }
+  store.set('tr.aikey', key);
+  const out = ((await res.json()).content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+  const m = out.match(/\{[\s\S]*\}/);
+  let obj = null;
+  try { obj = m && JSON.parse(m[0]); } catch (e) { /* neispravan JSON */ }
+  const people = obj && Array.isArray(obj.osobe) ? obj.osobe.filter(x => x && (x.ime || x.prezime)) : [];
+  if (!people.length) throw new Error('AI nije prepoznao osobu u CV-ju');
+  return people.map(cleanAiPerson);
+}
+function cleanAiPerson(x) {
+  const str = v => typeof v === 'string' ? v.trim().slice(0, 400) : '';
+  const list = (v, allowed) => Array.isArray(v) ? [...new Set(v.map(t => String(t).trim()).filter(t => t && (!allowed || allowed.includes(t))))] : [];
+  const out = {ime: str(x.ime), prezime: str(x.prezime), grad: str(x.grad), drzava: /^[A-Z]{2}$/.test(str(x.drzava).toUpperCase()) ? str(x.drzava).toUpperCase() : '',
+    email: str(x.email), tel: str(x.tel), spol: ['M', 'Ž'].includes(x.spol) ? x.spol : '', sprema: ['Dipl.', 'MSc.', 'PhD.'].includes(x.sprema) ? x.sprema : '',
+    fakultet: list(x.fakultet).slice(0, 4), oblasti: list(x.oblasti, RF.oblasti), tip: list(x.tip, RF.tip),
+    pocetak: /^\d{4}-\d\d-\d\d$/.test(str(x.pocetak)) ? str(x.pocetak) : /^\d{4}-\d\d$/.test(str(x.pocetak)) ? str(x.pocetak) + '-01' : /^\d{4}$/.test(str(x.pocetak)) ? str(x.pocetak) + '-01-01' : '',
+    engleski: RF.eng[x.engleski] ? x.engleski : '', ispit: x.ispit === true, profil: str(x.profil), napomene: str(x.napomene).slice(0, 120)};
+  return out;
+}
+// Postojeći ekspert: isti e-mail ili isto ime i prezime.
+function findExpert(p) {
+  const mail = (p.email || '').toLowerCase();
+  return (R.list || []).find(y => (mail && (y.email || '').toLowerCase() === mail) || exKey(y) === exKey(p));
+}
+// Dopuna postojećeg: popunjavaju se samo prazna polja, liste se spajaju, CV se dodaje.
+function mergeExpert(base, p) {
+  const e = structuredClone(base);
+  for (const k of ['grad', 'drzava', 'email', 'tel', 'spol', 'sprema', 'pocetak', 'engleski', 'profil', 'napomene']) if (!e[k] && p[k]) e[k] = p[k];
+  for (const k of ['fakultet', 'oblasti', 'tip']) e[k] = [...new Set([...(e[k] || []), ...(p[k] || [])])];
+  if (!e.ispit && p.ispit) e.ispit = true;
+  return e;
+}
+function openCvAi() {
+  R.ai = [];
+  $('cvKeyBox').hidden = !!store.get('tr.aikey');
+  $('cvKey').value = ''; $('cvMsg').textContent = ''; $('cvList').innerHTML = '';
+  $('btnCvSave').disabled = true;
+  $('dlgCvAi').showModal();
+}
+async function runCvAi(files) {
+  const key = store.get('tr.aikey') || $('cvKey').value.trim();
+  if (!key) { $('cvMsg').textContent = 'Upiši Anthropic API ključ.'; $('cvKeyBox').hidden = false; $('cvKey').focus(); return; }
+  try { await loadRoster(); } catch (e) { $('cvMsg').textContent = e.message; return; }
+  for (const file of files) {
+    const item = {file, status: 'čitam…', people: []};
+    R.ai.push(item); renderCvAi();
+    try {
+      if (file.size > CV_MAX) throw new Error('fajl je veći od 15 MB');
+      item.people = (await aiReadCv(file, key)).map(p => ({p, use: true, match: findExpert(p), done: false}));
+      item.status = '';
+    } catch (e) { item.status = 'greška: ' + e.message; }
+    renderCvAi();
+  }
+  $('cvKeyBox').hidden = !!store.get('tr.aikey');
+}
+function renderCvAi() {
+  const rows = [];
+  R.ai.forEach((it, i) => {
+    if (it.status || !it.people.length) rows.push(`<tr><td colspan="4"><b>${esc(it.file.name)}</b><span class="sub">${esc(it.status || 'nema osoba')}</span></td></tr>`);
+    it.people.forEach((q, j) => {
+      const p = q.p, years = exYears(p);
+      const facts = [p.sprema, years !== null ? fmtYears(years) + ' god. iskustva' : '', p.engleski ? 'engleski ' + p.engleski : '', [p.grad, p.drzava && countryName(p.drzava)].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+      rows.push(`<tr><td><label class="inline"><input type="checkbox" data-cvuse="${i}:${j}"${q.use && !q.done ? ' checked' : ''}${q.done ? ' disabled' : ''}><span><b>${esc(exName(p))}</b></span></label><span class="sub">${esc(it.file.name)}</span></td>`
+        + `<td>${esc(facts)}<span class="sub">${esc([...(p.oblasti || []), ...(p.tip || [])].join(', '))}</span>${p.profil ? `<span class="sub">${esc(cut(p.profil, 220))}</span>` : ''}</td>`
+        + `<td>${q.done ? '<b>sačuvano ✓</b>' : q.match ? `dopuna: ${esc(exName(q.match))} (ID ${esc(q.match.id)})` : 'novi ekspert'}</td>`
+        + `<td>${q.done ? '' : `<button class="mini" type="button" data-cvedit="${i}:${j}">Uredi i sačuvaj</button>`}</td></tr>`);
+    });
+  });
+  $('cvList').innerHTML = rows.length ? '<table><tbody>' + rows.join('') + '</tbody></table>' : '';
+  const n = R.ai.reduce((s, it) => s + it.people.filter(q => q.use && !q.done).length, 0);
+  $('btnCvSave').disabled = !n; $('btnCvSave').textContent = n ? `Sačuvaj označene (${n})` : 'Sačuvaj označene';
+}
+async function saveCvAi() {
+  const todo = [];
+  R.ai.forEach(it => it.people.forEach(q => { if (q.use && !q.done) todo.push({it, q}); }));
+  if (!todo.length) return;
+  if (!ghConf().token) { $('cvMsg').textContent = 'Za spremanje treba GitHub token: otvori „Postavke spremanja“.'; return; }
+  $('btnCvSave').disabled = true; $('cvMsg').textContent = 'Spremam CV-jeve i roster…';
+  try {
+    const files = new Map();  // isti fajl se postavlja samo jednom, i kad su u njemu dvije osobe
+    for (const {it} of todo) if (!files.has(it.file)) files.set(it.file, (await uploadCvs([it.file]))[0]);
+    const stamp = new Date().toISOString().slice(0, 19);
+    await commitRoster(list => {
+      let next = list.reduce((m, y) => Math.max(m, +y.id || 0), 0) + 1;
+      for (const {it, q} of todo) {
+        const cv = files.get(it.file);
+        const mail = (q.p.email || '').toLowerCase();
+        const i = list.findIndex(y => (mail && (y.email || '').toLowerCase() === mail) || exKey(y) === exKey(q.p));
+        if (i >= 0) { const e = mergeExpert(list[i], q.p); e.cv = [...(e.cv || []), cv]; e.updated = stamp; list[i] = cleanExpert(e); }
+        else list.push(cleanExpert({...q.p, id: next++, created: stamp, cv: [cv]}));
+      }
+    }, 'Eksperti: uvoz iz CV-ja');
+    todo.forEach(({q}) => { q.done = true; });
+    renderCvAi(); renderRosterFilters(); renderRoster();
+    $('cvMsg').textContent = `Sačuvano: ${todo.length}.`;
+  } catch (err) { $('cvMsg').textContent = 'Nije sačuvano. ' + err.message; renderCvAi(); }
+}
+
+/* postavke spremanja */
+function openGhDialog() {
+  const c = ghConf();
+  $('ghToken').value = ''; $('ghToken').placeholder = c.token ? 'token je sačuvan; upiši novi za zamjenu' : 'github_pat_…';
+  $('ghOwner').value = c.owner; $('ghRepo').value = c.repo; $('ghBranch').value = c.branch;
+  $('ghMsg').textContent = ''; $('btnGhForget').hidden = !c.token;
+  $('dlgGh').showModal();
+}
+function saveGhConf() {
+  const c = ghConf(), token = $('ghToken').value.trim() || c.token;
+  store.set('tr.gh', JSON.stringify({owner: $('ghOwner').value.trim(), repo: $('ghRepo').value.trim(), branch: $('ghBranch').value.trim() || 'main', token}));
+}
+async function testGh() {
+  saveGhConf();
+  const c = ghConf();
+  $('ghMsg').textContent = 'Provjeravam…';
+  try {
+    const res = await gh('GET', '');
+    if (!res.ok) throw await ghFail(res, true);
+    const j = await res.json();
+    $('ghMsg').textContent = !c.token ? 'Repozitorij je pronađen, ali bez tokena se može samo čitati.'
+      : j.permissions && j.permissions.push ? `Veza radi: token je prihvaćen za ${j.full_name}. Dozvolu za pisanje (Contents: Read and write) GitHub provjeri pri prvom spremanju.` : 'Token radi, ali nema dozvolu za pisanje (Contents: Read and write).';
+  } catch (err) { $('ghMsg').textContent = err.message; }
+}
+function wireRoster() {
+  $('btnRoster').addEventListener('click', () => showRoster());
+  $('btnRvBack').addEventListener('click', hideRoster);
+  $('btnRvNew').addEventListener('click', () => openExpert(null));
+  $('btnRvAi').addEventListener('click', openCvAi);
+  $('btnRvCsv').addEventListener('click', exportRosterCsv);
+  $('btnRvGh').addEventListener('click', openGhDialog);
+  $('rvImport').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importRoster(f); });
+  $('rvQ').addEventListener('input', debounce(() => { R.f.q = $('rvQ').value; renderRoster(); }, 150));
+  for (const [id, k] of [['rvObl', 'obl'], ['rvTip', 'tip'], ['rvKat', 'kat'], ['rvEng', 'eng'], ['rvSort', 'sort']]) $(id).addEventListener('change', () => { R.f[k] = $(id).value; renderRoster(); });
+  $('rvTable').addEventListener('click', e => { const b = e.target.closest('[data-exid]'); if (b) { const x = R.list.find(y => String(y.id) === b.dataset.exid); if (x) openExpert(x); } });
+  $('btnExClose').addEventListener('click', () => $('dlgExpert').close());
+  $('btnExSave').addEventListener('click', saveExpert);
+  $('btnExDel').addEventListener('click', deleteExpert);
+  $('exForm').elements.pocetak.addEventListener('input', updateYears);
+  $('exCvAdd').addEventListener('change', e => { R.cvAdd.push(...e.target.files); e.target.value = ''; renderCvList(); });
+  $('exCv').addEventListener('click', e => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.cvget) downloadCv(R.edit.cv[+t.dataset.cvget]);
+    else if (t.dataset.cvdel) { const f = R.edit.cv[+t.dataset.cvdel].f; R.cvDel = R.cvDel.includes(f) ? R.cvDel.filter(x => x !== f) : [...R.cvDel, f]; renderCvList(); }
+    else if (t.dataset.cvundo) { R.cvAdd.splice(+t.dataset.cvundo, 1); renderCvList(); }
+  });
+  $('btnCvClose').addEventListener('click', () => $('dlgCvAi').close());
+  $('cvFiles').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) runCvAi(fs); });
+  $('btnCvSave').addEventListener('click', saveCvAi);
+  $('cvList').addEventListener('change', e => {
+    const t = e.target;
+    if (!t.dataset.cvuse) return;
+    const [i, j] = t.dataset.cvuse.split(':').map(Number);
+    R.ai[i].people[j].use = t.checked; renderCvAi();
+  });
+  $('cvList').addEventListener('click', e => {
+    const t = e.target.closest('[data-cvedit]');
+    if (!t) return;
+    const [i, j] = t.dataset.cvedit.split(':').map(Number), it = R.ai[i], q = it.people[j];
+    const base = q.match ? mergeExpert(q.match, q.p) : {...q.p, cv: []};
+    openExpert(q.match ? q.match : null, {...base, _files: [it.file]}, () => { q.done = true; renderCvAi(); });
+  });
+  $('btnGhClose').addEventListener('click', () => $('dlgGh').close());
+  $('btnGhSave').addEventListener('click', () => { saveGhConf(); $('dlgGh').close(); toast('Postavke spremanja su sačuvane u ovom pregledniku'); if (!$('rosterView').hidden) showRoster(); });
+  $('btnGhTest').addEventListener('click', testGh);
+  $('btnGhForget').addEventListener('click', () => { const c = ghConf(); store.set('tr.gh', JSON.stringify({...c, token: ''})); $('btnGhForget').hidden = true; $('ghToken').placeholder = 'github_pat_…'; $('ghMsg').textContent = 'Token je obrisan iz ovog preglednika.'; });
 }
 
 /* ---------- interni izvori: šifrirani fajl koji se otključava u pregledniku ---------- */
@@ -1890,6 +2632,16 @@ async function encryptJson(data, pass) {
   const ct = new Uint8Array(await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(data))));
   return {v: 1, kdf: 'PBKDF2-SHA256', iter: KDF_ITER, cipher: 'AES-256-GCM', salt: toB64(salt), iv: toB64(iv), ct: toB64(ct), generated: new Date().toISOString().slice(0, 19) + 'Z'};
 }
+// Preporučeni eksperti: data/expertmatch.json je šifriran, čita se tek nakon otključavanja.
+async function loadExpertMatch(pass) {
+  if (window.TR_DATA || !(S.status && S.status.experts && S.status.experts.matched)) return;
+  try {
+    const res = await fetch('data/expertmatch.json' + S.ver);
+    if (!res.ok) return;
+    const d = await decryptPrivate(await res.json(), pass);
+    if (d && d.m && S.unlocked) { S.exm = d; renderList(); }
+  } catch (e) { /* objave ostaju bez preporuka */ }
+}
 // Slične reference: data/refmatch.json je šifriran istom šifrom, pa se čita tek nakon otključavanja.
 async function loadRefs(pass) {
   if (window.TR_DATA || !(S.status && S.status.refs && S.status.refs.on)) return;
@@ -1903,6 +2655,7 @@ async function loadRefs(pass) {
 function withoutPrivate() { return S.data.filter(r => !S.privKeys.has(r.src)); }
 function refreshLock() {
   $('btnLock').hidden = !S.priv;
+  $('btnRoster').hidden = !S.priv;
   $('btnLock').textContent = S.unlocked ? 'Interni izvori: otključani' : 'Interni izvori: zaključani';
   renderStatus(); renderMarks(); apply();
 }
@@ -1914,12 +2667,13 @@ async function unlock(pass) {
   refreshAi();
   store.set('tr.pass', pass);
   loadMarks(); refreshLock();
-  loadRefs(pass);
+  loadRefs(pass); loadExpertMatch(pass);
   return recs.length;
 }
 function lockAgain() {
   store.set('tr.pass', '');
-  S.data = withoutPrivate(); S.unlocked = false; S.refm = null;
+  S.data = withoutPrivate(); S.unlocked = false; S.refm = null; S.exm = null;
+  R.list = null; R.sha = null; hideRoster();  // roster je dešifrovan samo dok je otključano
   refreshAi();
   refreshLock();
 }
@@ -2024,7 +2778,7 @@ function init(data, status) {
   else if (saved !== null) { F = fromHash(saved); S.profile = store.get('tr.profile') || ''; }
   else { F = fromHash(STARTERS[0].h); S.profile = STARTERS[0].name; }
   if (!S.profiles.some(p => p.name === S.profile)) S.profile = '';
-  syncInputs(); wire(); wireLock(); wireShare(); wirePick(); wireAsk(); wireAwards(); wireCal(); renderStatus(); apply();
+  syncInputs(); wire(); wireLock(); wireShare(); wirePick(); wireAsk(); wireAwards(); wireCal(); wireRoster(); renderStatus(); apply();
 }
 
 async function load() {

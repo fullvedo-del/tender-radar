@@ -18,7 +18,7 @@ Od tada se podaci osvježavaju sami, svaki dan oko 5:30 po sarajevskom vremenu.
 
 Izmijenjen fajl se prenosi preko Add file, Upload files; fajl s istim imenom zamijeni stari. Fajl iz foldera `collectors` prenosi se tako što se prevuče cijeli folder `collectors` ili se prvo otvori taj folder na GitHubu. Sitne izmjene i fajl `.github/workflows/daily.yml` mijenjaju se klikom na olovku. Izmjena se na stranici vidi tek nakon sljedećeg pokretanja „Osvježi tendere“ (ručno iz kartice Actions ili sutra ujutro).
 
-Folder `data` se nikad ne prenosi ručno. U njemu alat čuva podatke i evidenciju o tome kad je koju objavu prvi put vidio.
+Folder `data` se nikad ne prenosi ručno. U njemu alat čuva podatke i evidenciju o tome kad je koju objavu prvi put vidio. Ni `experts.enc.json` ni folder `cv` ne mijenjaju se ručno: njih piše stranica (tab Eksperti). Zato dnevno osvježavanje prije spremanja podataka povuče izmjene koje je u međuvremenu spremila stranica (`git pull --rebase` u fajlu `.github/workflows/daily.yml`).
 
 ## Korištenje
 
@@ -104,6 +104,18 @@ Postavljanje i izmjena liste:
 
 Nešifrirani `reference.json` nikad ne postavljaj na GitHub. Nova lista se pravi iz Excel tabele referenci; kad se šifra promijeni, listu treba ponovo šifrirati.
 
+## Eksperti (roster)
+
+Dugme „Eksperti“ u zaglavlju otvara roster eksperata: tabelu s pretragom, filterima (stručna oblast, tip posla, kategorija, engleski) i poretkom. Klik na ime otvara obrazac sa svim podacima: identifikacija i kontakt, odnos s firmom, kvalifikacije, napomene, profil iz CV-ja i priloženi CV-jevi. Iskustvo se računa samo, od početka karijere do danas. „Izvezi CSV“ preuzima prikazane eksperte, a „Uvezi listu“ dodaje eksperte iz JSON fajla (npr. iz Excel tabele); ekspert s istim imenom i prezimenom se ne dodaje dvaput.
+
+Roster i CV-jevi su šifrirani istom šifrom kao interni izvori i vide se tek nakon otključavanja. Čuvaju se u repozitoriju: roster u `experts.enc.json`, a svaki CV kao `cv/<slučajni naziv>.enc`. Nazivi fajlova i opisi izmjena na GitHubu ne sadrže imena. Obrisan CV ostaje šifriran u historiji repozitorija.
+
+Spremanje ide direktno sa stranice, preko GitHub tokena koji smije pisati samo u ovaj repozitorij. Token se postavlja jednom, u „Postavke spremanja“ (tamo su i koraci za pravljenje tokena), i čuva se samo u tom pregledniku. Bez tokena roster se može pregledati, ali ne i mijenjati. Token se povlači na GitHubu, u Settings, Developer settings, Personal access tokens.
+
+Uvoz iz CV-ja (AI): izabereš jedan ili više CV-jeva (PDF ili Word .docx), a AI iz svakog izvuče ime, kontakt, spremu, fakultet, stručne oblasti, tip posla, početak karijere, engleski, stručni ispit, kratak profil i posebne vještine. Prijedloge pregledaš i sačuvaš označene; postojeći ekspert (isti e-mail ili ime i prezime) se samo dopunjava, a CV se prilaže. Podatke koji nisu u CV-ju (kategorija, saradnja, dnevnica, poznanstvo) unosiš u obrascu. Jedan CV košta oko 2 centa; koristi se isti API ključ kao za Pitaj AI. CV se šalje Anthropicu samo radi čitanja.
+
+Preporučeni eksperti: za tendere s AI ocjenom 2 ili 3 za CETEOR, AI pri svakom osvježavanju bira do tri eksperta iz roster-a, po stručnim oblastima, vrsti posla, iskustvu, profilu iz CV-ja, engleskom i mjestu rada; uz podjednaku stručnost prednost imaju uposlenici, pa vanjski saradnici s laganom saradnjom. Uz tender stoji „Preporučeni eksperti (broj)“ s kratkim razlogom, a klik na ime otvara eksperta. Preporuka se računa jednom po tenderu (oko 1 USD mjesečno). Kad se u roster-u promijeni nešto što AI gleda (novi ekspert, stručne oblasti, profil i slično, ali ne telefon, e-mail ili dnevnica), preporuke se postepeno računaju ponovo za sve tendere s ocjenom 2 i 3, oko 0,2 USD po takvoj izmjeni; do tada vrijede stare. Rezultat je šifriran u `data/expertmatch.json`.
+
 ## Izvori
 
 | Izvor | Šta se prikuplja | Način |
@@ -159,6 +171,6 @@ Stranica je javna za svakoga ko ima link, ali je označena tako da je pretraživ
 
 ## Tehnički
 
-`collect.py` pokreće kolektore iz foldera `collectors` i piše `data/tenders.json`, `data/status.json` i šifrirani `data/private.json`. `ai_score.py` je AI ocjena, AI prijevod i AI sažetak objava, a `ai_okvir.md` okvir po kojem AI ocjenjuje. `awards.py` preuzima dobitnike ugovora u `data/awards.json`, a `refmatch.py` traži slične reference iz šifriranog `reference.enc.json` i piše šifrirani `data/refmatch.json`. Cijelo osvježavanje traje najviše 25 minuta (GitHub posao smije 30): AI koraci i dobitnici dobijaju onoliko vremena koliko je ostalo, a ostatak se radi sljedeći dan. `index.html` je cijela stranica. `.github/workflows/daily.yml` je dnevni raspored. Pravila za pisanje novog kolektora su u `collectors/CONTRACT.md`.
+`collect.py` pokreće kolektore iz foldera `collectors` i piše `data/tenders.json`, `data/status.json` i šifrirani `data/private.json`. `ai_score.py` je AI ocjena, AI prijevod i AI sažetak objava, a `ai_okvir.md` okvir po kojem AI ocjenjuje. `awards.py` preuzima dobitnike ugovora u `data/awards.json`, `refmatch.py` traži slične reference iz šifriranog `reference.enc.json` i piše šifrirani `data/refmatch.json`, a `experts.py` iz šifriranog roster-a `experts.enc.json` bira preporučene eksperte u šifrirani `data/expertmatch.json`. Cijelo osvježavanje traje najviše 25 minuta (GitHub posao smije 30): AI koraci i dobitnici dobijaju onoliko vremena koliko je ostalo, a ostatak se radi sljedeći dan. `index.html` je cijela stranica. `.github/workflows/daily.yml` je dnevni raspored. Pravila za pisanje novog kolektora su u `collectors/CONTRACT.md`.
 
 Lokalno pokretanje: `pip install -r requirements.txt`, zatim `python collect.py`. Samo jedan izvor: `python collect.py --only TED` (dobitnici se tada ne preuzimaju; s njima: `--only TED,AWD`). Interni izvori se lokalno preuzimaju samo ako je postavljena varijabla okruženja `TR_PASSPHRASE`.

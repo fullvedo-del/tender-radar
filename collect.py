@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Tender radar: pokreće kolektore i piše data/tenders.json, data/status.json i,
 za interne izvore, šifrirani data/private.json. Uz to: AI ocjena, prijevod i sažetak (ai_score.py),
-dobitnici ugovora u data/awards.json (awards.py) i, ako je na GitHubu šifrirana lista referenci
-(reference.enc.json), slične reference u šifriranom data/refmatch.json (refmatch.py).
+dobitnici ugovora u data/awards.json (awards.py), slične reference u šifriranom data/refmatch.json
+(refmatch.py, iz reference.enc.json) i preporučeni eksperti u šifriranom data/expertmatch.json
+(experts.py, iz roster-a experts.enc.json).
 
     python collect.py                 # svi izvori
     python collect.py --only TED,WB   # samo navedeni; ostali zadržavaju zadnje podatke
@@ -29,6 +30,7 @@ from collections import Counter
 
 import ai_score
 import awards
+import experts
 import refmatch
 from collectors import base
 
@@ -42,6 +44,7 @@ MODULES = ["ejn", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise
 KEEP_NO_DEADLINE_DAYS = 60   # objave bez roka ostaju ovoliko dana od objave
 RUN_MINUTES = 25             # koliko smije trajati cijelo prikupljanje (posao na GitHubu ima 30 minuta)
 REFS_FILE = "reference.enc.json"  # šifrirana lista referenci u glavnom folderu repozitorija
+EXPERTS_FILE = "experts.enc.json"  # šifrirani roster eksperata (piše ga stranica, tab Eksperti)
 SUSPICIOUS_EMPTY = 10        # 0 objava je sumnjivo ako ih je zadnji put bilo bar ovoliko
 KDF_ITERATIONS = 250_000     # PBKDF2-SHA256; isti postupak radi i stranica u pregledniku
 
@@ -95,16 +98,21 @@ def encrypt_records(records: list, passphrase: str, stamp: str) -> dict:
             "salt": b64(salt), "iv": b64(iv), "ct": b64(sealed), "generated": stamp}
 
 
-def decrypt_records(blob, passphrase: str):
-    """Lista zapisa, ili None ako šifra ne odgovara ili fajl nije ispravan."""
+def decrypt_json(blob, passphrase: str):
+    """Sadržaj šifriranog fajla, ili None ako šifra ne odgovara ili fajl nije ispravan."""
     try:
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
         d = base64.b64decode
         key = _key(passphrase, d(blob["salt"]), int(blob["iter"]))
-        out = json.loads(AESGCM(key).decrypt(d(blob["iv"]), d(blob["ct"]), None))
-        return out if isinstance(out, list) else None
+        return json.loads(AESGCM(key).decrypt(d(blob["iv"]), d(blob["ct"]), None))
     except Exception:
         return None
+
+
+def decrypt_records(blob, passphrase: str):
+    """Lista zapisa, ili None ako šifra ne odgovara ili fajl nije ispravan."""
+    out = decrypt_json(blob, passphrase)
+    return out if isinstance(out, list) else None
 
 
 # --------------------------------------------------------------------------- pomoćno
@@ -132,6 +140,20 @@ def find_refs(passphrase: str):
     if not refs:
         return None, f"fajl {REFS_FILE} ne sadrži nijednu referencu."
     return refs, None
+
+
+def find_roster(passphrase: str):
+    """Roster eksperata iz šifriranog fajla, ili (None, poruka)."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), EXPERTS_FILE)
+    if not os.path.exists(path):
+        return None, "roster eksperata još nije spremljen (tab Eksperti na stranici)."
+    if not passphrase:
+        return None, "roster eksperata se ne može otvoriti: nije postavljena šifra TR_PASSPHRASE."
+    roster = decrypt_records(load_json(path, None), passphrase)
+    if roster is None:
+        return None, f"fajl {EXPERTS_FILE} se ne može otvoriti ovom šifrom."
+    roster = [x for x in roster if isinstance(x, dict) and x.get("id") is not None]
+    return (roster, None) if roster else (None, "roster eksperata je prazan.")
 
 
 def load_json(path, default):
@@ -219,6 +241,7 @@ def main() -> int:
     p_path = os.path.join(args.data, "private.json")
     a_path = os.path.join(args.data, "awards.json")
     m_path = os.path.join(args.data, "refmatch.json")
+    x_path = os.path.join(args.data, "expertmatch.json")
     run_minutes = float(cfg.get("run_minutes") or RUN_MINUTES)
 
     def left() -> float:
@@ -364,6 +387,19 @@ def main() -> int:
 
     ai_info["sm"] = ai_score.summarize(recs, capped(cfg, ("summary_minutes",), left()), private)
 
+    # Preporučeni eksperti za tendere s AI ocjenom 2 i 3: roster i rezultat su šifrirani.
+    roster, ex_error = find_roster(passphrase)
+    ex_info = {"on": False, "error": ex_error}
+    if roster:
+        prev_x = decrypt_json(load_json(x_path, None), passphrase) if os.path.exists(x_path) else None
+        ex_cfg = {**cfg, "experts": {**experts.DEFAULTS, **(cfg.get("experts") or {})}}
+        ex_cfg["experts"]["minutes"] = max(0.0, min(float(ex_cfg["experts"]["minutes"]), left()))
+        found_x, ex_info = experts.recommend(recs, roster, ex_cfg, private, prev_x)
+        with open(x_path, "w", encoding="utf-8") as f:
+            json.dump(encrypt_records(found_x, passphrase, stamp), f)
+    elif os.path.exists(x_path):
+        os.remove(x_path)  # bez roster-a nema ni preporuka
+
     # Slične reference: lista je šifrirana, a rezultat se piše šifriran (vidi se tek nakon otključavanja).
     refs, ref_error = find_refs(passphrase)
     ref_info = {"on": False, "error": ref_error}
@@ -409,7 +445,7 @@ def main() -> int:
             json.dump(encrypt_records(internal, passphrase, stamp), f)
     with open(s_path, "w", encoding="utf-8") as f:
         json.dump({"generated": stamp, "total": total, "total_private": total_private,
-                   "fx": fx, "fx_date": fx_date, "ai": ai_info, "awards": aw_info, "refs": ref_info,
+                   "fx": fx, "fx_date": fx_date, "ai": ai_info, "awards": aw_info, "refs": ref_info, "experts": ex_info,
                    "sources": statuses}, f, ensure_ascii=False, indent=1)
 
     print(f"\nUkupno {total} javnih i {total_private} internih objava ({stamp})")
@@ -421,6 +457,9 @@ def main() -> int:
     if aw_info:
         print("Dobitnici:", json.dumps(aw_info, ensure_ascii=False)[:300])
     print("Slične reference:", f"{ref_info['matched']} objava" if ref_info["on"] else ref_info["error"])
+    print("Eksperti:", f"{ex_info.get('n', 0)} u rosteru, preporuke za {ex_info.get('matched', 0)} tendera, "
+          f"{ex_info.get('new', 0)} novih" + (f" ({ex_info['error']})" if ex_info.get("error") else "")
+          if roster else ex_info["error"])
     print(f"Trajanje: {(time.time() - t_start) / 60:.1f} min")
     for st in statuses:
         flag = "isključen" if st.get("off") else ("OK" if st["ok"] else "GREŠKA")
