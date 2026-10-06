@@ -32,7 +32,7 @@ Dugme „Pošalji“ uz objavu priprema poruku s naslovom, ključnim podacima i 
 
 Više objava jednim e-mailom: označi kvadratiće lijevo od roka i na dnu ekrana klikni „Pošalji označeno“. Poruka ima jednu tabelu s redom po objavi (naziv kao link, naručilac, rok, preostalo dana u boji, država, izvor), poredanu po roku. „Označi prikazane“ označi sve objave u listi, a „Poništi“ briše izbor.
 
-Kalendar: dugme „Kalendar“ uz objavu (ili „U kalendar“ za označene) preuzme .ics fajl. Kad ga otvoriš, Outlook doda rok u kalendar s podsjetnikom 3 dana prije; rok bez sata je cjelodnevni događaj. Kod najave se u kalendar upisuje očekivani datum poziva.
+Kalendar: dugme „Kalendar“ uz objavu otvara novi događaj u Outlooku na webu, s nazivom, rokom, naručiocem i linkom na objavu; provjeriš ga, izabereš podsjetnik i klikneš Save (podsjetnik se ne može zadati linkom). Rok bez sata je cjelodnevni događaj, a kod najave se upisuje očekivani datum poziva. Zadano je poslovni Outlook (Microsoft 365); „Drugi kalendar“ u poruci nakon klika nudi Outlook.com i .ics fajl, a izbor se pamti u pregledniku. „U kalendar“ za označene objave otvara listu rokova s dugmetom „Dodaj“ uz svaki. Na računaru ovo radi u pregledniku; na mobitelu se Outlook otvara u pregledniku, ne u aplikaciji.
 
 Najave: filter „Faza“ dijeli objave na otvorene (imaju rok) i najave, odnosno prethodna obavještenja o nabavkama koje tek dolaze (TED, Svjetska banka za Zapadni Balkan, najavljeni pozivi EU programa). Najava u koloni roka pokazuje kad se očekuje poziv, ako je naručilac to naveo, i ostaje u listi do 30 dana poslije tog datuma, odnosno 120 dana od objave.
 
@@ -60,7 +60,7 @@ DevelopmentAid je isključen: pretraga tendera i grantova preko API-ja se plaća
 
 Ocjena za CETEOR: pri svakom osvježavanju AI pročita nove objave i svakoj da ocjenu od 0 do 3 (3 jako relevantno, 2 moguće, 1 slabo, 0 nije za nas) i jednu rečenicu obrazloženja. Na stranici su filter „AI ocjena za CETEOR“, poredak „AI ocjena, najbolje prvo“ i oznaka „AI 3/3“ uz objavu. AI ocjenjuje po okviru iz fajla `ai_okvir.md`: opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3 (vrste posla, geografija, naručioci, individualni eksperti, vrijednost ugovora, javni pozivi) i primjeri iz referenci. Uz svaku objavu AI vidi naziv, engleski prijevod ako ga ima, naručioca, državu, vrstu ugovora i postupka, CPV kod, vrijednost i izvor, ali ne i projektni zadatak. Svaka objava se ocjenjuje jednom. Okvir se mijenja na GitHubu olovkom; svaka izmjena teksta pokreće ponovno ocjenjivanje svih objava, postepeno: prvo se ocjenjuju nove objave, pa stare po novom okviru (najviše 12 minuta po osvježavanju, ostatak sljedeći dan; ukupno oko 1,5 USD). Do tada uz staru objavu ostaje stara ocjena, a u prozoru „Izvori“ piše koliko ih još čeka. Tekst između `<!--` i `-->` je napomena za ljude i AI ga ne vidi. Ocjenjuju se i objave internih izvora (GIZ, OSCE); ocjene ostaju u šifriranom fajlu zajedno s objavama. Ako to ne želiš, u `config.json` postavi `"include_private": false`.
 
-Pitaj AI: dugme pored pretrage. Napišeš običnim jezikom šta tražiš, a AI postavi filtere; „Vrati prethodne“ u poruci vraća stare. Prvi put stranica traži API ključ i pamti ga samo u tom pregledniku.
+Pitaj AI: dugme pored pretrage. Napišeš običnim jezikom šta tražiš, a AI postavi filtere u prikazu u kojem si (tenderi ili javni pozivi); „Vrati prethodne“ u poruci vraća stare. Prvi put stranica traži API ključ i pamti ga samo u tom pregledniku.
 
 Postavljanje (jednom):
 

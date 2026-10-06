@@ -128,7 +128,14 @@ main{min-width:0}
 #awTable .sub{display:block;color:var(--muted);font-size:.78rem}
 #awTable th{position:sticky;top:0;background:var(--panel);z-index:1}
 #awTable button.link{text-align:left;white-space:normal}
+.field[hidden]{display:none}  /* polje za šifru kad je već otključano */
 #lockTools{border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
+#dlgCal{width:min(720px,94vw)}
+#calList{margin-top:10px;max-height:50vh}
+#calList td{vertical-align:middle}
+#calList .cal-due{white-space:nowrap;color:var(--muted)}
+.calbtn{display:inline-block;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink)!important;border-radius:8px;padding:4px 12px;text-decoration:none;font-weight:600;white-space:nowrap}
+.calbtn.done{background:var(--panel);color:var(--accent)!important}
 #lockTools h3{font-size:.95rem;margin-bottom:4px}
 @media (max-width:700px){.aw-bar{grid-template-columns:1fr 1fr}.aw-bar input{grid-column:1/-1}}
 #askKeyBox[hidden],#btnAskForget[hidden]{display:none}
@@ -348,6 +355,15 @@ td a{color:var(--accent)}
     <p class="hint" id="encMsg" role="status"></p>
   </div>
   <menu><button id="btnLockForget">Zaključaj u ovom pregledniku</button><button id="btnLockClose">Zatvori</button><button id="btnLockOk" class="primary">Otključaj</button></menu>
+</dialog>
+
+<dialog id="dlgCal">
+  <h2 id="calTitle">Rok u kalendar</h2>
+  <div class="picks" id="calWays"></div>
+  <p class="hint" id="calHint"></p>
+  <div class="tbl" id="calList"></div>
+  <p class="hint" id="calSkip"></p>
+  <menu><button id="btnCalClose" class="primary">Zatvori</button></menu>
 </dialog>
 
 <dialog id="dlgAwards">
@@ -832,7 +848,7 @@ function rowHtml(r) {
   const also = (r.also || []).map(a => `<a href="${esc(a.u)}" target="_blank" rel="noopener">${esc(srcName(a.src))}</a>`).join(', ');
   const mk = markOf(r);
   const tip = [r.ref ? 'Broj objave: ' + r.ref : '', r._t0 ? 'Izvorno: ' + r._t0 : ''].filter(Boolean).join(' | ');
-  const acts = `<div class="acts"><button class="mini${mk === 'p' ? ' on' : ''}" data-mark="p" data-id="${esc(r.id)}" aria-pressed="${mk === 'p'}">${mk === 'p' ? 'Pratim ✓' : 'Pratim'}</button><button class="mini" data-mark="h" data-id="${esc(r.id)}">${mk === 'h' ? 'Vrati' : 'Sakrij'}</button><button class="mini" data-share data-id="${esc(r.id)}" title="Pošalji objavu e-mailom">Pošalji</button>${r.d || r.fn ? `<button class="mini" data-cal data-id="${esc(r.id)}" title="${r.d ? 'Rok u kalendar, s podsjetnikom 3 dana prije' : 'Očekivani poziv u kalendar'}">Kalendar</button>` : ''}</div>`;
+  const acts = `<div class="acts"><button class="mini${mk === 'p' ? ' on' : ''}" data-mark="p" data-id="${esc(r.id)}" aria-pressed="${mk === 'p'}">${mk === 'p' ? 'Pratim ✓' : 'Pratim'}</button><button class="mini" data-mark="h" data-id="${esc(r.id)}">${mk === 'h' ? 'Vrati' : 'Sakrij'}</button><button class="mini" data-share data-id="${esc(r.id)}" title="Pošalji objavu e-mailom">Pošalji</button>${r.d || r.fn ? `<button class="mini" data-cal data-id="${esc(r.id)}" title="${r.d ? 'Rok u kalendar (Outlook)' : 'Očekivani poziv u kalendar (Outlook)'}">Kalendar</button>` : ''}</div>`;
   const ten = r.en ? `<div class="ten" lang="en" title="AI prijevod${LANG[r.lg] ? ' s ' + LANG[r.lg] : ''} na engleski"><b>EN</b>${esc(r.en)}</div>` : '';
   return `<article class="row${mk === 'p' ? ' tracked' : mk === 'h' ? ' hid' : ''}${r._f === TODAY ? ' today' : ''}${picked ? ' picked' : ''}"><div class="due${cls}${days === null && r._pin ? ' pin' : ''}"><input type="checkbox" class="pick" data-pick="${esc(r.id)}" aria-label="Označi objavu"${picked ? ' checked' : ''}>${due}</div><div><a class="title" href="${esc(r.u)}" target="_blank" rel="noopener"${tip ? ` title="${esc(tip)}"` : ''}>${esc(r.t)}</a>${isNew(r) ? '<span class="new">novo</span>' : ''}${ten}<div class="buyer">${esc(r.b || 'Naručilac nije naveden')}</div>${r.ai >= 2 && r.air ? `<div class="air">AI: ${esc(r.air)}</div>` : ''}${xtraHtml(r)}<div class="chips">${chips.join('')}${also ? `<span class="also">također na: ${also}</span>` : ''}</div></div><div class="pub"><span>objavljeno</span><b>${r.p ? fmtDate(r.p) : 'nije navedeno'}</b>${acts}</div></article>`;
 }
@@ -1347,14 +1363,79 @@ function icsText(recs) {
   lines.push('END:VCALENDAR');
   return lines.map(icsFold).join('\r\n') + '\r\n';
 }
+// Outlook na webu: link otvara novi događaj s popunjenim nazivom, rokom i linkom na objavu, pa ostaje
+// samo kliknuti Save. Link ne može zadati podsjetnik; njega korisnik bira u Outlooku. Vrijeme je bez
+// vremenske zone, pa ga Outlook čita po vremenu korisnika, kao i rok u listi.
+const CAL_WAYS = {o365: 'Outlook (poslovni, Microsoft 365)', live: 'Outlook.com (lični)', ics: '.ics fajl'};
+const CAL_HOST = {o365: 'https://outlook.office.com', live: 'https://outlook.live.com'};
+const calVia = () => { const v = store.get('tr.calway'); return CAL_WAYS[v] ? v : 'o365'; };
+function outlookUrl(r, way) {
+  const day = r.d || r.fn, timed = !!r.d && /^\d\d:\d\d$/.test(r.dt || '');
+  const what = r.d ? (r._ty === 'p' ? 'Rok za prijave' : 'Rok za ponude') : 'Najava: očekivan poziv';
+  let startdt = day, enddt = day;  // cjelodnevni događaj
+  if (timed) {
+    const [h, m] = r.dt.split(':').map(Number), end = Math.min(h * 60 + m + 30, 23 * 60 + 59);
+    startdt = `${day}T${p2(h)}:${p2(m)}:00`; enddt = `${day}T${p2(Math.floor(end / 60))}:${p2(end % 60)}:00`;
+  }
+  const body = [`<b>${esc(what)}:</b> ${esc(dueText(r))}`, esc(r.t), r.en ? 'EN: ' + esc(r.en) : '', r.b ? 'Naručilac: ' + esc(r.b) : '',
+    'Izvor: ' + esc(srcName(r.src)), /^https?:\/\//i.test(r.u) ? `<a href="${esc(r.u)}">Otvori objavu</a>` : ''].filter(Boolean).join('<br>');
+  const q = new URLSearchParams({path: '/calendar/action/compose', rru: 'addevent', subject: `${what}: ${cut(r.t, 120)}`,
+    startdt, enddt, allday: timed ? 'false' : 'true', body});
+  return `${CAL_HOST[way]}/calendar/deeplink/compose?${q.toString().replace(/\+/g, '%20')}`;
+}
+function openLink(url) {
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function downloadIcs(recs) {
+  download(recs.length === 1 ? 'rok-' + slugOf(recs[0]) + '.ics' : `rokovi-${recs.length}.ics`, icsText(recs), 'text/calendar;charset=utf-8');
+}
+// Jedna objava ide direktno u izabrani kalendar; više označenih otvara prozor s listom.
 function addToCalendar(ids) {
   const want = new Set([].concat(ids));
   const recs = sortForShare(S.data.filter(x => want.has(x.id) && (x.d || x.fn)));
   if (!recs.length) { toast('Izabrane objave nemaju rok, pa nema šta dodati u kalendar.'); return; }
-  const skipped = want.size - recs.length;
-  download(recs.length === 1 ? 'rok-' + slugOf(recs[0]) + '.ics' : `rokovi-${recs.length}.ics`, icsText(recs), 'text/calendar;charset=utf-8');
-  toast(`Kalendar je preuzet${recs.length > 1 ? ` (${recs.length} ${plural(recs.length, 'rok', 'roka', 'rokova')})` : ''}. Otvori preuzeti fajl i Outlook ga dodaje u kalendar, s podsjetnikom 3 dana prije roka.` +
-    (skipped ? ` Bez roka, pa nije dodano: ${skipped}.` : ''));
+  const skipped = want.size - recs.length, way = calVia();
+  if (recs.length > 1) { openCalDialog(recs, skipped); return; }
+  const other = {label: 'Drugi kalendar', run: () => openCalDialog(recs, 0)};
+  if (way === 'ics') {
+    downloadIcs(recs);
+    toast('Kalendar je preuzet. Otvori preuzeti fajl i Outlook na računaru ga dodaje u kalendar, s podsjetnikom 3 dana prije roka.', null, other);
+    return;
+  }
+  openLink(outlookUrl(recs[0], way));
+  toast('U Outlooku se otvara novi događaj: provjeri ga, izaberi podsjetnik i klikni Save.', null, other);
+}
+let calRecs = [];
+function openCalDialog(recs, skipped) {
+  calRecs = recs;
+  $('calTitle').textContent = recs.length > 1 ? `Rokovi u kalendar (${recs.length})` : 'Rok u kalendar';
+  $('calSkip').textContent = skipped ? `Bez roka, pa nije na listi: ${skipped}.` : '';
+  renderCal();
+  if (!$('dlgCal').open) $('dlgCal').showModal();
+}
+function renderCal() {
+  const way = calVia();
+  $('calWays').innerHTML = '<span class="muted">Kalendar:</span>' + Object.entries(CAL_WAYS).map(([k, t]) =>
+    `<button data-calway="${k}" class="${k === way ? 'on' : ''}" aria-pressed="${k === way}">${t}</button>`).join('');
+  if (way === 'ics') {
+    $('calHint').textContent = 'Preuzeti fajl otvori na računaru i Outlook doda rokove u kalendar, s podsjetnikom 3 dana prije roka. Na mobitelu i u novom Outlooku .ics fajl često ne radi.';
+    $('calList').innerHTML = `<button class="primary" data-calics>Preuzmi .ics (${calRecs.length} ${plural(calRecs.length, 'rok', 'roka', 'rokova')})</button>`;
+    return;
+  }
+  $('calHint').textContent = 'Svaki klik na „Dodaj“ otvara novi događaj u Outlooku na webu; tamo izaberi podsjetnik i klikni Save. Izbor kalendara se pamti u ovom pregledniku.';
+  $('calList').innerHTML = '<table><tbody>' + calRecs.map(r => `<tr><td class="cal-due">${esc(dueText(r))}</td><td>${esc(cut(r.t, 140))}</td><td><a class="calbtn" href="${esc(outlookUrl(r, way))}" target="_blank" rel="noopener" data-caladd>Dodaj</a></td></tr>`).join('') + '</tbody></table>';
+}
+function wireCal() {
+  $('btnCalClose').addEventListener('click', () => $('dlgCal').close());
+  $('dlgCal').addEventListener('click', e => {
+    const w = e.target.closest('[data-calway]');
+    if (w) { store.set('tr.calway', w.dataset.calway); renderCal(); return; }
+    if (e.target.closest('[data-calics]')) { downloadIcs(calRecs); $('calHint').textContent = 'Fajl je preuzet. Otvori ga na računaru i Outlook doda rokove u kalendar.'; return; }
+    const a = e.target.closest('[data-caladd]');
+    if (a) { a.textContent = 'Dodano ✓'; a.classList.add('done'); }
+  });
 }
 
 // Označavanje više objava: traka na dnu ekrana nudi slanje jednim e-mailom i rokove u kalendar.
@@ -1404,18 +1485,21 @@ function wireShare() {
 // ovom pregledniku). AI vraća JSON s filterima; stranica prihvata samo poznata polja i vrijednosti.
 const AI_MODEL = 'claude-haiku-4-5-20251001';
 const ASK_ARR = ['ai', 'aiw', 'src', 'c', 'reg', 'k', 'fz', 'sec', 'who', 'bt', 'cpv'];
+// Vrijednosti filtera samo iz prikaza u kojem je korisnik (tenderi ili javni pozivi): AI tako ne bira
+// izvor ili državu kojih u tom prikazu nema.
 function askValues() {
-  const out = {};
-  for (const f of FACETS) if (ASK_ARR.includes(f.key)) out[f.key] = new Set(S.data.flatMap(f.vals));
+  const out = {}, recs = S.data.filter(r => r._ty === F.ty);
+  for (const f of FACETS) if (ASK_ARR.includes(f.key)) out[f.key] = new Set(recs.flatMap(f.vals));
   out.c.delete('??');
   if (!S.hasAi) { out.ai = new Set(); out.aiw = new Set(); }
+  if (F.ty !== 'p') out.aiw = new Set();  // "za koga je poziv" postoji samo kod javnih poziva
   return out;
 }
 function askSystem(v) {
   const list = (set, name) => [...set].sort().map(x => `${x} ${name(x)}`).join('; ');
   return `Pretvaraš pitanje korisnika u filtere za pretragu objava o javnim nabavkama i tenderima. Danas je ${new Date().toISOString().slice(0, 10)}.
+Korisnik pretražuje ${F.ty === 'p' ? 'javne pozive (grantovi, pozivi za prijedloge, sredstva za NVO i firme)' : 'tendere (nabavke, posao za firmu)'}; filteri važe samo za taj prikaz.
 Vrati samo JSON objekat, bez ikakvog drugog teksta. Sva polja su neobavezna; navedi samo ono što pitanje traži.
-- ty: "t" tenderi (nabavke, posao za firmu) ili "p" javni pozivi (grantovi, pozivi za prijedloge, sredstva za NVO i firme). Ako pitanje traži grantove ili javne pozive, stavi "p".
 - any: ključne riječi, dovoljna je bilo koja (riječi odvojene zarezom). Piši korijene riječi na bosanskom i engleskom, po potrebi i na francuskom i njemačkom, jer su objave na više jezika (npr. "energetsk, energy, energie").
 - none: riječi koje objava ne smije sadržavati, isti oblik kao any.
 - src: izvori: ${list(v.src, srcName)}.
@@ -1427,8 +1511,8 @@ Vrati samo JSON objekat, bez ikakvog drugog teksta. Sva polja su neobavezna; nav
 - who: ko može ponuditi: ORG firma, IND pojedinac, OTH i firme i pojedinci ili NVO, UNK nepoznato.
 - bt: vrsta naručioca: ${Object.entries(BT_LABEL).map(([k, x]) => k + ' ' + x).join('; ')}.
 - cpv: CPV grupe (dvije cifre): ${list(v.cpv, x => CPV[x] || '')}.${v.ai.size ? `
-- ai: AI ocjena relevantnosti: "3" jako, "2" moguće, "1" slabo, "0" nije za nas.
-- aiw: samo za javne pozive, za koga je poziv po AI procjeni: "C" CETEOR (firma), "R" REIC (NVO).` : ''}
+- ai: AI ocjena relevantnosti: "3" jako, "2" moguće, "1" slabo, "0" nije za nas.` : ''}${v.aiw.size ? `
+- aiw: za koga je poziv po AI procjeni: "C" CETEOR (firma), "R" REIC (NVO).` : ''}
 - min: najmanje dana do roka za ponude (broj).
 - fresh: objavljeno u zadnjih N dana: "1", "3", "7", "14" ili "30".
 - vmin, vmax: procijenjena vrijednost u KM (broj).
@@ -1443,7 +1527,7 @@ function askFilters(obj, v) {
   for (const k of ['any', 'none']) if (typeof obj[k] === 'string') f[k] = obj[k].slice(0, 300);
   for (const k of ['min', 'vmin', 'vmax']) if (obj[k] !== null && obj[k] !== '' && isFinite(obj[k]) && +obj[k] >= 0) f[k] = String(Math.round(+obj[k]));
   if (['1', '3', '7', '14', '30'].includes(String(obj.fresh))) f.fresh = String(obj.fresh);
-  if (obj.ty === 't' || obj.ty === 'p') f.ty = obj.ty;
+  // f.ty ostaje prikaz u kojem je korisnik pitao (tenderi ili javni pozivi), šta god AI vratio.
   if (['due', 'pub', 'buyer'].includes(obj.sort) || (obj.sort === 'ai' && S.hasAi)) f.sort = obj.sort;
   return f;
 }
@@ -1855,7 +1939,7 @@ function openLockDialog() {
   $('lockTools').hidden = !S.unlocked; $('encMsg').textContent = '';
   const rf = S.status.refs;
   $('refInfo').textContent = rf && rf.on ? `Na GitHubu je postavljena lista od ${fmtN(rf.n || 0)} referenci; slične reference ima ${fmtN(rf.matched || 0)} ${plural(rf.matched || 0, 'objava', 'objave', 'objava')}. Za novu listu šifriraj novi fajl i njime zamijeni stari na GitHubu.`
-    : rf && rf.error ? rf.error : 'Lista referenci još nije postavljena na GitHub.';
+    : rf && rf.error ? rf.error.charAt(0).toUpperCase() + rf.error.slice(1) : 'Lista referenci još nije postavljena na GitHub.';
   $('dlgLock').showModal();
   if (!S.unlocked) $('lockPass').focus();
 }
@@ -1940,7 +2024,7 @@ function init(data, status) {
   else if (saved !== null) { F = fromHash(saved); S.profile = store.get('tr.profile') || ''; }
   else { F = fromHash(STARTERS[0].h); S.profile = STARTERS[0].name; }
   if (!S.profiles.some(p => p.name === S.profile)) S.profile = '';
-  syncInputs(); wire(); wireLock(); wireShare(); wirePick(); wireAsk(); wireAwards(); renderStatus(); apply();
+  syncInputs(); wire(); wireLock(); wireShare(); wirePick(); wireAsk(); wireAwards(); wireCal(); renderStatus(); apply();
 }
 
 async function load() {
