@@ -28,8 +28,8 @@ DEFAULTS = {
 }
 PROMPT = """Ti si menadžer ponuda u CETEOR-u, konsultantskoj i inženjerskoj firmi iz BiH (okoliš, energija, klima).
 Za svaki tender iz poruke izaberi do {top} eksperta iz roster-a ispod koji bi bili najbolji u timu za taj posao:
-po stručnim oblastima, vrsti posla, fakultetu, iskustvu, profilu iz CV-ja, znanju engleskog za međunarodne
-naručioce i mjestu rada. Biraj samo one koji stvarno odgovaraju; ako nijedan ne odgovara, vrati praznu listu.
+po stručnim oblastima, vrsti posla, fakultetu, iskustvu, profilu iz CV-ja, znanju engleskog i drugih jezika
+za međunarodne naručioce i mjestu rada. Biraj samo one koji stvarno odgovaraju; ako nijedan ne odgovara, vrati praznu listu.
 Uz podjednaku stručnost prednost imaju uposlenici, pa vanjski saradnici s kojima je saradnja lagana.
 Razlog napiši na bosanskom, najviše 12 riječi, bez navodnika.
 Odgovori isključivo JSON listom, bez ikakvog drugog teksta, s jednim elementom za svaki tender:
@@ -74,6 +74,7 @@ def digest(roster: list, stable: bool = False) -> str:
                  "posao: " + ", ".join(x.get("tip") or []) if x.get("tip") else "",
                  "fakultet: " + ", ".join(x.get("fakultet") or []) if x.get("fakultet") else "",
                  f"engleski {x['engleski']}" if x.get("engleski") else "",
+                 "ostali jezici: " + ", ".join(x.get("jezici") or []) if x.get("jezici") else "",
                  ", ".join(p for p in (x.get("grad"), x.get("drzava")) if p),
                  x.get("kategorija") or "", f"saradnja {x['saradnja'].lower()}" if x.get("saradnja") else "",
                  "profil: " + str(x.get("profil"))[:400] if x.get("profil") else "",

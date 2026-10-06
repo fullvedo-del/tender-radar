@@ -135,7 +135,9 @@ body.view-roster .app{display:none}
 .roster[hidden]{display:none}
 .rv-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
 .rv-head h2{font-size:1.15rem;margin:0 4px 0 6px}
-.rv-bar{display:grid;grid-template-columns:minmax(220px,1fr) repeat(5,auto);gap:8px;margin-bottom:10px}
+.rv-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.rv-bar>input[type=search]{flex:1 1 240px;width:auto;min-width:0}
+.rv-bar>.ms,.rv-bar>select{flex:0 1 auto}
 .rv-bar select{width:auto;max-width:240px}
 .rv-tbl{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 12px;max-height:calc(100vh - 210px)}
 .rv-tbl th{position:sticky;top:0;background:var(--panel);z-index:1}
@@ -158,6 +160,14 @@ body.view-roster .app{display:none}
 .ms-pop{position:absolute;z-index:6;top:calc(100% + 4px);left:0;width:max-content;min-width:100%;max-width:min(360px,92vw);max-height:340px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.14)}
 .ms-pop .ms-clear{align-self:flex-start;margin:2px 4px 4px}
 #exModul{display:inline-flex;flex-wrap:wrap;gap:4px 14px}
+/* polja u obrascima eksperta: ista širina i visina, natpis iznad polja */
+#dlgExpert .field input:not([type=checkbox]):not([type=radio]):not([type=file]),#dlgExpert .field select,#dlgGh .field input,#dlgCvAi .field input{display:block;width:100%;height:36px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 10px}
+#dlgExpert .field input[readonly]{background:var(--chip)}
+.ex-sub .lim{margin-left:8px;font-size:.78rem}
+.ex-sub .lim.over{color:var(--danger);font-weight:600}
+.ex-checks input:disabled+span{opacity:.45}
+.dropzone{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:center;border:2px dashed var(--line);border-radius:12px;padding:14px;margin-top:10px;color:var(--muted);text-align:center}
+#dlgCvAi.drop-over .dropzone,#dlgExpert.drop-over #exCvBox{border-color:var(--accent);background:var(--accent-soft)}
 #dlgExpert{width:min(860px,96vw)}
 #dlgExpert fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;padding:6px 12px 10px}
 #dlgExpert legend{font-weight:600;font-size:.9rem;padding:0 6px}
@@ -179,7 +189,7 @@ button.danger-link{border:0;background:none;color:var(--danger);padding:0;text-d
 #dlgGh{width:min(640px,94vw)}
 .gh-steps{padding-left:20px}
 .gh-steps li{margin:2px 0}
-@media (max-width:700px){.roster{padding:10px}.rv-bar{grid-template-columns:1fr 1fr}.rv-bar input{grid-column:1/-1}}
+@media (max-width:700px){.roster{padding:10px}.rv-bar>input[type=search]{flex-basis:100%}.rv-bar>.ms,.rv-bar>select{flex:1 1 calc(50% - 4px);max-width:none}}
 #lockTools{border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
 #dlgCal{width:min(720px,94vw)}
 #calList{margin-top:10px;max-height:50vh}
@@ -401,6 +411,7 @@ td a{color:var(--accent)}
     <input type="search" id="rvQ" placeholder="Traži ime, grad, oblast, fakultet, napomenu…" autocomplete="off" aria-label="Traži eksperta">
     <details class="ms" id="rvObl"></details>
     <details class="ms" id="rvTip"></details>
+    <details class="ms" id="rvFak"></details>
     <details class="ms" id="rvDrz"></details>
     <select id="rvKat" aria-label="Kategorija"><option value="">uposlenici i vanjski</option><option>Uposlenik</option><option>Vanjski saradnik</option></select>
     <select id="rvEng" aria-label="Engleski"><option value="">engleski: svi</option><option value="2">engleski B1/B2 ili bolje</option><option value="3">engleski C1/C2</option></select>
@@ -457,22 +468,25 @@ td a{color:var(--accent)}
     </fieldset>
     <fieldset><legend>Kvalifikacije</legend>
       <div class="ex-grid">
-        <label class="field">Stručna sprema<select name="sprema"><option value=""></option><option>Dipl.</option><option>MSc.</option><option>PhD.</option></select></label>
+        <label class="field">Stručna sprema<select name="sprema"><option value=""></option><option>Bez fakulteta</option><option>Dipl.</option><option>MSc.</option><option>PhD.</option></select></label>
         <label class="field">Fakultet (više odvoji zarezom)<input name="fakultet" list="exFakList" placeholder="npr. Mašinstvo, Ekonomija"></label>
         <label class="field">Početak karijere<input name="pocetak" type="date"></label>
         <label class="field">Iskustvo (godina)<input name="iskustvo" readonly tabindex="-1"></label>
         <label class="field">Engleski<select name="engleski"><option value=""></option><option>A1/A2</option><option>B1/B2</option><option>C1/C2</option></select></label>
+        <label class="field">Ostali jezici (više odvoji zarezom)<input name="jezici" list="exJezList" placeholder="npr. Njemački, Francuski"></label>
       </div>
       <datalist id="exFakList"></datalist>
+      <datalist id="exJezList"></datalist>
       <div class="ex-row"><label class="inline"><input type="checkbox" name="ispit"><span>Stručni ispit</span></label><span class="muted" style="margin-left:14px">Modul:</span><span id="exModul"></span></div>
-      <p class="ex-sub">Stručne oblasti</p><div class="ex-checks" id="exOblasti"></div>
-      <p class="ex-sub">Tip posla</p><div class="ex-checks" id="exTip"></div>
+      <p class="ex-sub">Stručne oblasti<span class="lim" id="exOblN"></span></p><div class="ex-checks" id="exOblasti"></div>
+      <p class="ex-sub">Tip posla<span class="lim" id="exTipN"></span></p><div class="ex-checks" id="exTip"></div>
       <label class="field">Napomene<textarea name="napomene" rows="3"></textarea></label>
       <label class="field">Profil iz CV-ja (AI, može se mijenjati)<textarea name="profil" rows="3"></textarea></label>
     </fieldset>
-    <fieldset><legend>CV</legend>
+    <fieldset id="exCvBox"><legend>CV</legend>
       <div id="exCv"></div>
       <label class="filebtn" style="display:inline-block;margin-top:6px">Dodaj CV (PDF, Word)<input type="file" id="exCvAdd" accept=".pdf,.doc,.docx,application/pdf" multiple hidden></label>
+      <span class="hint">ili prevuci fajl u ovaj prozor</span>
     </fieldset>
     <p class="hint" id="exSys"></p>
   </form>
@@ -482,11 +496,11 @@ td a{color:var(--accent)}
 
 <dialog id="dlgCvAi">
   <h2>Uvoz iz CV-ja (AI)</h2>
-  <p class="hint">Izaberi jedan ili više CV-jeva (PDF ili Word .docx), jedne ili više osoba. AI popuni podatke koje nađe u CV-ju, a ti ih pregledaš prije spremanja. Postojeći ekspert (isti e-mail ili ime i prezime) se samo dopunjava: popunjena polja se ne mijenjaju. Jedan CV košta oko 2 centa (isti API ključ kao Pitaj AI).</p>
+  <p class="hint">Prevuci ili izaberi jedan ili više CV-jeva (PDF ili Word .docx), jedne ili više osoba. AI popuni podatke koje nađe u CV-ju, a ti ih pregledaš prije spremanja. Postojeći ekspert (isti e-mail ili ime i prezime) se samo dopunjava: popunjena polja se ne mijenjaju. Jedan CV košta oko 2 centa (isti API ključ kao Pitaj AI).</p>
   <div id="cvKeyBox" hidden>
     <label class="field">Anthropic API ključ<input id="cvKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…"></label>
   </div>
-  <label class="filebtn" style="display:inline-block;margin-top:8px">Izaberi CV-jeve<input type="file" id="cvFiles" accept=".pdf,.docx,application/pdf" multiple hidden></label>
+  <div class="dropzone" id="cvDrop"><span>Prevuci CV-jeve ovdje</span><span>ili</span><label class="filebtn">Izaberi CV-jeve<input type="file" id="cvFiles" accept=".pdf,.docx,application/pdf" multiple hidden></label></div>
   <div id="cvList" class="tbl"></div>
   <p class="hint" id="cvMsg" role="status"></p>
   <menu><button id="btnCvClose">Zatvori</button><button id="btnCvSave" class="primary" disabled>Sačuvaj označene</button></menu>
@@ -2043,7 +2057,7 @@ const RF = {
 };
 // Države članice UN-a (ISO kodovi) i Kosovo; nazivi na bosanskom iz preglednika.
 const UN = 'AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI CV KH CM CA CF TD CL CN CO KM CG CR CI HR CU CY CZ KP CD DK DJ DM DO EC EG SV GQ ER EE SZ ET FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HU IS IN ID IR IQ IE IL IT JM JP JO KZ KE KI KW KG LA LV LB LS LR LY LI LT LU MG MW MY MV ML MT MH MR MU MX FM MC MN ME MA MZ MM NA NR NP NL NZ NI NE NG MK NO OM PK PW PA PG PY PE PH PL PT QA KR MD RO RU RW KN LC VC WS SM ST SA SN RS SC SL SG SK SI SB SO ZA SS ES LK SD SR SE CH SY TJ TH TL TG TO TT TN TR TM TV UG UA AE GB TZ US UY UZ VU VE VN YE ZM ZW XK'.split(' ');
-const R = {list: null, sha: null, loading: null, f: {q: '', obl: [], tip: [], drz: [], kat: '', eng: '', sort: 'ekspert', dir: 1}, edit: null, cvAdd: [], cvDel: [], ai: []};
+const R = {list: null, sha: null, loading: null, f: {q: '', obl: [], tip: [], fak: [], drz: [], kat: '', eng: '', sort: 'ekspert', dir: 1}, edit: null, cvAdd: [], cvDel: [], ai: []};
 
 function ghConf() {
   let c = {};
@@ -2157,7 +2171,7 @@ const exYears = x => {
 };
 const exName = x => [x.ime, x.prezime].filter(Boolean).join(' ') || `Ekspert ${x.id}`;
 const exKey = x => norm(exName(x));
-const exText = x => norm([x.ime, x.prezime, x.grad, x.drzava && countryName(x.drzava), x.email, x.tel, x.kategorija, x.poznanstvo, x.sprema, ...(x.fakultet || []), ...(x.oblasti || []), ...(x.tip || []), ...(x.modul || []), x.napomene, x.profil].filter(Boolean).join(' '));
+const exText = x => norm([x.ime, x.prezime, x.grad, x.drzava && countryName(x.drzava), x.email, x.tel, x.kategorija, x.poznanstvo, x.sprema, ...(x.fakultet || []), ...(x.jezici || []), ...(x.oblasti || []), ...(x.tip || []), ...(x.modul || []), x.napomene, x.profil].filter(Boolean).join(' '));
 const fmtYears = n => n === null ? '' : String(n).replace('.', ',');
 
 /* pogled */
@@ -2197,6 +2211,7 @@ function hideRoster() {
 const MS_DEF = [
   {id: 'rvObl', key: 'obl', field: 'oblasti', label: 'Stručne oblasti', base: () => RF.oblasti},
   {id: 'rvTip', key: 'tip', field: 'tip', label: 'Tip posla', base: () => RF.tip},
+  {id: 'rvFak', key: 'fak', field: 'fakultet', label: 'Fakultet', base: () => []},
   {id: 'rvDrz', key: 'drz', field: 'drzava', label: 'Država', base: () => []},
 ];
 const exVals = (x, field) => { const v = x[field]; return Array.isArray(v) ? v : v ? [v] : []; };
@@ -2205,15 +2220,20 @@ function msSummary(d) {
   el.querySelector('summary').innerHTML = esc(d.label) + (n ? `<span class="badge">${n}</span>` : '');
   el.classList.toggle('on', n > 0);
 }
+// Vrijednosti koje se razlikuju samo po velikim slovima ili kvačicama (npr. „Mašinstvo“ i „masinstvo“) su jedna opcija.
 function renderRosterFilters() {
   for (const d of MS_DEF) {
-    const count = new Map();
-    for (const x of R.list || []) for (const v of new Set(exVals(x, d.field))) count.set(v, (count.get(v) || 0) + 1);
-    const vals = [...new Set([...d.base(), ...count.keys(), ...R.f[d.key]])];
-    const label = v => d.field === 'drzava' ? countryName(v) : v;
-    if (d.field === 'drzava') vals.sort((a, b) => a === 'BA' ? -1 : b === 'BA' ? 1 : label(a).localeCompare(label(b), 'bs'));
+    const count = new Map(), first = new Map();
+    for (const x of R.list || []) for (const v of exVals(x, d.field)) first.has(norm(v)) || first.set(norm(v), String(v));
+    for (const x of R.list || []) for (const k of new Set(exVals(x, d.field).map(norm))) count.set(k, (count.get(k) || 0) + 1);
+    for (const v of [...d.base(), ...R.f[d.key]]) first.has(norm(v)) || first.set(norm(v), v);
+    const show = v => d.field === 'drzava' ? countryName(v) : v;
+    const keys = [...first.keys()];
+    if (d.field === 'drzava') keys.sort((a, b) => first.get(a) === 'BA' ? -1 : first.get(b) === 'BA' ? 1 : show(first.get(a)).localeCompare(show(first.get(b)), 'bs'));
+    else if (!d.base().length) keys.sort((a, b) => first.get(a).localeCompare(first.get(b), 'bs'));
+    const sel = new Set(R.f[d.key].map(norm));
     $(d.id).innerHTML = `<summary></summary><div class="ms-pop checks"><button type="button" class="link ms-clear">Poništi izbor</button>`
-      + (vals.length ? vals.map(v => `<label><input type="checkbox" value="${esc(v)}"${R.f[d.key].includes(v) ? ' checked' : ''}><span>${esc(label(v))}</span><i>${count.get(v) || 0}</i></label>`).join('') : '<p class="fnone">Nema podataka.</p>')
+      + (keys.length ? keys.map(k => `<label><input type="checkbox" value="${esc(first.get(k))}"${sel.has(k) ? ' checked' : ''}><span>${esc(show(first.get(k)))}</span><i>${count.get(k) || 0}</i></label>`).join('') : '<p class="fnone">Nema podataka.</p>')
       + '</div>';
     msSummary(d);
   }
@@ -2221,15 +2241,15 @@ function renderRosterFilters() {
 // Poredak po koloni tabele; prazne vrijednosti su uvijek na kraju.
 const RV_COLS = [
   {k: 'ekspert', t: 'Ekspert'}, {k: 'kategorija', t: 'Kategorija'}, {k: 'oblasti', t: 'Stručne oblasti'}, {k: 'tip', t: 'Tip posla'},
-  {k: 'sprema', t: 'Sprema'}, {k: 'iskustvo', t: 'Iskustvo', num: true}, {k: 'engleski', t: 'Engleski'},
+  {k: 'sprema', t: 'Sprema'}, {k: 'fakultet', t: 'Fakultet'}, {k: 'iskustvo', t: 'Iskustvo', num: true}, {k: 'engleski', t: 'Engleski'},
   {k: 'dnevnica', t: 'Dnevnica', num: true}, {k: 'saradnja', t: 'Saradnja'}, {k: 'cv', t: 'CV', num: true},
 ];
-const RV_RANK = {sprema: {'Dipl.': 1, 'MSc.': 2, 'PhD.': 3}, engleski: RF.eng, saradnja: {'Lagana': 1, 'Srednje': 2, 'Teška': 3}};
+const RV_RANK = {sprema: {'Bez fakulteta': 0, 'Dipl.': 1, 'MSc.': 2, 'PhD.': 3}, engleski: RF.eng, saradnja: {'Lagana': 1, 'Srednje': 2, 'Teška': 3}};
 function rvSortVal(x, k) {
   if (k === 'iskustvo') return exYears(x);
   if (k === 'dnevnica') return x.dnevnica ?? null;
   if (k === 'cv') return (x.cv || []).length || null;
-  if (k === 'oblasti' || k === 'tip') return (x[k] || []).length ? x[k].join(', ') : null;
+  if (k === 'oblasti' || k === 'tip' || k === 'fakultet') return (x[k] || []).length ? x[k].join(', ') : null;
   const v = x[k];
   if (v === null || v === undefined || v === '') return null;
   return RV_RANK[k] ? RV_RANK[k][v] ?? 9 : String(v);
@@ -2246,8 +2266,9 @@ function rosterCmp(k, dir) {
 }
 function rosterView() {
   const f = R.f, qs = norm(f.q).split(' ').filter(Boolean);
-  const any = (sel, vals) => !sel.length || sel.some(v => vals.includes(v));
-  const out = (R.list || []).filter(x => any(f.obl, exVals(x, 'oblasti')) && any(f.tip, exVals(x, 'tip')) && any(f.drz, exVals(x, 'drzava'))
+  const any = (sel, vals) => !sel.length || vals.some(v => sel.includes(norm(v)));
+  const [obl, tip, fak, drz] = ['obl', 'tip', 'fak', 'drz'].map(k => f[k].map(norm));
+  const out = (R.list || []).filter(x => any(obl, exVals(x, 'oblasti')) && any(tip, exVals(x, 'tip')) && any(fak, exVals(x, 'fakultet')) && any(drz, exVals(x, 'drzava'))
     && (!f.kat || x.kategorija === f.kat) && (!f.eng || (RF.eng[x.engleski] || 0) >= +f.eng) && (!qs.length || qs.every(t => exText(x).includes(t))));
   return out.sort(rosterCmp(f.sort, f.dir));
 }
@@ -2265,12 +2286,22 @@ function renderRoster() {
       const place = [x.grad, x.drzava && (C_SHORT[x.drzava] || countryName(x.drzava))].filter(Boolean).join(', ');
       const obl = (x.oblasti || []).slice(0, 4).map(o => `<span class="chip">${esc(o)}</span>`).join('') + ((x.oblasti || []).length > 4 ? `<span class="muted"> +${x.oblasti.length - 4}</span>` : '');
       return `<tr><td><button class="link" data-exid="${esc(x.id)}">${esc(exName(x))}</button>${place ? `<span class="sub">${esc(place)}</span>` : ''}${x.napomene ? `<span class="sub">${esc(cut(x.napomene.replace(/\s+/g, ' '), 70))}</span>` : ''}</td>`
-        + `<td>${esc(x.kategorija || '')}${x.prethodna ? '<span class="sub">ranija saradnja</span>' : ''}</td><td>${obl}</td><td>${esc((x.tip || []).join(', '))}</td><td>${esc(x.sprema || '')}</td>`
+        + `<td>${esc(x.kategorija || '')}${x.prethodna ? '<span class="sub">ranija saradnja</span>' : ''}</td><td>${obl}</td><td>${esc((x.tip || []).join(', '))}</td><td>${esc(x.sprema || '')}</td><td>${esc((x.fakultet || []).join(', '))}</td>`
         + `<td class="num">${fmtYears(exYears(x))}</td><td>${esc(x.engleski || '')}</td><td class="num">${x.dnevnica != null ? fmtN(x.dnevnica) : ''}</td><td>${esc(x.saradnja || '')}</td><td class="num">${(x.cv || []).length || ''}</td></tr>`;
     }).join('') + '</tbody></table>';
 }
 
 /* obrazac */
+// Najviše stručnih oblasti i tipova posla po ekspertu.
+const EX_MAX = {oblasti: 7, tip: 4};
+const JEZICI = ['Njemački', 'Francuski', 'Italijanski', 'Španski', 'Ruski', 'Turski', 'Arapski'];
+function limitChecks(name) {
+  const box = $(name === 'oblasti' ? 'exOblasti' : 'exTip'), max = EX_MAX[name], lim = $(name === 'oblasti' ? 'exOblN' : 'exTipN');
+  const all = [...box.querySelectorAll('input[type=checkbox]')], n = all.filter(i => i.checked).length;
+  for (const i of all) i.disabled = !i.checked && n >= max;
+  lim.textContent = n > max ? `označeno ${n}, najviše ${max}: odznači ${n - max}` : `${n} od najviše ${max}`;
+  lim.classList.toggle('over', n > max);
+}
 function checkGroup(name, values, chosen) {
   const vals = [...new Set([...values, ...(chosen || [])])];
   return vals.map(v => `<label class="inline"><input type="checkbox" name="${name}" value="${esc(v)}"${(chosen || []).includes(v) ? ' checked' : ''}><span>${esc(v)}</span></label>`).join('');
@@ -2292,6 +2323,7 @@ function openExpert(x, preset, after) {
   form.elements.drzava.value = e.drzava || '';
   form.elements.dnevnica.value = e.dnevnica ?? '';
   form.elements.fakultet.value = (e.fakultet || []).join(', ');
+  form.elements.jezici.value = (e.jezici || []).join(', ');
   for (const k of ['sprema', 'engleski']) {
     const sel = form.elements[k];
     if (e[k] && ![...sel.options].some(o => o.value === e[k])) sel.add(new Option(e[k], e[k]));
@@ -2304,6 +2336,8 @@ function openExpert(x, preset, after) {
   $('exTip').innerHTML = checkGroup('tip', RF.tip, e.tip);
   $('exModul').innerHTML = checkGroup('modul', RF.modul, e.modul);
   $('exFakList').innerHTML = [...new Set((R.list || []).flatMap(y => y.fakultet || []))].sort((a, b) => a.localeCompare(b, 'bs')).map(v => `<option value="${esc(v)}">`).join('');
+  $('exJezList').innerHTML = [...new Set([...JEZICI, ...(R.list || []).flatMap(y => y.jezici || [])])].sort((a, b) => a.localeCompare(b, 'bs')).map(v => `<option value="${esc(v)}">`).join('');
+  limitChecks('oblasti'); limitChecks('tip');
   updateYears();
   renderCvList();
   $('exSys').textContent = isNew ? 'ID i datum unosa dodijele se pri spremanju.' : `ID ${e.id}${e.created ? ' · uneseno ' + fmtStamp(e.created) : ''}${e.unio ? ' · unio ' + e.unio : ''}${e.updated ? ' · izmijenjeno ' + fmtStamp(e.updated) : ''}`;
@@ -2328,7 +2362,8 @@ function readExpertForm() {
   for (const k of ['ime', 'prezime', 'grad', 'email', 'tel', 'poznanstvo', 'drzava', 'sprema', 'engleski', 'pocetak']) e[k] = v(k);
   e.napomene = form.elements.napomene.value.trim(); e.profil = form.elements.profil.value.trim();
   const d = v('dnevnica'); e.dnevnica = d === '' ? null : Math.max(0, Math.round(+d));
-  e.fakultet = [...new Set(v('fakultet').split(/[,;]+/).map(t => t.trim()).filter(Boolean))];
+  const listOf = k => [...new Set(v(k).split(/[,;]+/).map(t => t.trim()).filter(Boolean))];
+  e.fakultet = listOf('fakultet'); e.jezici = listOf('jezici');
   for (const k of ['spol', 'kategorija', 'saradnja']) e[k] = (form.querySelector(`input[name="${k}"]:checked`) || {}).value || '';
   e.prethodna = form.elements.prethodna.checked; e.ispit = form.elements.ispit.checked;
   for (const k of ['oblasti', 'tip', 'modul']) e[k] = [...form.querySelectorAll(`input[name="${k}"]:checked`)].map(x => x.value);
@@ -2353,6 +2388,9 @@ async function uploadCvs(files) {
 async function saveExpert() {
   const e = readExpertForm();
   if (!e.ime || !e.prezime) { $('exMsg').textContent = 'Ime i prezime su obavezni.'; return; }
+  for (const [k, what] of [['oblasti', 'stručnih oblasti'], ['tip', 'tipova posla']]) {
+    if ((e[k] || []).length > EX_MAX[k]) { $('exMsg').textContent = `Najviše ${EX_MAX[k]} ${what} (sada je označeno ${e[k].length}).`; return; }
+  }
   if (!ghConf().token) { $('exMsg').textContent = 'Za spremanje treba GitHub token: otvori „Postavke spremanja“.'; return; }
   $('btnExSave').disabled = true; $('exMsg').textContent = 'Spremam…';
   try {
@@ -2429,10 +2467,10 @@ async function importRoster(file) {
   } catch (err) { setRvMsg('Uvoz nije uspio. ' + err.message); }
 }
 function exportRosterCsv() {
-  const head = ['ID', 'Ime', 'Prezime', 'Grad', 'Država', 'E-mail', 'Tel.', 'Spol', 'Kategorija', 'Prethodna saradnja', 'Poznanstvo', 'Saradnja', 'Dnevnica (KM/dan)', 'Stručna sprema', 'Fakultet', 'Stručne oblasti', 'Tip', 'Početak karijere', 'Iskustvo (godina)', 'Engleski', 'Stručni ispit', 'Modul', 'Napomene', 'Profil iz CV-ja', 'CV fajlovi', 'Uneseno'];
+  const head = ['ID', 'Ime', 'Prezime', 'Grad', 'Država', 'E-mail', 'Tel.', 'Spol', 'Kategorija', 'Prethodna saradnja', 'Poznanstvo', 'Saradnja', 'Dnevnica (KM/dan)', 'Stručna sprema', 'Fakultet', 'Stručne oblasti', 'Tip', 'Početak karijere', 'Iskustvo (godina)', 'Engleski', 'Ostali jezici', 'Stručni ispit', 'Modul', 'Napomene', 'Profil iz CV-ja', 'CV fajlovi', 'Uneseno'];
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"', yes = b => b ? 'DA' : 'NE';
   const lines = [head.map(q).join(';')];
-  for (const x of rosterView()) lines.push([x.id, x.ime, x.prezime, x.grad, x.drzava ? countryName(x.drzava) : '', x.email, x.tel, x.spol, x.kategorija, yes(x.prethodna), x.poznanstvo, x.saradnja, x.dnevnica ?? '', x.sprema, (x.fakultet || []).join(', '), (x.oblasti || []).join(', '), (x.tip || []).join(', '), x.pocetak, fmtYears(exYears(x)), x.engleski, yes(x.ispit), (x.modul || []).join(', '), x.napomene, x.profil, (x.cv || []).map(c => c.n).join(', '), x.created].map(q).join(';'));
+  for (const x of rosterView()) lines.push([x.id, x.ime, x.prezime, x.grad, x.drzava ? countryName(x.drzava) : '', x.email, x.tel, x.spol, x.kategorija, yes(x.prethodna), x.poznanstvo, x.saradnja, x.dnevnica ?? '', x.sprema, (x.fakultet || []).join(', '), (x.oblasti || []).join(', '), (x.tip || []).join(', '), x.pocetak, fmtYears(exYears(x)), x.engleski, (x.jezici || []).join(', '), yes(x.ispit), (x.modul || []).join(', '), x.napomene, x.profil, (x.cv || []).map(c => c.n).join(', '), x.created].map(q).join(';'));
   download(`eksperti-${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}.csv`, String.fromCharCode(0xFEFF) + lines.join('\r\n'), 'text/csv;charset=utf-8');
 }
 
@@ -2473,12 +2511,14 @@ Polja (null ako podatka nema; ništa ne izmišljaj):
 - drzava: ISO kod države (npr. BA, RS, HR)
 - email, tel: kako piše u CV-ju
 - spol: "M" ili "Ž", samo ako je jasno iz CV-ja ili imena
-- sprema: najviši završeni nivo: "Dipl.", "MSc." ili "PhD."
+- kategorija: "Uposlenik" ako CV pokazuje da osoba sada radi u CETEOR-u (posao bez datuma završetka ili do danas), inače "Vanjski saradnik"
+- sprema: najviši završeni nivo: "Bez fakulteta", "Dipl.", "MSc." ili "PhD."
 - fakultet: lista oblasti studija, kratko na bosanskom (npr. ["Mašinstvo"] ili ["Ekonomija", "Pravo"])
-- oblasti: lista, samo od ovih: ${RF.oblasti.join('; ')}
-- tip: lista vrsta posla koje radi, samo od ovih: ${RF.tip.join('; ')}
+- oblasti: lista, najviše ${EX_MAX.oblasti}, najvažnije prve, samo od ovih: ${RF.oblasti.join('; ')}
+- tip: lista vrsta posla koje radi, najviše ${EX_MAX.tip}, najvažnije prve, samo od ovih: ${RF.tip.join('; ')}
 - pocetak: početak profesionalne karijere (prvi posao poslije studija) kao "YYYY-MM-DD"; ako je poznat samo mjesec ili godina, uzmi prvi dan
 - engleski: "A1/A2", "B1/B2" ili "C1/C2"
+- jezici: ostali strani jezici osim engleskog, nazivi na bosanskom (npr. ["Njemački", "Francuski"])
 - ispit: true ako CV navodi položen stručni ispit, inače null
 - profil: 2 do 3 rečenice na bosanskom: ključna stručnost, vrste projekata, naručioci i države
 - napomene: do 10 riječi o posebnim vještinama (npr. "GIS Expert", "LEAP modeliranje")
@@ -2513,8 +2553,10 @@ function cleanAiPerson(x) {
   const str = v => typeof v === 'string' ? v.trim().slice(0, 400) : '';
   const list = (v, allowed) => Array.isArray(v) ? [...new Set(v.map(t => String(t).trim()).filter(t => t && (!allowed || allowed.includes(t))))] : [];
   const out = {ime: str(x.ime), prezime: str(x.prezime), grad: str(x.grad), drzava: /^[A-Z]{2}$/.test(str(x.drzava).toUpperCase()) ? str(x.drzava).toUpperCase() : '',
-    email: str(x.email), tel: str(x.tel), spol: ['M', 'Ž'].includes(x.spol) ? x.spol : '', sprema: ['Dipl.', 'MSc.', 'PhD.'].includes(x.sprema) ? x.sprema : '',
-    fakultet: list(x.fakultet).slice(0, 4), oblasti: list(x.oblasti, RF.oblasti), tip: list(x.tip, RF.tip),
+    email: str(x.email), tel: str(x.tel), spol: ['M', 'Ž'].includes(x.spol) ? x.spol : '', sprema: ['Bez fakulteta', 'Dipl.', 'MSc.', 'PhD.'].includes(x.sprema) ? x.sprema : '',
+    kategorija: ['Uposlenik', 'Vanjski saradnik'].includes(x.kategorija) ? x.kategorija : '',
+    fakultet: list(x.fakultet).slice(0, 4), oblasti: list(x.oblasti, RF.oblasti).slice(0, EX_MAX.oblasti), tip: list(x.tip, RF.tip).slice(0, EX_MAX.tip),
+    jezici: list(x.jezici).filter(t => !/^engl/i.test(t)).slice(0, 8),
     pocetak: /^\d{4}-\d\d-\d\d$/.test(str(x.pocetak)) ? str(x.pocetak) : /^\d{4}-\d\d$/.test(str(x.pocetak)) ? str(x.pocetak) + '-01' : /^\d{4}$/.test(str(x.pocetak)) ? str(x.pocetak) + '-01-01' : '',
     engleski: RF.eng[x.engleski] ? x.engleski : '', ispit: x.ispit === true, profil: str(x.profil), napomene: str(x.napomene).slice(0, 120)};
   return out;
@@ -2527,8 +2569,10 @@ function findExpert(p) {
 // Dopuna postojećeg: popunjavaju se samo prazna polja, liste se spajaju, CV se dodaje.
 function mergeExpert(base, p) {
   const e = structuredClone(base);
-  for (const k of ['grad', 'drzava', 'email', 'tel', 'spol', 'sprema', 'pocetak', 'engleski', 'profil', 'napomene']) if (!e[k] && p[k]) e[k] = p[k];
-  for (const k of ['fakultet', 'oblasti', 'tip']) e[k] = [...new Set([...(e[k] || []), ...(p[k] || [])])];
+  for (const k of ['grad', 'drzava', 'email', 'tel', 'spol', 'kategorija', 'sprema', 'pocetak', 'engleski', 'profil', 'napomene']) if (!e[k] && p[k]) e[k] = p[k];
+  for (const k of ['fakultet', 'jezici']) e[k] = [...new Set([...(e[k] || []), ...(p[k] || [])])];
+  // oblasti i tip: postojeće ostaju, nove se dodaju dok ima mjesta
+  for (const k of ['oblasti', 'tip']) { e[k] = [...(e[k] || [])]; for (const v of p[k] || []) if (!e[k].includes(v) && e[k].length < EX_MAX[k]) e[k].push(v); }
   if (!e.ispit && p.ispit) e.ispit = true;
   return e;
 }
@@ -2561,7 +2605,7 @@ function renderCvAi() {
     if (it.status || !it.people.length) rows.push(`<tr><td colspan="4"><b>${esc(it.file.name)}</b><span class="sub">${esc(it.status || 'nema osoba')}</span></td></tr>`);
     it.people.forEach((q, j) => {
       const p = q.p, years = exYears(p);
-      const facts = [p.sprema, years !== null ? fmtYears(years) + ' god. iskustva' : '', p.engleski ? 'engleski ' + p.engleski : '', [p.grad, p.drzava && countryName(p.drzava)].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+      const facts = [p.kategorija, p.sprema, years !== null ? fmtYears(years) + ' god. iskustva' : '', p.engleski ? 'engleski ' + p.engleski : '', (p.jezici || []).join(', '), [p.grad, p.drzava && countryName(p.drzava)].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
       rows.push(`<tr><td><label class="inline"><input type="checkbox" data-cvuse="${i}:${j}"${q.use && !q.done ? ' checked' : ''}${q.done ? ' disabled' : ''}><span><b>${esc(exName(p))}</b></span></label><span class="sub">${esc(it.file.name)}</span></td>`
         + `<td>${esc(facts)}<span class="sub">${esc([...(p.oblasti || []), ...(p.tip || [])].join(', '))}</span>${p.profil ? `<span class="sub">${esc(cut(p.profil, 220))}</span>` : ''}</td>`
         + `<td>${q.done ? '<b>sačuvano ✓</b>' : q.match ? `dopuna: ${esc(exName(q.match))} (ID ${esc(q.match.id)})` : 'novi ekspert'}</td>`
@@ -2596,6 +2640,19 @@ async function saveCvAi() {
     renderCvAi(); renderRosterFilters(); renderRoster();
     $('cvMsg').textContent = `Sačuvano: ${todo.length}.`;
   } catch (err) { $('cvMsg').textContent = 'Nije sačuvano. ' + err.message; renderCvAi(); }
+}
+
+// Prevlačenje fajlova mišem u prozor (drag and drop).
+function dropFiles(el, onFiles) {
+  const hasFiles = e => [...(e.dataTransfer && e.dataTransfer.types || [])].includes('Files');
+  el.addEventListener('dragover', e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; el.classList.add('drop-over'); });
+  el.addEventListener('dragleave', e => { if (!el.contains(e.relatedTarget)) el.classList.remove('drop-over'); });
+  el.addEventListener('drop', e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); el.classList.remove('drop-over');
+    const files = [...e.dataTransfer.files];
+    if (files.length) onFiles(files);
+  });
 }
 
 /* postavke spremanja */
@@ -2675,6 +2732,17 @@ function wireRoster() {
   $('btnExDel').addEventListener('click', deleteExpert);
   $('exForm').elements.pocetak.addEventListener('input', updateYears);
   $('exCvAdd').addEventListener('change', e => { R.cvAdd.push(...e.target.files); e.target.value = ''; renderCvList(); });
+  for (const name of ['oblasti', 'tip']) $(name === 'oblasti' ? 'exOblasti' : 'exTip').addEventListener('change', () => limitChecks(name));
+  dropFiles($('dlgExpert'), files => {
+    const ok = files.filter(f => /\.(pdf|docx?)$/i.test(f.name));
+    $('exMsg').textContent = ok.length < files.length ? 'Dodaju se samo PDF i Word fajlovi.' : '';
+    if (ok.length) { R.cvAdd.push(...ok); renderCvList(); }
+  });
+  dropFiles($('dlgCvAi'), files => {
+    const ok = files.filter(f => /\.(pdf|docx)$/i.test(f.name));
+    $('cvMsg').textContent = ok.length < files.length ? 'AI čita samo PDF i Word .docx; ostali fajlovi su preskočeni.' : '';
+    if (ok.length) runCvAi(ok);
+  });
   $('exCv').addEventListener('click', e => {
     const t = e.target.closest('button');
     if (!t) return;
