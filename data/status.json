@@ -1,7 +1,7 @@
 {
- "generated": "2026-10-05T21:03:41Z",
- "total": 4556,
- "total_private": 78,
+ "generated": "2026-10-06T05:00:14Z",
+ "total": 4387,
+ "total_private": 76,
  "fx": {
   "BAM": 1.0,
   "EUR": 1.95583,
@@ -44,18 +44,53 @@
  "ai": {
   "model": "claude-haiku-4-5-20251001",
   "on": true,
-  "new": 53,
-  "error": null,
-  "okvir": "a629708346",
-  "scored": 4634,
+  "new": 2349,
+  "error": "isteklo vrijeme za ocjenjivanje; ostatak se ocjenjuje pri sljedećem osvježavanju",
+  "okvir": "ab21a94570",
+  "scored": 4463,
   "pending": 0,
+  "stale": 2114,
   "tr": {
    "on": true,
-   "new": 12,
+   "new": 9,
    "error": null,
-   "done": 509,
+   "done": 490,
+   "pending": 0
+  },
+  "sm": {
+   "on": true,
+   "new": 138,
+   "error": null,
+   "done": 138,
    "pending": 0
   }
+ },
+ "awards": {
+  "on": true,
+  "count": 2129,
+  "done": true,
+  "sources": {
+   "TED": {
+    "ok": true,
+    "count": 490,
+    "done": true,
+    "error": null,
+    "last_ok": "2026-10-06T05:17:55Z",
+    "sec": 7.0
+   },
+   "EJN": {
+    "ok": true,
+    "count": 1639,
+    "done": true,
+    "error": null,
+    "last_ok": "2026-10-06T05:17:55Z",
+    "sec": 70.2
+   }
+  }
+ },
+ "refs": {
+  "on": false,
+  "error": "lista referenci nije postavljena na GitHub (fajl reference.enc.json)."
  },
  "sources": [
   {
@@ -65,9 +100,9 @@
    "scope": "Sva obavještenja o nabavci (robe, usluge, radovi) kojima rok za ponude ili zahtjeve za učešće nije istekao; bez poništenih postupaka, direktnih sporazuma i javnih poziva za usluge iz Aneksa II.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 94.5,
-   "count": 2015,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 101.0,
+   "count": 1882,
    "merged": 0
   },
   {
@@ -77,9 +112,9 @@
    "scope": "Otvoreni pozivi (rok nije istekao): svi tipovi ugovora za Zapadni Balkan (mjesto izvršenja ili naručilac) te usluge koje naručuju EU institucije, međunarodne organizacije i razvojne agencije i banke (GIZ, KfW, EIB, AFD, Enabel i dr.).",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 10.0,
-   "count": 762,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 12.8,
+   "count": 771,
    "merged": 0
   },
   {
@@ -89,10 +124,10 @@
    "scope": "Otvoreni i najavljeni pozivi za tendere institucija i agencija EU; bez poziva za grantove.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 12.9,
-   "count": 203,
-   "merged": 117
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 16.5,
+   "count": 198,
+   "merged": 119
   },
   {
    "key": "WB",
@@ -101,9 +136,9 @@
    "scope": "Svi otvoreni pozivi za ponude, izraze interesa i pretkvalifikaciju iz projekata Svjetske banke u cijelom svijetu; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 3.9,
-   "count": 618,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 8.3,
+   "count": 586,
    "merged": 0
   },
   {
@@ -113,9 +148,9 @@
    "scope": "Sve otvorene objave s UNDP-ovog portala nabavki (UNDP, UNCDF, UNV) u cijelom svijetu, iz zvaničnog RSS feeda.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 1.3,
-   "count": 538,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 2.1,
+   "count": 534,
    "merged": 0
   },
   {
@@ -125,8 +160,8 @@
    "scope": "Otvoreni pozivi s liste objava na ebrd.com za projekte koje finansira EBRD (tenderi, prijedlozi, izražavanje interesa, pretkvalifikacija); bez portala ECEPP i vlastitih korporativnih i konsultantskih nabavki EBRD-a.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 1.9,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 3.4,
    "count": 2,
    "merged": 2
   },
@@ -137,9 +172,9 @@
    "scope": "Svi otvoreni pozivi sa RCC stranice „Open Calls“ (konsultantske usluge, individualni konsultanti, druge nabavke); oglasi za zapošljavanje nisu uključeni. Poziv koji ne imenuje državu vodi se pod svih šest zemalja Zapadnog Balkana.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
+   "last_ok": "2026-10-06T05:00:14Z",
    "sec": 0.7,
-   "count": 1,
+   "count": 0,
    "merged": 0
   },
   {
@@ -149,8 +184,8 @@
    "scope": "Otvorene nabavke Expertise France (sjedište i sve njegove jedinice) objavljene na francuskoj državnoj platformi PLACE; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 49.1,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 51.9,
    "count": 36,
    "merged": 3
   },
@@ -161,8 +196,8 @@
    "scope": "Tenderi (zadávací řízení) i otvoreni pozivi za dotacije (dotační výzvy) Češke razvojne agencije, u svim zemljama u kojima radi.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 41.4,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 42.9,
    "count": 3,
    "merged": 0
   },
@@ -173,9 +208,9 @@
    "scope": "Otvoreni i najavljeni pozivi za grantove EU programa (Horizon Europe, LIFE, Erasmus+ i drugi); ko smije aplicirati piše u samom pozivu.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 8.2,
-   "count": 491,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 9.5,
+   "count": 492,
    "merged": 0
   },
   {
@@ -185,8 +220,8 @@
    "scope": "Otvoreni javni pozivi i konkursi za dodjelu sredstava, revolving fond i posebne kategorije otpada; bez natječaja za prijem radnika.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 41.2,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 29.8,
    "count": 0,
    "merged": 0
   },
@@ -197,8 +232,8 @@
    "scope": "Javni konkursi Fonda za tekuću godinu (zaštita životne sredine, energetska efikasnost); rok se čita iz teksta konkursa kad je naveden.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 3.4,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 4.3,
    "count": 2,
    "merged": 0
   },
@@ -209,8 +244,8 @@
    "scope": "Otvoreni javni pozivi i konkursi ministarstva (poticaji i grantovi); bez rang-lista, rezultata i odluka.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 4.3,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 4.6,
    "count": 0,
    "merged": 0
   },
@@ -221,9 +256,9 @@
    "scope": "Pozivi za projekte, grantove i programe koje Mreža mira prenosi za organizacije iz BiH; bez info sesija i rezultata.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 82.0,
-   "count": 7,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 21.6,
+   "count": 5,
    "merged": 0
   },
   {
@@ -234,10 +269,10 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 11.0,
-   "count": 81,
-   "merged": 19
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 12.5,
+   "count": 83,
+   "merged": 22
   },
   {
    "key": "OSCE",
@@ -247,9 +282,9 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-05T21:03:41Z",
-   "sec": 5.4,
-   "count": 16,
+   "last_ok": "2026-10-06T05:00:14Z",
+   "sec": 3.5,
+   "count": 15,
    "merged": 0
   },
   {
