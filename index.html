@@ -176,9 +176,11 @@ body.view-refs .app{display:none}
 #dlgRef fieldset{border:1px solid var(--line);border-radius:10px;margin:0 0 10px;padding:6px 12px 10px}
 #dlgRef legend{font-weight:600;font-size:.9rem;padding:0 6px}
 #dlgRef .field input:not([type=checkbox]):not([type=radio]):not([type=file]),#dlgRef .field select,#dlgRefAi .field input{display:block;width:100%;height:36px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 10px}
-.rf-row4{grid-template-columns:minmax(0,.8fr) minmax(0,.6fr) minmax(0,1fr) minmax(0,1.6fr)}
-.rf-row2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
-@media (max-width:640px){.rf-row4{grid-template-columns:1fr 1fr}.rf-row2{grid-template-columns:1fr}}
+/* redovi u obrascu reference; #dlgRef da ih ne pregaze opća pravila .ex-row4 i .ex-row3 ispod */
+#dlgRef .rf-row4{grid-template-columns:minmax(0,15fr) minmax(0,12fr) minmax(0,23fr) minmax(0,50fr)}
+#dlgRef .rf-row2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+#dlgRef .rf-row2e{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:640px){#dlgRef .rf-row4{grid-template-columns:1fr 1fr}#dlgRef .rf-row4>:last-child{grid-column:1/-1}#dlgRef .rf-row2,#dlgRef .rf-row2e{grid-template-columns:1fr}}
 #dlgRefAi{width:min(720px,96vw)}
 #dlgRef.drop-over #rfDocBox,#dlgRefAi.drop-over .dropzone{border-color:var(--accent);background:var(--accent-soft)}
 #exModul{display:inline-flex;flex-wrap:wrap;gap:4px 14px}
@@ -589,10 +591,13 @@ td a{color:var(--accent)}
         <label class="field">ID projekta<input name="i"></label>
         <label class="field">Godina<input name="y" type="number" min="1950" max="2100" step="1"></label>
         <label class="field">Sektor<select name="s"></select></label>
-        <label class="field">Detaljna vrsta usluge<input name="vd" list="rfVdList"></label>
+        <label class="field">Detaljna vrsta usluge<select name="v"></select></label>
       </div>
-      <label class="field">Država (više odvoji zarezom)<input name="z" list="rfZList" placeholder="npr. Bosna i Hercegovina, Srbija"></label>
-      <datalist id="rfVdList"></datalist><datalist id="rfZList"></datalist>
+      <div class="ex-row3 rf-row2e">
+        <label class="field">Stručna oblast<select name="o"></select></label>
+        <label class="field">Država (više odvoji zarezom)<input name="z" list="rfZList" placeholder="npr. Bosna i Hercegovina, Srbija"></label>
+      </div>
+      <datalist id="rfZList"></datalist>
     </fieldset>
     <fieldset><legend>Naručilac</legend>
       <div class="ex-row3 rf-row2">
@@ -600,10 +605,6 @@ td a{color:var(--accent)}
         <label class="field">Vrsta naručioca<select name="vk"></select></label>
       </div>
       <datalist id="rfKList"></datalist>
-    </fieldset>
-    <fieldset><legend>Oblast i vrsta posla</legend>
-      <p class="ex-sub">Stručna oblast<span class="lim" id="rfON"></span></p><div class="ex-checks" id="rfO"></div>
-      <p class="ex-sub">Vrsta posla<span class="lim" id="rfVN"></span></p><div class="ex-checks" id="rfV"></div>
     </fieldset>
     <fieldset><legend>Opis</legend>
       <label class="field">Opis (BS)<textarea name="d" rows="4"></textarea></label>
@@ -2260,9 +2261,10 @@ const GH_API = 'https://api.github.com';
 const ROSTER_FILE = 'experts.enc.json';
 const CV_MAX = 15 * 1024 * 1024;
 const RF = {
-  // abecedno, „Ostalo“ na kraju; iste liste koriste eksperti i reference
-  oblasti: ['Biodiverzitet', 'Buka', 'Cirkularna ekonomija', 'Ekonomija / Biznis', 'Energijska efikasnost', 'ESG | EE krediti', 'Građanska energija', 'ISO Standardi', 'Klimatske promjene', 'Niskokarbonski razvoj', 'Obnovljivi izvori energije', 'Sistem daljinskih grijanja', 'Upravljanje hemikalijama', 'Upravljanje otpadom', 'Upravljanje vodama', 'Urbana mobilnost', 'Zaštita na radu', 'Zaštita okoliša općenito', 'Zrak', 'Ostalo'],
-  tip: ['Due diligence', 'Energijski audit / Certifikati', 'Mjerenja', 'Modeliranje i mapiranje (GIS)', 'Nadzor', 'Okolinska dozvola', 'Organizacija događaja', 'Planovi upravljanja / Akcioni planovi', 'Policy', 'Predavanje', 'Procjena uticaja (SUO / ESIA)', 'Proračun / Projektovanje', 'Studija izvodljivosti', 'Studije / Elaborati', 'Upravljanje projektima', 'Ostalo'],
+  // Izvorna podjela iz CETEOR-ove liste referenci, nazivi tačno kao tamo; abecedno, „Ostalo“ na kraju.
+  // Iste liste koriste reference (stručna oblast, detaljna vrsta usluge) i eksperti (stručne oblasti, tip posla).
+  oblasti: ['Biodiverzitet', 'Bloower door test', 'Buka', 'Cirkularna ekonomija', 'Ekonomija/Biznis', 'Emisije u zrak / kvalitet zraka', 'Energijska efikasnost', 'ESG, EE krediti i sl', 'Građanska energija', 'ISO Standardi', 'Klimatske promjene', 'Kvalitet zraka', 'Niskokarbonski razvoj', 'Obnovljivi izvori energije', 'Sistemi daljinskih grijanja', 'Upravljanje hemikalijama', 'Upravljanje otpadom', 'Upravljanje rizicima', 'Upravljanje tlom', 'Upravljanje vodama', 'Urbana mobilnost', 'Zaštita na radu', 'Zaštita okoliša općenito', 'Ostalo'],
+  tip: ['Akcioni plan', 'DEA - industrija', 'DEA - javna rasvjeta', 'DEA - ostalo', 'DEA - zgradarstvo', 'Due Dilligence', 'Elaborat - energija', 'Elaborat - okoliš', 'Energetski certifikat', 'ESAP, SEP, LAP i sl', 'Isporuka robe', 'Izdavačka djelatnost', 'Izrada baze podataka, web stranica, software-a i sl.', 'Izvještaj', 'Konferencija', 'Mjerenje', 'Modeliranje i mapiranje', 'Nadzor', 'Plan aktivnosti', 'Plan upravljanja otpadom', 'Predavanje', 'Procjena uticaja na okoliš i društvo', 'Projekti po osnovu grant sredstava - domaća', 'Projekti po osnovu grant sredstava - međunarodna', 'Projektovanje', 'Seminar/Radionica (u sopstvenoj organizaciji)', 'Seminar/Radionica (za potrebe drugog)', 'Strategija', 'Strategija / Strateški plan', 'Strateška podrška', 'Strateška procjena', 'Stručna analiza / mišljenje / podrška', 'Stručni nalaz', 'Studija', 'Studija izvodljivosti', 'Studija uticaja na okoliš', 'Tehnoekonomska analiza', 'Zahtjev za okolinsku dozvolu', 'Zakonodavna podrška (izrada akata i sl.)', 'Ostalo_neklasifikovano'],
   modul: ['M1', 'M2', 'M3'],
   eng: {'A1/A2': 1, 'B1/B2': 2, 'C1/C2': 3},
 };
@@ -2425,7 +2427,7 @@ async function openRosterTab(openId) {
   if (!R.list) { $('rvTable').innerHTML = '<p class="empty">Učitavam roster…</p>'; setRvMsg(''); }
   try {
     await loadRoster();
-    setRvMsg(ghConf().token ? '' : 'Pregled radi bez tokena, a za spremanje izmjena otvori „Postavke spremanja“ i postavi GitHub token.');
+    rosterNotice();
   } catch (e) {
     $('rvTable').innerHTML = '';
     setRvMsg(e.message + ' ');
@@ -2463,9 +2465,12 @@ function msOptions(d) {
     }
   }
   for (const v of [...(d.base ? d.base() : []), ...d.mod.f[d.key]]) if (!first.has(norm(v))) first.set(norm(v), v);
-  const show = d.show || (v => v), keys = [...first.keys()];
+  const show = d.show || (v => v), keys = [...first.keys()], abc = (a, b) => String(show(first.get(a))).localeCompare(String(show(first.get(b))), 'bs');
   if (d.order) keys.sort((a, b) => d.order(first.get(a), first.get(b), show));
-  else if (!(d.base && d.base().length)) keys.sort((a, b) => String(show(first.get(a))).localeCompare(String(show(first.get(b))), 'bs'));
+  else if (d.base && d.base().length) {  // redoslijed kao u listi (abecedno, „Ostalo“ na kraju); vrijednosti kojih nema na listi idu iza
+    const pos = new Map(d.base().map((v, i) => [norm(v), i])), at = k => pos.has(k) ? pos.get(k) : 1e6;
+    keys.sort((a, b) => at(a) - at(b) || abc(a, b));
+  } else keys.sort(abc);
   return keys.map(k => ({k, v: first.get(k), label: show(first.get(k)), n: count.get(k) || 0}));
 }
 function renderMs(d) {
@@ -2738,7 +2743,7 @@ async function importRoster(file) {
       return added;
     }, 'Eksperti: uvoz');
     renderRosterFilters(); renderRoster();
-    setRvMsg(`Uvezeno: ${n}. Eksperti s istim imenom i prezimenom koji već postoje su preskočeni.`, true);
+    rosterNotice(`Uvezeno: ${n}. Eksperti s istim imenom i prezimenom koji već postoje su preskočeni.`);
   } catch (err) { setRvMsg('Uvoz nije uspio. ' + err.message); }
 }
 function exportRosterCsv() {
@@ -2790,7 +2795,7 @@ Polja (null ako podatka nema; ništa ne izmišljaj):
 - sprema: najviši završeni nivo: "Bez fakulteta", "Dipl.", "MSc." ili "PhD."
 - fakultet: lista oblasti studija, kratko na bosanskom (npr. ["Mašinstvo"] ili ["Ekonomija", "Pravo"])
 - oblasti: lista, najviše ${EX_MAX.oblasti}, najvažnije prve, samo od ovih: ${RF.oblasti.join('; ')}
-- tip: lista vrsta posla koje radi, najviše ${EX_MAX.tip}, najvažnije prve, samo od ovih: ${RF.tip.join('; ')}
+- tip: lista vrsta usluga koje radi, najviše ${EX_MAX.tip}, najvažnije prve, samo od ovih (naziv prepiši tačno): ${RF.tip.join('; ')}
 - pocetak: početak profesionalne karijere (prvi posao poslije studija) kao "YYYY-MM-DD"; ako je poznat samo mjesec ili godina, uzmi prvi dan
 - engleski: "A1/A2", "B1/B2" ili "C1/C2"
 - maternji: maternji jezik, naziv na bosanskom (npr. "Bosanski")
@@ -2858,6 +2863,71 @@ function mergeExpert(base, p) {
   for (const k of ['oblasti', 'tip']) { e[k] = [...(e[k] || [])]; for (const v of p[k] || []) if (!e[k].includes(v) && e[k].length < EX_MAX[k]) e[k].push(v); }
   if (!e.ispit && p.ispit) e.ispit = true;
   return e;
+}
+
+/* Prelazak eksperata na izvornu podjelu (jednom): AI predloži stručne oblasti i tip posla iz novih lista,
+   a korisnik poslije ispravi greške. Eksperta kojeg AI ne vrati prevodi pravilo (BACK_O, BACK_V). */
+const exOld = x => (x.oblasti || []).some(v => !RF.oblasti.includes(v)) || (x.tip || []).some(v => !RF.tip.includes(v));
+function exMapRule(x) {
+  const map = (vals, back, allowed, max) => [...new Set((vals || []).map(v => allowed.includes(v) ? v : back[v]).filter(v => v && allowed.includes(v)))].slice(0, max);
+  return {oblasti: map(x.oblasti, BACK_O, RF.oblasti, EX_MAX.oblasti), tip: map(x.tip, BACK_V, RF.tip, EX_MAX.tip)};
+}
+function exMapPrompt() {
+  return `Roster eksperata konsultantske firme CETEOR (okoliš, energija, klima) prelazi na novu podjelu stručnih oblasti i vrsta usluga.
+Za svakog eksperta izaberi najvjerovatnije vrijednosti iz novih lista, na osnovu dosadašnjih oblasti i tipova posla, fakulteta, spreme, profila i napomena. To je najbolje pogađanje; korisnik će poslije ispraviti greške.
+- oblasti: najviše ${EX_MAX.oblasti}, najvažnije prve, samo od ovih (naziv prepiši tačno): ${RF.oblasti.join('; ')}
+- tip: najviše ${EX_MAX.tip}, najvažnije prve, samo od ovih (naziv prepiši tačno): ${RF.tip.join('; ')}
+Smjernice za stare nazive: Zrak je Emisije u zrak / kvalitet zraka; ESG | EE krediti je ESG, EE krediti i sl; Ekonomija / Biznis je Ekonomija/Biznis; Sistem daljinskih grijanja je Sistemi daljinskih grijanja. Studije / Elaborati: Studija, Elaborat - energija ili Elaborat - okoliš, po oblasti. Proračun / Projektovanje: Projektovanje ili Tehnoekonomska analiza. Policy: Strateška podrška, Strategija, Strateška procjena ili Zakonodavna podrška (izrada akata i sl.). Predavanje: Predavanje ili Seminar/Radionica (za potrebe drugog). Energijski audit / Certifikati: DEA - zgradarstvo, DEA - industrija ili Energetski certifikat. Procjena uticaja (SUO / ESIA): Studija uticaja na okoliš ili Procjena uticaja na okoliš i društvo. Mjerenja: Mjerenje. Upravljanje projektima: Projekti po osnovu grant sredstava - međunarodna ili domaća. Organizacija događaja: Konferencija ili Seminar/Radionica (u sopstvenoj organizaciji). Okolinska dozvola: Zahtjev za okolinsku dozvolu. Planovi upravljanja / Akcioni planovi: Akcioni plan, Plan upravljanja otpadom ili Plan aktivnosti. Modeliranje i mapiranje (GIS): Modeliranje i mapiranje. Due diligence: Due Dilligence. Ostalo kod tipa posla: Ostalo_neklasifikovano.
+Vrati isključivo JSON listu, jedan element za svakog eksperta, bez ikakvog drugog teksta: [{"id": 3, "oblasti": ["Energijska efikasnost"], "tip": ["DEA - zgradarstvo", "Studija"]}]`;
+}
+async function runExMap() {
+  if (!ghConf().token) { rosterNotice('Za prelazak na novu podjelu treba GitHub token: otvori „Postavke spremanja“.'); return; }
+  const key = store.get('tr.aikey');
+  if (!key) { rosterNotice('Treba Anthropic API ključ: upiši ga jednom u „Uvezi iz CV-ja (AI)“, pa klikni ponovo.'); return; }
+  try { await loadRoster(true); } catch (e) { rosterNotice(e.message); return; }
+  const todo = (R.list || []).filter(exOld);
+  if (!todo.length) { renderRosterFilters(); renderRoster(); rosterNotice(); return; }
+  setRvMsg(`AI prevodi na novu podjelu: ${fmtN(todo.length)} ${plural(todo.length, 'ekspert', 'eksperta', 'eksperata')}…`, true);
+  const got = new Map();
+  const pick = (v, allowed, max) => Array.isArray(v) ? [...new Set(v.map(t => String(t).trim()).filter(t => allowed.includes(t)))].slice(0, max) : [];
+  try {
+    for (let k = 0; k < todo.length; k += 30) {
+      // bez imena i kontakata: AI-ju treba samo stručni dio
+      const chunk = todo.slice(k, k + 30).map(x => ({id: x.id, oblasti: x.oblasti || [], tip: x.tip || [], fakultet: x.fakultet || [], sprema: x.sprema || '', profil: cut(String(x.profil || ''), 400), napomene: cut(String(x.napomene || ''), 150)}));
+      const out = await aiAsk([{type: 'text', text: JSON.stringify(chunk)}], exMapPrompt(), key, 150 * chunk.length + 300);
+      const m = out.match(/\[[\s\S]*\]/);
+      let arr = [];
+      try { arr = m ? JSON.parse(m[0]) : []; } catch (e) { arr = []; }
+      for (const y of Array.isArray(arr) ? arr : []) if (y && y.id != null) got.set(String(y.id), {oblasti: pick(y.oblasti, RF.oblasti, EX_MAX.oblasti), tip: pick(y.tip, RF.tip, EX_MAX.tip)});
+    }
+  } catch (e) { rosterNotice('AI prevod nije uspio. ' + e.message); return; }
+  const stamp = new Date().toISOString().slice(0, 19);
+  let nAi = 0, nRule = 0;
+  try {
+    await commitRoster(list => {
+      nAi = 0; nRule = 0;
+      for (const x of list) {
+        if (!exOld(x)) continue;
+        const g = got.get(String(x.id)), rule = exMapRule(x), ai = g && (g.oblasti.length || g.tip.length);
+        // ako ni AI ni pravilo ne daju ništa, stare vrijednosti ostaju (ispravljaju se ručno)
+        x.oblasti = ai && g.oblasti.length ? g.oblasti : rule.oblasti.length ? rule.oblasti : x.oblasti || [];
+        x.tip = ai && g.tip.length ? g.tip : rule.tip.length ? rule.tip : x.tip || [];
+        x.updated = stamp;
+        if (ai) nAi++; else nRule++;
+      }
+    }, 'Eksperti: nova podjela');
+  } catch (e) { rosterNotice('Spremanje nije uspjelo. ' + e.message); return; }
+  renderRosterFilters(); renderRoster();
+  setRvMsg(`Prevedeno na novu podjelu: ${fmtN(nAi + nRule)}${nRule ? ` (od toga ${fmtN(nRule)} po pravilu, jer ih AI nije vratio)` : ''}. AI je pogađao: provjeri stručne oblasti i tip posla i ispravi u obrascu.`, true);
+}
+// Poruka iznad tabele eksperata: stara podjela (s dugmetom za prevod) ili rad bez tokena; lead je poruka
+// koja ide ispred (npr. zašto prevod nije pokrenut), a dugme ostaje za novi pokušaj.
+function rosterNotice(lead) {
+  const n = (R.list || []).filter(exOld).length;
+  if (!n) { setRvMsg(lead || (ghConf().token ? '' : 'Pregled radi bez tokena, a za spremanje izmjena otvori „Postavke spremanja“ i postavi GitHub token.')); return; }
+  setRvMsg(`${lead ? lead + ' ' : ''}${fmtN(n)} ${plural(n, 'ekspert ima', 'eksperta imaju', 'eksperata ima')} stručne oblasti ili tip posla po staroj podjeli. `);
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'link'; b.dataset.exmap = '1'; b.textContent = 'Prevedi na novu podjelu (AI)';
+  $('rvMsg').appendChild(b);
 }
 function openCvAi() {
   R.ai = [];
@@ -2965,6 +3035,7 @@ async function testGh() {
 function wireRoster() {
   $('btnRvNew').addEventListener('click', () => openExpert(null));
   $('btnRvAi').addEventListener('click', openCvAi);
+  $('rvMsg').addEventListener('click', e => { if (e.target.closest('[data-exmap]')) runExMap(); });
   $('btnRvCsv').addEventListener('click', exportRosterCsv);
   $('btnRvGh').addEventListener('click', openGhDialog);
   $('rvImport').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importRoster(f); });
@@ -3041,8 +3112,14 @@ function wireRoster() {
 // nazivi fajlova i opisi izmjena na GitHubu ne sadrže nazive projekata ni naručilaca.
 const REF_SEKTOR = ['Okoliš', 'Energija', 'Edukacija', 'Laboratorija', 'REIC', 'EKO CET', 'Mjeriteljstvo', 'Ostalo'];
 const REF_VK = ['Međunarodna organizacija / donator', 'Državna, entitetska ili kantonalna institucija', 'Općina / grad', 'Javna ustanova', 'Javno preduzeće', 'Banka / finansijska institucija', 'Privatna firma', 'NVO / udruženje', 'Univerzitet / institut', 'Ostalo'];
-const REF_MAX = {o: 3, v: 3};
-const REF_OLD_O = {'Emisije u zrak / kvalitet zraka': 'Zrak', 'Kvalitet zraka': 'Zrak', 'ESG, EE krediti i sl': 'ESG | EE krediti', 'Sistemi daljinskih grijanja': 'Sistem daljinskih grijanja', 'Ekonomija/Biznis': 'Ekonomija / Biznis'};
+// Nazivi iz objedinjene podjele (6.10.) vraćeni na izvornu podjelu: oblasti, pa vrste usluga
+// (uključujući dva naziva koja sam bio ispravio). Za vrstu usluge je to najbolje pogađanje.
+const BACK_O = {'Zrak': 'Emisije u zrak / kvalitet zraka', 'ESG | EE krediti': 'ESG, EE krediti i sl', 'Sistem daljinskih grijanja': 'Sistemi daljinskih grijanja', 'Ekonomija / Biznis': 'Ekonomija/Biznis'};
+const BACK_V = {'Due diligence': 'Due Dilligence', 'Ostalo (neklasifikovano)': 'Ostalo_neklasifikovano', 'Ostalo': 'Ostalo_neklasifikovano',
+  'Energijski audit / Certifikati': 'DEA - zgradarstvo', 'Mjerenja': 'Mjerenje', 'Modeliranje i mapiranje (GIS)': 'Modeliranje i mapiranje', 'Okolinska dozvola': 'Zahtjev za okolinsku dozvolu',
+  'Organizacija događaja': 'Seminar/Radionica (za potrebe drugog)', 'Planovi upravljanja / Akcioni planovi': 'Akcioni plan', 'Policy': 'Strateška podrška',
+  'Procjena uticaja (SUO / ESIA)': 'Studija uticaja na okoliš', 'Proračun / Projektovanje': 'Projektovanje', 'Proracun / Projektovanje': 'Projektovanje', 'Studije / Elaborati': 'Studija',
+  'Upravljanje projektima': 'Projekti po osnovu grant sredstava - međunarodna'};
 const NO_YEAR = '-';
 const REF_CODES = [...UN, 'WB', 'EU'];
 let refCodeMap = null;
@@ -3055,24 +3132,27 @@ function countryCode(t) {
   }
   return refCodeMap.get(norm(String(t || '').replace(/\(regija\)/i, ''))) || null;
 }
-// Zapis iz fajla u radni oblik: liste za oblast, vrstu posla i države; stari oblik liste (bez ID-a)
-// dobije ID po redoslijedu.
+// Zapis iz fajla u radni oblik: liste za oblast, vrstu usluge i države (po jedna oblast i vrsta usluge);
+// stari oblik liste (bez ID-a) dobije ID po redoslijedu. Oblik od 6.10. (objedinjena podjela, izvorna
+// vrsta usluge u polju vd) vraća se na izvornu podjelu.
 function refNorm(x, i) {
   const r = {...x};
   const arr = v => Array.isArray(v) ? v.filter(Boolean).map(String) : v ? [String(v)] : [];
   if (r.id == null) r.id = i + 1;
-  r.o = arr(r.o).map(o => REF_OLD_O[o] || o);
-  r.v = arr(r.v);
+  const vd = typeof r.vd === 'string' ? r.vd.trim() : '';
+  r.o = arr(r.o).map(o => BACK_O[o] || o);
+  r.v = vd ? [BACK_V[vd] || vd] : arr(r.v).map(v => BACK_V[v] || v);
+  delete r.vd;
   if (!Array.isArray(r.z)) r.z = arr(r.z).flatMap(t => t.split(/[,;]+/)).map(countryCode).filter(Boolean);
   r.docs = Array.isArray(r.docs) ? r.docs : [];
   return r;
 }
 const REF = {file: 'reference.enc.json', list: null, sha: null, loading: null, old: false, pending: null,
-  prepare: list => { const raw = list.filter(x => x && typeof x === 'object'); REF.old = raw.some(x => x.id == null); return raw.map(refNorm); },
+  prepare: list => { const raw = list.filter(x => x && typeof x === 'object'); REF.old = raw.some(x => x.id == null || 'vd' in x); return raw.map(refNorm); },
   f: {q: '', o: [], v: [], y: [], z: [], k: [], vk: [], s: [], sort: 'y', dir: -1}, edit: null, docAdd: [], docDel: [], files: []};
 const REF_MS = [
   {id: 'rfFO', key: 'o', field: 'o', label: 'Stručna oblast', base: () => RF.oblasti, mod: REF},
-  {id: 'rfFV', key: 'v', field: 'v', label: 'Vrsta posla', base: () => RF.tip, mod: REF},
+  {id: 'rfFV', key: 'v', field: 'v', label: 'Detaljna vrsta usluge', base: () => RF.tip, mod: REF},
   {id: 'rfFY', key: 'y', field: 'y', label: 'Godina', vals: x => [x.y ? String(x.y) : NO_YEAR], show: v => v === NO_YEAR ? 'bez godine' : v, order: (a, b) => a === NO_YEAR ? 1 : b === NO_YEAR ? -1 : +b - +a, mod: REF},
   {id: 'rfFZ', key: 'z', field: 'z', label: 'Država', show: countryName, order: byCountry, mod: REF},
   {id: 'rfFK', key: 'k', field: 'k', label: 'Naručilac', mod: REF},
@@ -3080,7 +3160,7 @@ const REF_MS = [
   {id: 'rfFS', key: 's', field: 's', label: 'Sektor', base: () => REF_SEKTOR, mod: REF},
 ];
 const REF_TXT = new WeakMap();
-const refText = x => { let t = REF_TXT.get(x); if (t === undefined) { t = norm([x.i, x.s, x.t, x.e, ...(x.o || []), ...(x.v || []), x.vd, x.y, ...(x.z || []).map(countryName), x.k, x.vk, x.d, x.f].filter(Boolean).join(' ')); REF_TXT.set(x, t); } return t; };
+const refText = x => { let t = REF_TXT.get(x); if (t === undefined) { t = norm([x.i, x.s, x.t, x.e, ...(x.o || []), ...(x.v || []), x.y, ...(x.z || []).map(countryName), x.k, x.vk, x.d, x.f].filter(Boolean).join(' ')); REF_TXT.set(x, t); } return t; };
 const refKey = x => norm(x.t) + '|' + (x.y || '');
 
 /* pogled */
@@ -3095,7 +3175,7 @@ async function openRefTab(openId) {
   if (!REF.list) { $('rfTable').innerHTML = '<p class="empty">Učitavam reference…</p>'; setRfMsg(''); }
   try {
     await loadStore(REF);
-    setRfMsg(REF.old ? 'Lista referenci je u starom obliku. Uvezi očišćenu listu: „Uvezi listu“, pa „Zamijeni cijelu listu“.'
+    setRfMsg(REF.old ? 'Lista referenci je u starom obliku. Uvezi listu s izvornom podjelom: „Uvezi listu“, pa „Zamijeni cijelu listu“.'
       : ghConf().token ? '' : 'Pregled radi bez tokena, a za spremanje izmjena otvori „Postavke spremanja“ i postavi GitHub token.');
   } catch (e) {
     $('rfTable').innerHTML = '';
@@ -3125,7 +3205,7 @@ function refView() {
 }
 const REF_COLS = [
   {k: 't', t: 'Referenca'}, {k: 'k', t: 'Naručilac'}, {k: 'z', t: 'Država'}, {k: 'y', t: 'Godina', num: true},
-  {k: 'o', t: 'Stručna oblast'}, {k: 'v', t: 'Vrsta posla'}, {k: 's', t: 'Sektor'}, {k: 'docs', t: 'Dok.', num: true},
+  {k: 'o', t: 'Stručna oblast'}, {k: 'v', t: 'Detaljna vrsta usluge'}, {k: 's', t: 'Sektor'}, {k: 'docs', t: 'Dok.', num: true},
 ];
 function refSortVal(x, k) {
   if (k === 'y') return x.y ? +x.y : null;
@@ -3154,7 +3234,7 @@ function renderRefs() {
     return `<th${c.num ? ' class="num"' : ''}${on ? ` aria-sort="${up ? 'ascending' : 'descending'}"` : ''}><button type="button" class="th-sort${on ? ' on' : ''}" data-rsort="${c.k}" title="Poredaj po koloni ${esc(c.t)} (klik ponovo za obrnuti poredak)">${esc(c.t)}<span class="arr" aria-hidden="true">${on ? (up ? '▲' : '▼') : '↕'}</span></button></th>`;
   }).join('');
   $('rfTable').innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>` + list.map(x => {
-    const sub = [x.i ? 'ID ' + x.i : '', x.vd || ''].filter(Boolean).join(' · ');
+    const sub = x.i ? 'ID ' + x.i : '';
     return `<tr><td class="t"><button class="link" data-refid="${esc(x.id)}">${esc(x.t || '(bez naziva)')}</button>${x.e ? `<span class="sub">${esc(cut(x.e, 140))}</span>` : ''}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</td>`
       + `<td>${esc(x.k || '')}${x.vk ? `<span class="sub">${esc(x.vk)}</span>` : ''}</td><td>${esc((x.z || []).map(c => C_SHORT[c] || countryName(c)).join(', '))}</td>`
       + `<td class="num">${esc(x.y || '')}</td><td>${(x.o || []).map(o => `<span class="chip">${esc(o)}</span>`).join('')}</td><td>${esc((x.v || []).join(', '))}</td>`
@@ -3163,8 +3243,6 @@ function renderRefs() {
 }
 
 /* obrazac */
-const refBoxes = {o: ['rfO', 'rfON'], v: ['rfV', 'rfVN']};
-const limitRef = k => limitBox($(refBoxes[k][0]), $(refBoxes[k][1]), REF_MAX[k]);
 function refCountryList() {
   const codes = [...new Set(REF_CODES)].sort((a, b) => byCountry(a, b, countryName));
   return codes.map(c => `<option value="${esc(c === 'WB' ? 'Zapadni Balkan (regija)' : countryName(c))}">`).join('');
@@ -3182,18 +3260,15 @@ function openRef(x, preset, files) {
   const e = REF.edit, form = $('rfForm');
   form.reset();
   $('rfTitle').textContent = isNew ? 'Nova referenca' : cut(e.t || 'Referenca', 90);
-  for (const k of ['t', 'e', 'i', 'y', 'vd', 'k', 'd', 'f']) form.elements[k].value = e[k] ?? '';
-  for (const [k, vals] of [['s', REF_SEKTOR], ['vk', REF_VK]]) {
-    const sel = form.elements[k];
-    sel.innerHTML = '<option value=""></option>' + [...new Set([...vals, e[k]].filter(Boolean))].map(v => `<option>${esc(v)}</option>`).join('');
-    sel.value = e[k] || '';
+  for (const k of ['t', 'e', 'i', 'y', 'k', 'd', 'f']) form.elements[k].value = e[k] ?? '';
+  // padajući izbori; vrijednost koje nema na listi (npr. iz starog uvoza) ostaje kao dodatna opcija
+  for (const [k, vals] of [['s', REF_SEKTOR], ['vk', REF_VK], ['o', RF.oblasti], ['v', RF.tip]]) {
+    const sel = form.elements[k], cur = Array.isArray(e[k]) ? e[k][0] : e[k];
+    sel.innerHTML = '<option value=""></option>' + [...new Set([...vals, cur].filter(Boolean))].map(v => `<option>${esc(v)}</option>`).join('');
+    sel.value = cur || '';
   }
   form.elements.z.value = (e.z || []).map(c => c === 'WB' ? 'Zapadni Balkan (regija)' : countryName(c)).join(', ');
-  $('rfO').innerHTML = checkGroup('o', RF.oblasti, e.o);
-  $('rfV').innerHTML = checkGroup('v', RF.tip, e.v);
-  limitRef('o'); limitRef('v');
   $('rfKList').innerHTML = [...new Set((REF.list || []).map(y => y.k).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'bs')).map(v => `<option value="${esc(v)}">`).join('');
-  $('rfVdList').innerHTML = [...new Set((REF.list || []).map(y => y.vd).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'bs')).map(v => `<option value="${esc(v)}">`).join('');
   $('rfZList').innerHTML = refCountryList();
   renderRefDocs();
   const dup = refDuplicate(e);
@@ -3213,8 +3288,10 @@ function renderRefDocs() {
 }
 function readRefForm() {
   const form = $('rfForm'), e = structuredClone(REF.edit), v = k => form.elements[k].value.trim();
-  for (const k of ['t', 'e', 'i', 'vd', 'k', 's', 'vk']) e[k] = v(k);
+  for (const k of ['t', 'e', 'i', 'k', 's', 'vk']) e[k] = v(k);
   for (const k of ['d', 'f']) e[k] = form.elements[k].value.trim();
+  for (const k of ['o', 'v']) e[k] = v(k) ? [v(k)] : [];  // po jedna stručna oblast i vrsta usluge
+  delete e.vd;
   const y = v('y');
   e.y = y ? Math.round(+y) : null;
   e.z = []; e._bad = [];
@@ -3222,8 +3299,6 @@ function readRefForm() {
     const c = countryCode(t);
     if (!c) e._bad.push(t); else if (!e.z.includes(c)) e.z.push(c);
   }
-  e.o = [...$('rfO').querySelectorAll('input:checked')].map(i => i.value);
-  e.v = [...$('rfV').querySelectorAll('input:checked')].map(i => i.value);
   return e;
 }
 function cleanRef(e) {
@@ -3235,7 +3310,6 @@ async function saveRef() {
   if (!e.t) { msg.textContent = 'Naziv (BS) je obavezan.'; return; }
   if (e.y !== null && !(e.y >= 1950 && e.y <= 2100)) { msg.textContent = 'Godina nije ispravna.'; return; }
   if (e._bad.length) { msg.textContent = `Nepoznata država: ${e._bad.join(', ')}. Upiši naziv države (npr. Srbija) ili ISO kod (npr. RS).`; return; }
-  for (const [k, what] of [['o', 'stručne oblasti'], ['v', 'vrste posla']]) if (e[k].length > REF_MAX[k]) { msg.textContent = `Najviše ${REF_MAX[k]} ${what}.`; return; }
   if (!ghConf().token) { msg.textContent = 'Za spremanje treba GitHub token: otvori „Postavke spremanja“.'; return; }
   $('btnRfSave').disabled = true; msg.textContent = 'Spremam…';
   try {
@@ -3325,16 +3399,15 @@ async function applyRefImport(mode) {
   } catch (err) { setRfMsg('Uvoz nije uspio. ' + err.message); }
 }
 function exportRefsCsv() {
-  const head = ['ID', 'ID projekta', 'Sektor', 'Naziv (BS)', 'Naziv (EN)', 'Stručna oblast', 'Vrsta posla', 'Detaljna vrsta usluge', 'Godina', 'Država', 'Naručilac', 'Vrsta naručioca', 'Opis (BS)', 'Opis (EN)', 'Dokumenti', 'Uneseno'];
+  const head = ['ID', 'ID projekta', 'Sektor', 'Naziv (BS)', 'Naziv (EN)', 'Stručna oblast', 'Detaljna vrsta usluge', 'Godina', 'Država', 'Naručilac', 'Vrsta naručioca', 'Opis (BS)', 'Opis (EN)', 'Dokumenti', 'Uneseno'];
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
   const lines = [head.map(q).join(';')];
-  for (const x of refView()) lines.push([x.id, x.i, x.s, x.t, x.e, (x.o || []).join(', '), (x.v || []).join(', '), x.vd, x.y, (x.z || []).map(c => c === 'WB' ? 'Zapadni Balkan' : countryName(c)).join(', '), x.k, x.vk, x.d, x.f, (x.docs || []).map(c => c.n).join(', '), x.created].map(q).join(';'));
+  for (const x of refView()) lines.push([x.id, x.i, x.s, x.t, x.e, (x.o || []).join(', '), (x.v || []).join(', '), x.y, (x.z || []).map(c => c === 'WB' ? 'Zapadni Balkan' : countryName(c)).join(', '), x.k, x.vk, x.d, x.f, (x.docs || []).map(c => c.n).join(', '), x.created].map(q).join(';'));
   download(`reference-${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())}.csv`, String.fromCharCode(0xFEFF) + lines.join('\r\n'), 'text/csv;charset=utf-8');
 }
 
 /* AI: nova referenca iz dokumenata jednog projekta */
 function refPrompt() {
-  const vds = [...new Set((REF.list || []).map(y => y.vd).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'bs'));
   return `Iz priloženih dokumenata jednog projekta (projektni zadatak, ugovor, izvještaj i slično) napravi referencu za listu referenci CETEOR-a, konsultantske firme iz Sarajeva (okoliš, energija, klima).
 Vrati isključivo JSON objekat, bez ikakvog drugog teksta. Polja (null ako podatka nema u dokumentima; ništa ne izmišljaj):
 - t: naziv posla na bosanskom, kratko, kao naslov reference
@@ -3343,21 +3416,20 @@ Vrati isključivo JSON objekat, bez ikakvog drugog teksta. Polja (null ako podat
 - vk: vrsta naručioca, tačno jedno od: ${REF_VK.join('; ')}
 - z: lista ISO kodova država u kojima se posao radi (npr. ["BA"]); za cijeli Zapadni Balkan ["WB"]
 - y: godina ugovora ili početka posla, kao broj
-- o: stručne oblasti, lista, najviše ${REF_MAX.o}, najvažnije prve, samo od ovih: ${RF.oblasti.join('; ')}
-- v: vrsta posla, lista, najviše ${REF_MAX.v}, najvažnije prve, samo od ovih: ${RF.tip.join('; ')}
-- vd: detaljna vrsta usluge, jedno od ovih ako odgovara: ${vds.join('; ') || 'nema'}
+- o: stručna oblast, tačno jedna od ovih (naziv prepiši tačno): ${RF.oblasti.join('; ')}
+- v: detaljna vrsta usluge, tačno jedna od ovih (naziv prepiši tačno): ${RF.tip.join('; ')}
 - s: odjel u CETEOR-u, jedno od: ${REF_SEKTOR.join('; ')} (Okoliš za okolišne poslove, Energija za energiju, Edukacija za obuke i seminare)
 - d: opis posla na bosanskom, 3 do 5 rečenica: cilj, glavne aktivnosti i rezultati
 - f: isti opis na engleskom
-Primjer: {"t": "Studija uticaja na okoliš za vjetroelektranu", "e": "Environmental impact study for a wind farm", "k": "…", "vk": "Privatna firma", "z": ["BA"], "y": 2024, "o": ["Zaštita okoliša općenito"], "v": ["Procjena uticaja (SUO / ESIA)"], "s": "Okoliš", "d": "…", "f": "…"}`;
+Primjer: {"t": "Studija uticaja na okoliš za vjetroelektranu", "e": "Environmental impact study for a wind farm", "k": "…", "vk": "Privatna firma", "z": ["BA"], "y": 2024, "o": "Zaštita okoliša općenito", "v": "Studija uticaja na okoliš", "s": "Okoliš", "d": "…", "f": "…"}`;
 }
 function cleanAiRef(x) {
   const str = (v, n) => typeof v === 'string' ? v.trim().slice(0, n) : '';
-  const list = (v, allowed, max) => Array.isArray(v) ? [...new Set(v.map(t => String(t).trim()).filter(t => allowed.includes(t)))].slice(0, max) : [];
+  const one = (v, allowed) => (Array.isArray(v) ? v : [v]).map(t => String(t ?? '').trim()).filter(t => allowed.includes(t)).slice(0, 1);  // prva ispravna vrijednost
   const y = Math.round(+x.y);
   return {t: str(x.t, 300), e: str(x.e, 300), k: str(x.k, 200), vk: REF_VK.includes(x.vk) ? x.vk : '',
     z: Array.isArray(x.z) ? [...new Set(x.z.map(c => countryCode(c)).filter(Boolean))] : [], y: y >= 1950 && y <= 2100 ? y : null,
-    o: list(x.o, RF.oblasti, REF_MAX.o), v: list(x.v, RF.tip, REF_MAX.v), vd: str(x.vd, 120), s: REF_SEKTOR.includes(x.s) ? x.s : '',
+    o: one(x.o, RF.oblasti), v: one(x.v, RF.tip), s: REF_SEKTOR.includes(x.s) ? x.s : '',
     d: str(x.d, 2500), f: str(x.f, 2500)};
 }
 function openRefAi() {
@@ -3434,7 +3506,6 @@ function wireRefs() {
   for (const id of ['btnRfClose', 'btnRfX']) $(id).addEventListener('click', () => $('dlgRef').close());
   $('btnRfSave').addEventListener('click', saveRef);
   $('btnRfDel').addEventListener('click', deleteRef);
-  for (const k of ['o', 'v']) $(refBoxes[k][0]).addEventListener('change', () => limitRef(k));
   $('rfDocAdd').addEventListener('change', e => { REF.docAdd.push(...e.target.files); e.target.value = ''; renderRefDocs(); });
   $('rfDocs').addEventListener('click', e => {
     const t = e.target.closest('button');
