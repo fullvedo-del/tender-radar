@@ -12,7 +12,7 @@
 :root{--tab-bg:#005837;--bg:#f5f6f3;--panel:#fff;--ink:#16201a;--muted:#5c6a62;--line:#dde3dd;--accent:#00633f;--accent-ink:#fff;--accent-soft:#e2f0e9;--warn:#8a5200;--warn-soft:#fcefd2;--danger:#b3261e;--danger-soft:#fce5e2;--chip:#edf0ec;--new:#0b57d0;--today:#e6effd;--today-line:#bcd2f6;--tr:#6a3db8;--tr-soft:#efe8fb}
 @media (prefers-color-scheme:dark){:root{--tab-bg:#0f4a34;--bg:#101411;--panel:#181d1a;--ink:#e6ebe7;--muted:#98a59d;--line:#29312c;--accent:#62c99c;--accent-ink:#0a1a11;--accent-soft:#1c3227;--warn:#f0b452;--warn-soft:#3a2c10;--danger:#ff8a80;--danger-soft:#3e1b18;--chip:#222924;--new:#8ab4f8;--today:#16243b;--today-line:#2c4672;--tr:#c6abff;--tr-soft:#2b2240}}
 *{box-sizing:border-box}
-html{font-size:15px}
+html{font-size:15px;-webkit-text-size-adjust:100%;text-size-adjust:100%}  /* telefon ne smije sam povećavati tekst (npr. kad se otvori lista ispod objave) */
 body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
 button,input,select,textarea{font:inherit;color:inherit}
 h1,h2,h3,p{margin:0}
@@ -80,6 +80,7 @@ main{min-width:0}
 .seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
 .modes button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 #btnToday:not(.on){background:var(--today);border-color:var(--today-line)}
+#euProg{width:auto;max-width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 .modes i{font-style:normal;font-weight:400;opacity:.85;margin-left:6px;font-variant-numeric:tabular-nums}
 .summary b{font-size:1.1rem}
 .alert{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.93rem}
@@ -117,7 +118,7 @@ main{min-width:0}
 .xtra summary:hover{text-decoration:underline}
 .xtra .box{margin:4px 0 2px;background:var(--chip);border-radius:8px;padding:7px 11px;color:var(--ink)}
 .xtra ol.box{padding-left:30px}
-.xtra ol.box li{margin:2px 0}
+.xtra ol.box li{margin:2px 0;overflow-wrap:anywhere}
 .xtra .box .muted{font-size:.8rem}
 .tag{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.04em;border-radius:4px;padding:0 5px;margin-left:6px;vertical-align:1px;background:var(--accent-soft);color:var(--accent)}
 .xtra button.link{font-size:.86rem;text-decoration:none}
@@ -186,7 +187,14 @@ body.view-refs .app{display:none}
 #exModul{display:inline-flex;flex-wrap:wrap;gap:4px 14px}
 .ex-row4{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.7fr) minmax(0,1.05fr) minmax(0,.65fr);gap:4px 12px}
 .ex-row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 12px}
-@media (max-width:640px){.ex-row4{grid-template-columns:1fr 1fr}.ex-row3{grid-template-columns:1fr}}
+#dlgExpert .ex-lang{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,2fr)}  /* engleski 25%, maternji 25%, ostali jezici 50% */
+.date-in{position:relative;display:flex;gap:4px;align-items:stretch}
+.date-in input[name=pocetak]{flex:1 1 auto;min-width:0}
+.date-in .cal{flex:0 0 auto;padding:0 8px;display:flex;align-items:center;color:var(--muted)}
+.date-in .cal:hover{color:var(--ink)}
+#dlgExpert .date-in #exCal{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+#dlgExpert .date-in .cal{height:36px}
+@media (max-width:640px){.ex-row4{grid-template-columns:1fr 1fr}.ex-row3,#dlgExpert .ex-lang{grid-template-columns:1fr}}
 .ex-line{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:8px}
 .ex-line .inline{margin-top:0}
 .ex-inl{display:flex;align-items:center;gap:8px;margin:0;flex:1 1 200px;min-width:0}
@@ -226,6 +234,8 @@ button.danger{background:var(--danger);border-color:var(--danger);color:var(--pa
 #cvList{margin-top:10px;max-height:52vh}
 #cvList td{font-size:.86rem;vertical-align:top}
 #cvList .sub{display:block;color:var(--muted);font-size:.78rem}
+#cvList .cvrep{display:flex;align-items:flex-start;gap:6px;font-size:.8rem;margin-top:3px}
+#cvList .cvrep span{overflow-wrap:anywhere}
 #dlgGh{width:min(640px,94vw)}
 .gh-steps{padding-left:20px}
 .gh-steps li{margin:2px 0}
@@ -415,7 +425,7 @@ td a{color:var(--accent)}
       <button id="btnAsk" title="Opiši običnim jezikom šta tražiš, a AI postavi filtere">Pitaj AI</button>
       <button id="btnFilters" class="only-mobile">Filteri</button>
     </div>
-    <div class="modes"><span class="seg" role="tablist" aria-label="Vrsta objava"><button id="modeT" data-ty="t" role="tab">Tenderi<i></i></button><button id="modeP" data-ty="p" role="tab">Javni pozivi<i></i></button></span><button id="btnToday" title="Objave koje su se pojavile u današnjem osvježavanju" aria-pressed="false">Objavljeno danas<i></i></button></div>
+    <div class="modes"><span class="seg" role="tablist" aria-label="Vrsta objava"><button id="modeT" data-ty="t" role="tab">Tenderi<i></i></button><button id="modeP" data-ty="p" role="tab">Javni pozivi<i></i></button></span><button id="btnToday" title="Objave koje su se pojavile u današnjem osvježavanju" aria-pressed="false">Objavljeno danas<i></i></button><button id="btnEu" title="Samo pozivi programa EU (Horizon Europe, Erasmus+, LIFE, CERV, EU External Action…)" aria-pressed="false" hidden>Samo EU fondovi<i></i></button><select id="euProg" aria-label="Program EU" hidden></select></div>
     <div class="bar">
       <label>Profil <select id="profile"></select></label>
       <button id="btnSave">Sačuvaj profil</button>
@@ -462,8 +472,12 @@ td a{color:var(--accent)}
     <details class="ms" id="rvTip"></details>
     <details class="ms" id="rvFak"></details>
     <details class="ms" id="rvDrz"></details>
+    <details class="ms" id="rvJez"></details>
     <select id="rvKat" aria-label="Kategorija"><option value="">uposlenici i vanjski</option><option>Uposlenik</option><option>Vanjski saradnik</option></select>
     <select id="rvEng" aria-label="Engleski"><option value="">engleski: svi</option><option value="2">engleski B1/B2 ili bolje</option><option value="3">engleski C1/C2</option></select>
+    <select id="rvExp" aria-label="Iskustvo"><option value="">iskustvo: sve</option><option value="5">najmanje 5 godina</option><option value="10">najmanje 10 godina</option><option value="15">najmanje 15 godina</option><option value="20">najmanje 20 godina</option></select>
+    <select id="rvSpr" aria-label="Stručna sprema"><option value="">sprema: sve</option><option value="1">najmanje Dipl.</option><option value="2">najmanje MSc.</option><option value="3">PhD.</option></select>
+    <select id="rvCv" aria-label="CV"><option value="">CV: svi</option><option value="da">ima CV</option><option value="ne">nema CV</option></select>
     <button id="btnRvClear" type="button">Očisti filtere</button>
   </div>
   <div class="tbl rv-tbl" id="rvTable"></div>
@@ -491,6 +505,9 @@ td a{color:var(--accent)}
     <details class="ms" id="rfFK"></details>
     <details class="ms" id="rfFVK"></details>
     <details class="ms" id="rfFS"></details>
+    <select id="rfPer" aria-label="Period"><option value="">period: sve godine</option><option value="3">zadnje 3 godine</option><option value="5">zadnjih 5 godina</option><option value="10">zadnjih 10 godina</option></select>
+    <select id="rfEn" aria-label="Opis na engleskom"><option value="">opis na engleskom: svi</option><option value="da">ima opis na engleskom</option><option value="ne">nema opis na engleskom</option></select>
+    <select id="rfDoc" aria-label="Dokumenti"><option value="">dokumenti: svi</option><option value="da">ima dokumente</option><option value="ne">nema dokumente</option></select>
     <button id="btnRfClear" type="button">Očisti filtere</button>
   </div>
   <div class="tbl rv-tbl rf-tbl" id="rfTable"></div>
@@ -538,10 +555,10 @@ td a{color:var(--accent)}
       <div class="ex-row4">
         <label class="field">Stručna sprema<select name="sprema"><option value=""></option><option>Bez fakulteta</option><option>Dipl.</option><option>MSc.</option><option>PhD.</option></select></label>
         <label class="field">Fakultet (više odvoji zarezom)<input name="fakultet" list="exFakList" placeholder="npr. Mašinstvo, Ekonomija"></label>
-        <label class="field">Početak rada<input name="pocetak" type="date"></label>
+        <label class="field">Početak rada<span class="date-in"><input name="pocetak" placeholder="npr. 01 Aug 2009" autocomplete="off"><button type="button" class="cal" id="btnExCal" title="Izaberi datum u kalendaru" aria-label="Izaberi datum u kalendaru"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M4 0h1v2h6V0h1v2h2.5c.8 0 1.5.7 1.5 1.5v11c0 .8-.7 1.5-1.5 1.5h-13C.7 16 0 15.3 0 14.5v-11C0 2.7.7 2 1.5 2H4V0zM1 6v8.5c0 .3.2.5.5.5h13c.3 0 .5-.2.5-.5V6H1zm2 2h2v2H3V8zm4 0h2v2H7V8zm4 0h2v2h-2V8zm-8 3h2v2H3v-2zm4 0h2v2H7v-2z"/></svg></button><input type="date" id="exCal" tabindex="-1" aria-hidden="true"></span></label>
         <label class="field">Iskustvo (god.)<input name="iskustvo" readonly tabindex="-1"></label>
       </div>
-      <div class="ex-row3">
+      <div class="ex-row3 ex-lang">
         <label class="field">Engleski<select name="engleski"><option value=""></option><option>A1/A2</option><option>B1/B2</option><option>C1/C2</option></select></label>
         <label class="field">Maternji jezik<input name="maternji" list="exMatList" placeholder="npr. Bosanski"></label>
         <label class="field">Ostali jezici (više odvoji zarezom)<input name="jezici" list="exJezList" placeholder="npr. Njemački, Francuski"></label>
@@ -865,7 +882,7 @@ let MARKS = {};  // id objave -> [oznaka 'p' ili 'h', dan postavljanja]
 const markOf = r => (MARKS[r.id] || [])[0] || '';
 
 /* ---------- stanje ---------- */
-const DEF = {ty: 't', q: '', any: '', none: '', syn: true, ai: [], aiw: [], src: [], c: [], reg: [], k: [], fz: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', sort: 'due'};
+const DEF = {ty: 't', q: '', any: '', none: '', syn: true, ai: [], aiw: [], src: [], c: [], reg: [], k: [], fz: [], sec: [], who: [], bt: [], cpv: [], nocpv: false, min: '', fresh: '', nodue: true, vmin: '', vmax: '', nov: true, mark: '', eu: '', prog: '', sort: 'due'};
 const PAGE = 100;
 const S = {data: [], status: null, src: {}, view: [], counts: {}, shown: PAGE, expand: {}, profiles: [], profile: '', prevDay: null, prevGen: null, fx: {BAM: 1, EUR: 1.95583}, priv: null, privKeys: new Set(), unlocked: false, hasAi: false, synNote: '', nTy: {t: 0, p: 0}, byTy: {}, fq: {}, pick: new Set(),
   ver: '', tab: 'objave', open: new Set(), refm: null, exm: null, aw: null, awF: {q: '', c: '', p: 365, tab: 'w', win: '', winLabel: '', buyer: '', buyerLabel: '', shown: 0}};
@@ -1005,6 +1022,7 @@ function compile() {
     (!sinceVisit || (r._f !== null && r._f > S.prevDay)) &&
     (!byValue || (r._v === null ? F.nov : (isNaN(vmin) || r._v >= vmin) && (isNaN(vmax) || r._v <= vmax))) &&
     (F.mark === 'all' || (F.mark ? markOf(r) === F.mark : markOf(r) !== 'h')) &&
+    (F.ty !== 'p' || !F.eu || (!!r._prog && (!F.prog || r._prog === F.prog))) &&
     qm.every(m => m(r)) &&
     (!am.length || am.some(m => m(r))) &&
     !nm.some(m => m(r));
@@ -1201,10 +1219,11 @@ function renderSummary() {
              : `<span>· nema novih od zadnje posjete (${since})</span>`;
     }
   }
+  if (F.ty === 'p' && F.eu) h += `<span>· samo EU fondovi${F.prog ? ': ' + esc(F.prog) : ''}</span><button class="link" data-eu="">prikaži sve pozive</button>`;
   $('summary').innerHTML = h;
   $('synNote').textContent = S.synNote;
   // Dugmad za filtere na tabletu i mobitelu: broj aktivnih filtera i broj objava koje daju.
-  const nf = Object.keys(DEF).filter(k => k !== 'q' && k !== 'sort' && JSON.stringify(F[k]) !== JSON.stringify(DEF[k])).length;
+  const nf = Object.keys(DEF).filter(k => !['q', 'sort', 'eu', 'prog'].includes(k) && JSON.stringify(F[k]) !== JSON.stringify(DEF[k])).length;
   $('btnFilters').textContent = nf ? `Filteri (${nf})` : 'Filteri';
   $('btnCloseFilters').textContent = `Prikaži ${fmtN(n)} ${plural(n, 'objavu', 'objave', 'objava')}`;
 }
@@ -1286,8 +1305,8 @@ function aiStatus(ai) {
 function refreshAi() {
   S.hasAi = S.data.some(r => r.ai != null);
   $('sortAi').hidden = !S.hasAi;
-  S.nTy = {t: 0, p: 0}; S.nToday = {t: 0, p: 0};
-  for (const r of S.data) { S.nTy[r._ty]++; if (r._f === TODAY) S.nToday[r._ty]++; }
+  S.nTy = {t: 0, p: 0}; S.nToday = {t: 0, p: 0}; S.progs = new Map();
+  for (const r of S.data) { S.nTy[r._ty]++; if (r._f === TODAY) S.nToday[r._ty]++; if (r._ty === 'p' && r._prog) S.progs.set(r._prog, (S.progs.get(r._prog) || 0) + 1); }
 }
 function renderModes() {
   for (const [id, ty] of [['modeT', 't'], ['modeP', 'p']]) {
@@ -1298,6 +1317,19 @@ function renderModes() {
   const t = $('btnToday'), on = F.fresh === '1';
   t.classList.toggle('on', on); t.setAttribute('aria-pressed', on);
   t.querySelector('i').textContent = fmtN((S.nToday || {})[F.ty] || 0);
+  // Samo EU fondovi: u javnim pozivima, s listom programa (broj poziva uz svaki program)
+  const progs = S.progs || new Map(), nEu = [...progs.values()].reduce((a, b) => a + b, 0), eu = $('btnEu'), sel = $('euProg');
+  const euOn = F.ty === 'p' && !!F.eu;
+  eu.hidden = F.ty !== 'p' || !nEu;
+  eu.classList.toggle('on', euOn); eu.setAttribute('aria-pressed', euOn);
+  eu.querySelector('i').textContent = fmtN(nEu);
+  sel.hidden = !euOn;
+  if (euOn) {
+    const names = [...progs.keys()].sort((a, b) => a.localeCompare(b, 'bs'));
+    if (F.prog && !progs.has(F.prog)) names.push(F.prog);
+    sel.innerHTML = `<option value="">svi programi (${fmtN(nEu)})</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)} (${fmtN(progs.get(n) || 0)})</option>`).join('');
+    sel.value = F.prog || '';
+  }
 }
 // Tenderi i javni pozivi imaju svaki svoje filtere; prekidač pamti filtere onog drugog.
 function setMode(ty) {
@@ -1972,9 +2004,14 @@ function wire() {
   for (const id of ['modeT', 'modeP']) $(id).addEventListener('click', e => setMode(e.currentTarget.dataset.ty));
   // "Objavljeno danas": objave koje su prvi put viđene u današnjem osvježavanju (isto kao "Novo u zadnjih 1 dan").
   $('btnToday').addEventListener('click', () => { F.fresh = F.fresh === '1' ? '' : '1'; syncInputs(); apply(); window.scrollTo(0, 0); });
+  $('btnEu').addEventListener('click', () => { F.eu = F.eu ? '' : '1'; if (!F.eu) F.prog = ''; apply(); window.scrollTo(0, 0); });
+  $('euProg').addEventListener('change', () => { F.prog = $('euProg').value; apply(); });
   $('syn').addEventListener('change', () => { F.syn = $('syn').checked; apply(); });
   $('mark').addEventListener('change', () => { F.mark = $('mark').value; apply(); });
-  $('summary').addEventListener('click', e => { if ('fresh' in e.target.dataset) { F.fresh = e.target.dataset.fresh; syncInputs(); apply(); } });
+  $('summary').addEventListener('click', e => {
+    if ('fresh' in e.target.dataset) { F.fresh = e.target.dataset.fresh; syncInputs(); apply(); }
+    if ('eu' in e.target.dataset) { F.eu = ''; F.prog = ''; apply(); }
+  });
   $('list').addEventListener('click', e => {
     if ('openLock' in e.target.dataset) { openLockDialog(); return; }
     const sh = e.target.closest('[data-share]');
@@ -2263,14 +2300,14 @@ const CV_MAX = 15 * 1024 * 1024;
 const RF = {
   // Izvorna podjela iz CETEOR-ove liste referenci, nazivi tačno kao tamo; abecedno, „Ostalo“ na kraju.
   // Iste liste koriste reference (stručna oblast, detaljna vrsta usluge) i eksperti (stručne oblasti, tip posla).
-  oblasti: ['Biodiverzitet', 'Bloower door test', 'Buka', 'Cirkularna ekonomija', 'Ekonomija/Biznis', 'Emisije u zrak / kvalitet zraka', 'Energijska efikasnost', 'ESG, EE krediti i sl', 'Građanska energija', 'ISO Standardi', 'Klimatske promjene', 'Kvalitet zraka', 'Niskokarbonski razvoj', 'Obnovljivi izvori energije', 'Sistemi daljinskih grijanja', 'Upravljanje hemikalijama', 'Upravljanje otpadom', 'Upravljanje rizicima', 'Upravljanje tlom', 'Upravljanje vodama', 'Urbana mobilnost', 'Zaštita na radu', 'Zaštita okoliša općenito', 'Ostalo'],
+  oblasti: ['Biodiverzitet', 'Bloower door test', 'Buka', 'Cirkularna ekonomija', 'Ekonomija/Biznis', 'Emisije u zrak / kvalitet zraka', 'Energijska efikasnost', 'ESG, EE krediti i sl', 'Građanska energija', 'ISO Standardi', 'Klimatske promjene', 'Niskokarbonski razvoj', 'Obnovljivi izvori energije', 'Sistemi daljinskih grijanja', 'Upravljanje hemikalijama', 'Upravljanje otpadom', 'Upravljanje rizicima', 'Upravljanje tlom', 'Upravljanje vodama', 'Urbana mobilnost', 'Zaštita na radu', 'Zaštita okoliša općenito', 'Ostalo'],
   tip: ['Akcioni plan', 'DEA - industrija', 'DEA - javna rasvjeta', 'DEA - ostalo', 'DEA - zgradarstvo', 'Due Dilligence', 'Elaborat - energija', 'Elaborat - okoliš', 'Energetski certifikat', 'ESAP, SEP, LAP i sl', 'Isporuka robe', 'Izdavačka djelatnost', 'Izrada baze podataka, web stranica, software-a i sl.', 'Izvještaj', 'Konferencija', 'Mjerenje', 'Modeliranje i mapiranje', 'Nadzor', 'Plan aktivnosti', 'Plan upravljanja otpadom', 'Predavanje', 'Procjena uticaja na okoliš i društvo', 'Projekti po osnovu grant sredstava - domaća', 'Projekti po osnovu grant sredstava - međunarodna', 'Projektovanje', 'Seminar/Radionica (u sopstvenoj organizaciji)', 'Seminar/Radionica (za potrebe drugog)', 'Strategija', 'Strategija / Strateški plan', 'Strateška podrška', 'Strateška procjena', 'Stručna analiza / mišljenje / podrška', 'Stručni nalaz', 'Studija', 'Studija izvodljivosti', 'Studija uticaja na okoliš', 'Tehnoekonomska analiza', 'Zahtjev za okolinsku dozvolu', 'Zakonodavna podrška (izrada akata i sl.)', 'Ostalo_neklasifikovano'],
   modul: ['M1', 'M2', 'M3'],
   eng: {'A1/A2': 1, 'B1/B2': 2, 'C1/C2': 3},
 };
 // Države članice UN-a (ISO kodovi) i Kosovo; nazivi na bosanskom iz preglednika.
 const UN = 'AF AL DZ AD AO AG AR AM AU AT AZ BS BH BD BB BY BE BZ BJ BT BO BA BW BR BN BG BF BI CV KH CM CA CF TD CL CN CO KM CG CR CI HR CU CY CZ KP CD DK DJ DM DO EC EG SV GQ ER EE SZ ET FJ FI FR GA GM GE DE GH GR GD GT GN GW GY HT HN HU IS IN ID IR IQ IE IL IT JM JP JO KZ KE KI KW KG LA LV LB LS LR LY LI LT LU MG MW MY MV ML MT MH MR MU MX FM MC MN ME MA MZ MM NA NR NP NL NZ NI NE NG MK NO OM PK PW PA PG PY PE PH PL PT QA KR MD RO RU RW KN LC VC WS SM ST SA SN RS SC SL SG SK SI SB SO ZA SS ES LK SD SR SE CH SY TJ TH TL TG TO TT TN TR TM TV UG UA AE GB TZ US UY UZ VU VE VN YE ZM ZW XK'.split(' ');
-const R = {file: ROSTER_FILE, prepare: list => list.filter(x => x && typeof x === 'object' && x.id != null), list: null, sha: null, loading: null, f: {q: '', obl: [], tip: [], fak: [], drz: [], kat: '', eng: '', sort: 'ekspert', dir: 1}, edit: null, cvAdd: [], cvDel: [], ai: []};
+const R = {file: ROSTER_FILE, prepare: list => list.filter(x => x && typeof x === 'object' && x.id != null), list: null, sha: null, loading: null, f: {q: '', obl: [], tip: [], fak: [], drz: [], jez: [], kat: '', eng: '', exp: '', spr: '', cv: '', sort: 'ekspert', dir: 1}, edit: null, cvAdd: [], cvDel: [], ai: []};
 
 function ghConf() {
   let c = {};
@@ -2389,6 +2426,25 @@ const exName = x => [x.ime, x.prezime].filter(Boolean).join(' ') || `Ekspert ${x
 const exKey = x => norm(exName(x));
 const exText = x => norm([x.ime, x.prezime, x.grad, x.drzava && countryName(x.drzava), x.email, x.tel, x.kategorija, x.poznanstvo, x.sprema, ...(x.fakultet || []), x.maternji, ...(x.jezici || []), ...(x.oblasti || []), ...(x.tip || []), ...(x.modul || []), x.napomene, x.profil].filter(Boolean).join(' '));
 const fmtYears = n => n === null ? '' : String(n).replace('.', ',');
+// Početak rada: prikaz „01 Aug 2009“; upisuje se i kao 1.8.2009, 08/2009, Aug 2009, 1. avgust 2009,
+// 2009 ili 2009-08-01. Čuva se kao 2009-08-01. null znači da upis nije prepoznat.
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MON_IN = {jan: 1, feb: 2, mar: 3, apr: 4, may: 5, maj: 5, jun: 6, jul: 7, aug: 8, avg: 8, sep: 9, oct: 10, okt: 10, nov: 11, dec: 12};
+const fmtStart = iso => { const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(iso || ''); return m ? `${m[3]} ${MON[+m[2] - 1]} ${m[1]}` : ''; };
+function parseStart(text) {
+  const t = String(text || '').trim().toLowerCase().replace(/\.$/, '');
+  if (!t) return '';
+  let y, mo, d = 1, m;
+  if ((m = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/.exec(t))) [y, mo, d] = [+m[1], +m[2], +(m[3] || 1)];
+  else if ((m = /^(\d{1,2})[.\/\- ]+(\d{1,2})[.\/\- ]+(\d{4})$/.exec(t))) [d, mo, y] = [+m[1], +m[2], +m[3]];
+  else if ((m = /^(\d{1,2})[.\/\- ]+(\d{4})$/.exec(t))) [mo, y] = [+m[1], +m[2]];
+  else if ((m = /^(\d{4})$/.exec(t))) [y, mo] = [+m[1], 1];
+  else if ((m = /^(?:(\d{1,2})\.?\s*)?([a-zčćšđž]{3,})\.?,?\s*(\d{4})$/.exec(t)) && MON_IN[m[2].slice(0, 3)]) [d, mo, y] = [+(m[1] || 1), MON_IN[m[2].slice(0, 3)], +m[3]];
+  else return null;
+  const max = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  if (y < 1940 || y > new Date().getFullYear() + 1 || mo < 1 || mo > 12 || d < 1 || d > max) return null;
+  return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
 
 /* pogled */
 function setRvMsg(text, ok) {
@@ -2445,6 +2501,7 @@ const MS_DEF = [
   {id: 'rvTip', key: 'tip', field: 'tip', label: 'Tip posla', base: () => RF.tip, mod: R},
   {id: 'rvFak', key: 'fak', field: 'fakultet', label: 'Fakultet', mod: R},
   {id: 'rvDrz', key: 'drz', field: 'drzava', label: 'Država', show: countryName, order: byCountry, mod: R},
+  {id: 'rvJez', key: 'jez', field: 'jezici', label: 'Ostali jezici', mod: R},
 ];
 const exVals = (x, field) => { const v = x[field]; return Array.isArray(v) ? v : v ? [v] : []; };
 function msSummary(d) {
@@ -2538,16 +2595,19 @@ function rosterCmp(k, dir) {
   };
 }
 function clearRosterFilters() {
-  Object.assign(R.f, {q: '', obl: [], tip: [], fak: [], drz: [], kat: '', eng: ''});
-  $('rvQ').value = ''; $('rvKat').value = ''; $('rvEng').value = '';
+  Object.assign(R.f, {q: '', obl: [], tip: [], fak: [], drz: [], jez: [], kat: '', eng: '', exp: '', spr: '', cv: ''});
+  $('rvQ').value = ''; for (const id of ['rvKat', 'rvEng', 'rvExp', 'rvSpr', 'rvCv']) $(id).value = '';
   renderRosterFilters(); renderRoster();
 }
 function rosterView() {
   const f = R.f, qs = norm(f.q).split(' ').filter(Boolean);
   const any = (sel, vals) => !sel.length || vals.some(v => sel.includes(norm(v)));
-  const [obl, tip, fak, drz] = ['obl', 'tip', 'fak', 'drz'].map(k => f[k].map(norm));
-  const out = (R.list || []).filter(x => any(obl, exVals(x, 'oblasti')) && any(tip, exVals(x, 'tip')) && any(fak, exVals(x, 'fakultet')) && any(drz, exVals(x, 'drzava'))
-    && (!f.kat || x.kategorija === f.kat) && (!f.eng || (RF.eng[x.engleski] || 0) >= +f.eng) && (!qs.length || qs.every(t => exText(x).includes(t))));
+  const [obl, tip, fak, drz, jez] = ['obl', 'tip', 'fak', 'drz', 'jez'].map(k => f[k].map(norm));
+  const out = (R.list || []).filter(x => any(obl, exVals(x, 'oblasti')) && any(tip, exVals(x, 'tip')) && any(fak, exVals(x, 'fakultet')) && any(drz, exVals(x, 'drzava')) && any(jez, exVals(x, 'jezici'))
+    && (!f.kat || x.kategorija === f.kat) && (!f.eng || (RF.eng[x.engleski] || 0) >= +f.eng)
+    && (!f.exp || (exYears(x) ?? -1) >= +f.exp) && (!f.spr || (RV_RANK.sprema[x.sprema] ?? -1) >= +f.spr)
+    && (!f.cv || ((x.cv || []).length > 0) === (f.cv === 'da'))
+    && (!qs.length || qs.every(t => exText(x).includes(t))));
   return out.sort(rosterCmp(f.sort, f.dir));
 }
 function renderRoster() {
@@ -2571,7 +2631,7 @@ function renderRoster() {
 
 /* obrazac */
 // Najviše stručnih oblasti i tipova posla po ekspertu.
-const EX_MAX = {oblasti: 7, tip: 4};
+const EX_MAX = {oblasti: 10, tip: 10};
 const JEZICI = ['Njemački', 'Francuski', 'Italijanski', 'Španski', 'Ruski', 'Turski', 'Arapski'];
 const MATERNJI = ['Bosanski', 'Hrvatski', 'Srpski', 'Crnogorski', 'Albanski', 'Makedonski', 'Slovenski', 'Turski', 'Engleski', 'Njemački'];
 const limitChecks = name => limitBox($(name === 'oblasti' ? 'exOblasti' : 'exTip'), $(name === 'oblasti' ? 'exOblN' : 'exTipN'), EX_MAX[name]);
@@ -2598,7 +2658,8 @@ function openExpert(x, preset, after) {
   $('exTitle').textContent = isNew ? 'Novi ekspert' : exName(e);
   const codes = [...new Set([...UN, e.drzava].filter(Boolean))].sort((a, b) => a === 'BA' ? -1 : b === 'BA' ? 1 : countryName(a).localeCompare(countryName(b), 'bs'));
   $('exDrzava').innerHTML = '<option value=""></option>' + codes.map(c => `<option value="${c}">${esc(countryName(c))}</option>`).join('');
-  for (const k of ['ime', 'prezime', 'grad', 'email', 'tel', 'poznanstvo', 'napomene', 'profil', 'pocetak', 'maternji']) form.elements[k].value = e[k] || '';
+  for (const k of ['ime', 'prezime', 'grad', 'email', 'tel', 'poznanstvo', 'napomene', 'profil', 'maternji']) form.elements[k].value = e[k] || '';
+  form.elements.pocetak.value = fmtStart(e.pocetak) || e.pocetak || '';
   form.elements.drzava.value = e.drzava || '';
   form.elements.dnevnica.value = e.dnevnica ?? '';
   form.elements.fakultet.value = (e.fakultet || []).join(', ');
@@ -2628,7 +2689,7 @@ function openExpert(x, preset, after) {
 }
 const fmtStamp = t => { const d = new Date(t); return isNaN(d) ? '' : `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}.`; };
 function updateYears() {
-  const n = exYears({pocetak: $('exForm').elements.pocetak.value});
+  const iso = parseStart($('exForm').elements.pocetak.value), n = iso ? exYears({pocetak: iso}) : null;
   $('exForm').elements.iskustvo.value = n === null ? '' : fmtYears(n);
 }
 function renderCvList() {
@@ -2639,7 +2700,9 @@ function renderCvList() {
 }
 function readExpertForm() {
   const form = $('exForm'), e = structuredClone(R.edit), v = k => form.elements[k].value.trim();
-  for (const k of ['ime', 'prezime', 'grad', 'email', 'tel', 'poznanstvo', 'drzava', 'sprema', 'engleski', 'pocetak', 'maternji']) e[k] = v(k);
+  for (const k of ['ime', 'prezime', 'grad', 'email', 'tel', 'poznanstvo', 'drzava', 'sprema', 'engleski', 'maternji']) e[k] = v(k);
+  e.pocetak = parseStart(v('pocetak'));
+  if (e.pocetak === null) { e._badStart = v('pocetak'); e.pocetak = ''; }
   e.napomene = form.elements.napomene.value.trim(); e.profil = form.elements.profil.value.trim();
   const d = v('dnevnica'); e.dnevnica = d === '' ? null : Math.max(0, Math.round(+d));
   const listOf = k => [...new Set(v(k).split(/[,;]+/).map(t => t.trim()).filter(Boolean))];
@@ -2669,6 +2732,8 @@ async function uploadFiles(files, dir, message) {
 async function saveExpert() {
   const e = readExpertForm();
   if (!e.ime || !e.prezime) { $('exMsg').textContent = 'Ime i prezime su obavezni.'; return; }
+  if (e._badStart) { $('exMsg').textContent = `Početak rada „${e._badStart}“ nije prepoznat. Upiši npr. 01 Aug 2009 ili izaberi datum u kalendaru.`; return; }
+  delete e._badStart;
   for (const [k, what] of [['oblasti', 'stručnih oblasti'], ['tip', 'tipova posla']]) {
     if ((e[k] || []).length > EX_MAX[k]) { $('exMsg').textContent = `Najviše ${EX_MAX[k]} ${what} (sada je označeno ${e[k].length}).`; return; }
   }
@@ -2854,10 +2919,11 @@ function findExpert(p) {
   const mail = (p.email || '').toLowerCase();
   return (R.list || []).find(y => (mail && (y.email || '').toLowerCase() === mail) || exKey(y) === exKey(p));
 }
-// Dopuna postojećeg: popunjavaju se samo prazna polja, liste se spajaju, CV se dodaje.
-function mergeExpert(base, p) {
+// Dopuna postojećeg: popunjavaju se prazna polja i ona koja je korisnik u pregledu označio za zamjenu
+// (repl, npr. noviji telefon ili profil iz novijeg CV-ja); liste se spajaju, CV se dodaje.
+function mergeExpert(base, p, repl) {
   const e = structuredClone(base);
-  for (const k of ['grad', 'drzava', 'email', 'tel', 'spol', 'kategorija', 'sprema', 'pocetak', 'engleski', 'maternji', 'profil', 'napomene']) if (!e[k] && p[k]) e[k] = p[k];
+  for (const k of ['grad', 'drzava', 'email', 'tel', 'spol', 'kategorija', 'sprema', 'pocetak', 'engleski', 'maternji', 'profil', 'napomene']) if (p[k] && (!e[k] || (repl && repl.has(k)))) e[k] = p[k];
   for (const k of ['fakultet', 'jezici']) e[k] = [...new Set([...(e[k] || []), ...(p[k] || [])])];
   // oblasti i tip: postojeće ostaju, nove se dodaju dok ima mjesta
   for (const k of ['oblasti', 'tip']) { e[k] = [...(e[k] || [])]; for (const v of p[k] || []) if (!e[k].includes(v) && e[k].length < EX_MAX[k]) e[k].push(v); }
@@ -2952,6 +3018,19 @@ async function runCvAi(files) {
   }
   $('cvKeyBox').hidden = !!store.get('tr.aikey');
 }
+function cvDiffHtml(i, j, q) {
+  const d = cvDiffs(q.match, q.p);
+  if (!d.length) return '';
+  q.repl = q.repl || new Set();
+  return '<span class="sub">Drugačije u CV-ju; označi šta da se zamijeni:</span>' + d.map(([k, label, a, b]) =>
+    `<label class="inline cvrep"><input type="checkbox" data-cvrep="${i}:${j}:${k}"${q.repl.has(k) ? ' checked' : ''}><span>${esc(label)}: ${esc(a)} → <b>${esc(b)}</b></span></label>`).join('');
+}
+// Polja u kojima se CV razlikuje od već upisanog eksperta: [polje, naziv, staro, novo] za prikaz.
+const CV_DIFF = [['grad', 'Grad'], ['drzava', 'Država'], ['email', 'E-mail'], ['tel', 'Tel.'], ['kategorija', 'Kategorija'], ['sprema', 'Stručna sprema'], ['pocetak', 'Početak rada'], ['engleski', 'Engleski'], ['maternji', 'Maternji jezik'], ['profil', 'Profil'], ['napomene', 'Napomene']];
+function cvDiffs(old, p) {
+  const show = (k, v) => k === 'drzava' ? countryName(v) : k === 'pocetak' ? fmtStart(v) || v : cut(String(v), 90);
+  return CV_DIFF.filter(([k]) => p[k] && old[k] && norm(p[k]) !== norm(old[k])).map(([k, label]) => [k, label, show(k, old[k]), show(k, p[k])]);
+}
 function renderCvAi() {
   const rows = [];
   R.ai.forEach((it, i) => {
@@ -2961,7 +3040,7 @@ function renderCvAi() {
       const facts = [p.kategorija, p.sprema, years !== null ? fmtYears(years) + ' god. iskustva' : '', p.engleski ? 'engleski ' + p.engleski : '', (p.jezici || []).join(', '), [p.grad, p.drzava && countryName(p.drzava)].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
       rows.push(`<tr><td><label class="inline"><input type="checkbox" data-cvuse="${i}:${j}"${q.use && !q.done ? ' checked' : ''}${q.done ? ' disabled' : ''}><span><b>${esc(exName(p))}</b></span></label><span class="sub">${esc(it.file.name)}</span></td>`
         + `<td>${esc(facts)}<span class="sub">${esc([...(p.oblasti || []), ...(p.tip || [])].join(', '))}</span>${p.profil ? `<span class="sub">${esc(cut(p.profil, 220))}</span>` : ''}</td>`
-        + `<td>${q.done ? '<b>sačuvano ✓</b>' : q.match ? `dopuna: ${esc(exName(q.match))} (ID ${esc(q.match.id)})` : 'novi ekspert'}</td>`
+        + `<td>${q.done ? '<b>sačuvano ✓</b>' : q.match ? `dopuna: ${esc(exName(q.match))} (ID ${esc(q.match.id)})` + cvDiffHtml(i, j, q) : 'novi ekspert'}</td>`
         + `<td>${q.done ? '' : `<button class="mini" type="button" data-cvedit="${i}:${j}">Uredi i sačuvaj</button>`}</td></tr>`);
     });
   });
@@ -2985,7 +3064,7 @@ async function saveCvAi() {
         const cv = files.get(it.file);
         const mail = (q.p.email || '').toLowerCase();
         const i = list.findIndex(y => (mail && (y.email || '').toLowerCase() === mail) || exKey(y) === exKey(q.p));
-        if (i >= 0) { const e = mergeExpert(list[i], q.p); e.cv = [...(e.cv || []), cv]; e.updated = stamp; list[i] = cleanExpert(e); }
+        if (i >= 0) { const e = mergeExpert(list[i], q.p, q.repl); e.cv = [...(e.cv || []), cv]; e.updated = stamp; list[i] = cleanExpert(e); }
         else list.push(cleanExpert({...q.p, id: next++, created: stamp, cv: [cv]}));
       }
     }, 'Eksperti: uvoz iz CV-ja');
@@ -3040,7 +3119,7 @@ function wireRoster() {
   $('btnRvGh').addEventListener('click', openGhDialog);
   $('rvImport').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) importRoster(f); });
   $('rvQ').addEventListener('input', debounce(() => { R.f.q = $('rvQ').value; renderRoster(); }, 150));
-  for (const [id, k] of [['rvKat', 'kat'], ['rvEng', 'eng']]) $(id).addEventListener('change', () => { R.f[k] = $(id).value; renderRoster(); });
+  for (const [id, k] of [['rvKat', 'kat'], ['rvEng', 'eng'], ['rvExp', 'exp'], ['rvSpr', 'spr'], ['rvCv', 'cv']]) $(id).addEventListener('change', () => { R.f[k] = $(id).value; renderRoster(); });
   wireMs(MS_DEF, renderRoster);
   $('rosterView').addEventListener('click', e => { if (e.target.closest('[data-unlock]')) openLockDialog(); });
   document.addEventListener('click', e => { for (const o of document.querySelectorAll('details.ms[open]')) if (!o.contains(e.target)) o.open = false; });
@@ -3064,7 +3143,16 @@ function wireRoster() {
   $('btnRvClear').addEventListener('click', clearRosterFilters);
   $('btnExSave').addEventListener('click', saveExpert);
   $('btnExDel').addEventListener('click', deleteExpert);
-  $('exForm').elements.pocetak.addEventListener('input', updateYears);
+  const start = $('exForm').elements.pocetak;
+  start.addEventListener('input', updateYears);
+  start.addEventListener('change', () => { const iso = parseStart(start.value); if (iso) start.value = fmtStart(iso); updateYears(); });
+  $('btnExCal').addEventListener('click', () => {  // kalendar preglednika, a u polju ostaje oblik 01 Aug 2009
+    const c = $('exCal');
+    c.value = parseStart(start.value) || '';
+    try { if (c.showPicker) { c.showPicker(); return; } } catch (e) { /* stariji preglednik */ }
+    c.focus(); c.click();
+  });
+  $('exCal').addEventListener('change', () => { if ($('exCal').value) { start.value = fmtStart($('exCal').value); updateYears(); } });
   $('exCvAdd').addEventListener('change', e => { R.cvAdd.push(...e.target.files); e.target.value = ''; renderCvList(); });
   for (const name of ['oblasti', 'tip']) $(name === 'oblasti' ? 'exOblasti' : 'exTip').addEventListener('change', () => limitChecks(name));
   dropFiles($('dlgExpert'), files => {
@@ -3089,6 +3177,12 @@ function wireRoster() {
   $('btnCvSave').addEventListener('click', saveCvAi);
   $('cvList').addEventListener('change', e => {
     const t = e.target;
+    if (t.dataset.cvrep) {  // zamjena polja iz novijeg CV-ja
+      const [i, j, k] = t.dataset.cvrep.split(':'), q = R.ai[+i].people[+j];
+      q.repl = q.repl || new Set();
+      if (t.checked) q.repl.add(k); else q.repl.delete(k);
+      return;
+    }
     if (!t.dataset.cvuse) return;
     const [i, j] = t.dataset.cvuse.split(':').map(Number);
     R.ai[i].people[j].use = t.checked; renderCvAi();
@@ -3097,7 +3191,7 @@ function wireRoster() {
     const t = e.target.closest('[data-cvedit]');
     if (!t) return;
     const [i, j] = t.dataset.cvedit.split(':').map(Number), it = R.ai[i], q = it.people[j];
-    const base = q.match ? mergeExpert(q.match, q.p) : {...q.p, cv: []};
+    const base = q.match ? mergeExpert(q.match, q.p, q.repl) : {...q.p, cv: []};
     openExpert(q.match ? q.match : null, {...base, _files: [it.file]}, () => { q.done = true; renderCvAi(); });
   });
   $('btnGhClose').addEventListener('click', () => $('dlgGh').close());
@@ -3113,8 +3207,9 @@ function wireRoster() {
 const REF_SEKTOR = ['Okoliš', 'Energija', 'Edukacija', 'Laboratorija', 'REIC', 'EKO CET', 'Mjeriteljstvo', 'Ostalo'];
 const REF_VK = ['Međunarodna organizacija / donator', 'Državna, entitetska ili kantonalna institucija', 'Općina / grad', 'Javna ustanova', 'Javno preduzeće', 'Banka / finansijska institucija', 'Privatna firma', 'NVO / udruženje', 'Univerzitet / institut', 'Ostalo'];
 // Nazivi iz objedinjene podjele (6.10.) vraćeni na izvornu podjelu: oblasti, pa vrste usluga
-// (uključujući dva naziva koja sam bio ispravio). Za vrstu usluge je to najbolje pogađanje.
-const BACK_O = {'Zrak': 'Emisije u zrak / kvalitet zraka', 'ESG | EE krediti': 'ESG, EE krediti i sl', 'Sistem daljinskih grijanja': 'Sistemi daljinskih grijanja', 'Ekonomija / Biznis': 'Ekonomija/Biznis'};
+// (uključujući dva naziva koja sam bio ispravio). „Kvalitet zraka“ je spojen s „Emisije u zrak /
+// kvalitet zraka“. Za vrstu usluge je to najbolje pogađanje.
+const BACK_O = {'Zrak': 'Emisije u zrak / kvalitet zraka', 'Kvalitet zraka': 'Emisije u zrak / kvalitet zraka', 'ESG | EE krediti': 'ESG, EE krediti i sl', 'Sistem daljinskih grijanja': 'Sistemi daljinskih grijanja', 'Ekonomija / Biznis': 'Ekonomija/Biznis'};
 const BACK_V = {'Due diligence': 'Due Dilligence', 'Ostalo (neklasifikovano)': 'Ostalo_neklasifikovano', 'Ostalo': 'Ostalo_neklasifikovano',
   'Energijski audit / Certifikati': 'DEA - zgradarstvo', 'Mjerenja': 'Mjerenje', 'Modeliranje i mapiranje (GIS)': 'Modeliranje i mapiranje', 'Okolinska dozvola': 'Zahtjev za okolinsku dozvolu',
   'Organizacija događaja': 'Seminar/Radionica (za potrebe drugog)', 'Planovi upravljanja / Akcioni planovi': 'Akcioni plan', 'Policy': 'Strateška podrška',
@@ -3149,7 +3244,7 @@ function refNorm(x, i) {
 }
 const REF = {file: 'reference.enc.json', list: null, sha: null, loading: null, old: false, pending: null,
   prepare: list => { const raw = list.filter(x => x && typeof x === 'object'); REF.old = raw.some(x => x.id == null || 'vd' in x); return raw.map(refNorm); },
-  f: {q: '', o: [], v: [], y: [], z: [], k: [], vk: [], s: [], sort: 'y', dir: -1}, edit: null, docAdd: [], docDel: [], files: []};
+  f: {q: '', o: [], v: [], y: [], z: [], k: [], vk: [], s: [], per: '', en: '', doc: '', sort: 'y', dir: -1}, edit: null, docAdd: [], docDel: [], files: []};
 const REF_MS = [
   {id: 'rfFO', key: 'o', field: 'o', label: 'Stručna oblast', base: () => RF.oblasti, mod: REF},
   {id: 'rfFV', key: 'v', field: 'v', label: 'Detaljna vrsta usluge', base: () => RF.tip, mod: REF},
@@ -3192,15 +3287,19 @@ async function openRefTab(openId) {
 }
 function renderRefFilters() { for (const d of REF_MS) renderMs(d); }
 function clearRefFilters() {
-  Object.assign(REF.f, {q: '', o: [], v: [], y: [], z: [], k: [], vk: [], s: []});
-  $('rfQ').value = '';
+  Object.assign(REF.f, {q: '', o: [], v: [], y: [], z: [], k: [], vk: [], s: [], per: '', en: '', doc: ''});
+  $('rfQ').value = ''; for (const id of ['rfPer', 'rfEn', 'rfDoc']) $(id).value = '';
   renderRefFilters(); renderRefs();
 }
 function refView() {
   const f = REF.f, qs = norm(f.q).split(' ').filter(Boolean);
   const sel = Object.fromEntries(REF_MS.map(d => [d.key, f[d.key].map(norm)]));
   const any = (s, vals) => !s.length || vals.some(v => s.includes(norm(v)));
-  const out = (REF.list || []).filter(x => REF_MS.every(d => any(sel[d.key], d.vals ? d.vals(x) : exVals(x, d.field))) && (!qs.length || qs.every(t => refText(x).includes(t))));
+  const from = f.per ? now.getFullYear() - +f.per + 1 : 0;  // zadnje 3 godine: ova i dvije prije
+  const has = (want, yes) => !want || yes === (want === 'da');
+  const out = (REF.list || []).filter(x => REF_MS.every(d => any(sel[d.key], d.vals ? d.vals(x) : exVals(x, d.field)))
+    && (!from || (+x.y || 0) >= from) && has(f.en, !!String(x.f || '').trim()) && has(f.doc, (x.docs || []).length > 0)
+    && (!qs.length || qs.every(t => refText(x).includes(t))));
   return out.sort(refCmp(f.sort, f.dir));
 }
 const REF_COLS = [
@@ -3489,6 +3588,7 @@ function wireRefs() {
     applyRefImport(b.dataset.imp);
   });
   $('rfQ').addEventListener('input', debounce(() => { REF.f.q = $('rfQ').value; renderRefs(); }, 150));
+  for (const [id, k] of [['rfPer', 'per'], ['rfEn', 'en'], ['rfDoc', 'doc']]) $(id).addEventListener('change', () => { REF.f[k] = $(id).value; renderRefs(); });
   wireMs(REF_MS, renderRefs);
   $('refView').addEventListener('click', e => { if (e.target.closest('[data-unlock]')) openLockDialog(); });
   $('rfTable').addEventListener('click', e => {
@@ -3640,6 +3740,7 @@ function prep(r) {
   r._ai = r.ai == null ? 'N' : String(r.ai);
   r._aiw = r.aiw ? [...r.aiw] : [];
   r._ty = r.ty === 'P' ? 'p' : 't';  // tender ili javni poziv
+  r._prog = r.src === 'EUG' ? String(r.b || 'Ostali programi EU') : '';  // program EU (Horizon Europe, Erasmus+…)
   r._d = r.d ? dayNum(r.d) : null;
   r._p = r.p ? dayNum(r.p) : null;
   r._f = r.fs ? dayNum(r.fs) : r._p;
