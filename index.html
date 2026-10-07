@@ -3244,7 +3244,7 @@ function refNorm(x, i) {
 }
 const REF = {file: 'reference.enc.json', list: null, sha: null, loading: null, old: false, pending: null,
   prepare: list => { const raw = list.filter(x => x && typeof x === 'object'); REF.old = raw.some(x => x.id == null || 'vd' in x); return raw.map(refNorm); },
-  f: {q: '', o: [], v: [], y: [], z: [], k: [], vk: [], s: [], per: '', en: '', doc: '', sort: 'y', dir: -1}, edit: null, docAdd: [], docDel: [], files: []};
+  f: {q: '', o: [], v: [], y: [], z: [], k: [], vk: [], s: [], per: '', en: '', doc: '', sort: 'i', dir: -1}, edit: null, docAdd: [], docDel: [], files: []};
 const REF_MS = [
   {id: 'rfFO', key: 'o', field: 'o', label: 'Stručna oblast', base: () => RF.oblasti, mod: REF},
   {id: 'rfFV', key: 'v', field: 'v', label: 'Detaljna vrsta usluge', base: () => RF.tip, mod: REF},
@@ -3303,10 +3303,12 @@ function refView() {
   return out.sort(refCmp(f.sort, f.dir));
 }
 const REF_COLS = [
-  {k: 't', t: 'Referenca'}, {k: 'k', t: 'Naručilac'}, {k: 'z', t: 'Država'}, {k: 'y', t: 'Godina', num: true},
+  {k: 'i', t: 'ID', num: true}, {k: 't', t: 'Referenca'}, {k: 'k', t: 'Naručilac'}, {k: 'z', t: 'Država'}, {k: 'y', t: 'Godina', num: true},
   {k: 'o', t: 'Stručna oblast'}, {k: 'v', t: 'Detaljna vrsta usluge'}, {k: 's', t: 'Sektor'}, {k: 'docs', t: 'Dok.', num: true},
 ];
 function refSortVal(x, k) {
+  // ID projekta: brojevi se porede po vrijednosti (828 prije 3794), i kad ID ima slova (npr. 3799a)
+  if (k === 'i') { const s = String(x.i ?? '').trim(); return s ? s.replace(/\d+/g, m => m.padStart(12, '0')) : null; }
   if (k === 'y') return x.y ? +x.y : null;
   if (k === 'docs') return (x.docs || []).length || null;
   if (k === 'z') return (x.z || []).length ? x.z.map(countryName).join(', ') : null;
@@ -3333,8 +3335,7 @@ function renderRefs() {
     return `<th${c.num ? ' class="num"' : ''}${on ? ` aria-sort="${up ? 'ascending' : 'descending'}"` : ''}><button type="button" class="th-sort${on ? ' on' : ''}" data-rsort="${c.k}" title="Poredaj po koloni ${esc(c.t)} (klik ponovo za obrnuti poredak)">${esc(c.t)}<span class="arr" aria-hidden="true">${on ? (up ? '▲' : '▼') : '↕'}</span></button></th>`;
   }).join('');
   $('rfTable').innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>` + list.map(x => {
-    const sub = x.i ? 'ID ' + x.i : '';
-    return `<tr><td class="t"><button class="link" data-refid="${esc(x.id)}">${esc(x.t || '(bez naziva)')}</button>${x.e ? `<span class="sub">${esc(cut(x.e, 140))}</span>` : ''}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</td>`
+    return `<tr><td class="num">${esc(x.i ?? '')}</td><td class="t"><button class="link" data-refid="${esc(x.id)}">${esc(x.t || '(bez naziva)')}</button>${x.e ? `<span class="sub">${esc(cut(x.e, 140))}</span>` : ''}</td>`
       + `<td>${esc(x.k || '')}${x.vk ? `<span class="sub">${esc(x.vk)}</span>` : ''}</td><td>${esc((x.z || []).map(c => C_SHORT[c] || countryName(c)).join(', '))}</td>`
       + `<td class="num">${esc(x.y || '')}</td><td>${(x.o || []).map(o => `<span class="chip">${esc(o)}</span>`).join('')}</td><td>${esc((x.v || []).join(', '))}</td>`
       + `<td>${esc(x.s || '')}</td><td class="num">${(x.docs || []).length || ''}</td></tr>`;
