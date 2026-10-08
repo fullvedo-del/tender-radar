@@ -32,6 +32,15 @@
       "Naturvårdsverket@SE"
     ]
   },
+  "cejn": {
+    "_napomena": "CeJN Crna Gora. types: vrste predmeta koje se uzimaju (S usluge, G robe, W radovi). days: koliko dana unazad se gledaju objave. CeJN u listi ne daje rok, pa se rok čita za svaki tender posebno; max_rounds je najviše takvih čitanja po osvježavanju (ostali dolaze na red sljedeći dan), a recheck_days koliko dana prije roka se rok čita ponovo zbog mogućeg produženja.",
+    "types": [
+      "S"
+    ],
+    "days": 60,
+    "max_rounds": 150,
+    "recheck_days": 2
+  },
   "ai": {
     "_napomena": "AI ocjena relevantnosti, AI prijevod naslova i AI sažetak opisa (za ocjene 2 i 3). Rade samo ako je na GitHubu postavljen secret ANTHROPIC_API_KEY. AI ocjenjuje po okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3, primjeri); poslije izmjene tog fajla objave se postepeno ocjenjuju ponovo, a do tada vrijedi stara ocjena. max_per_run: najviše ocjena po osvježavanju. include_private: da li se i objave internih izvora (GIZ, OSCE) šalju AI servisu na ocjenu, prijevod i sažetak; rezultati ostaju u šifriranom fajlu.",
     "model": "claude-haiku-4-5-20251001",
@@ -138,7 +147,7 @@
       "key": "JNRS",
       "name": "Portal javnih nabavki (Srbija)",
       "home": "https://jnportal.ujn.gov.rs",
-      "reason": "robots.txt zabranjuje automatski pristup svemu osim naslovne strane."
+      "reason": "robots.txt zabranjuje automatski pristup svemu osim naslovne strane (provjereno 8.10.2026)."
     },
     {
       "key": "ESJN",
@@ -150,19 +159,13 @@
       "key": "APP",
       "name": "Agjencia e Prokurimit Publik (Albanija)",
       "home": "https://www.app.gov.al",
-      "reason": "Službeni dnevni CSV izvoz postoji, ali ga robots.txt izričito zabranjuje robotima."
-    },
-    {
-      "key": "CEJN",
-      "name": "CEJN (Crna Gora)",
-      "home": "https://cejn.gov.me",
-      "reason": "Portal je aplikacija; nije pronađen javni popis tendera koji se može čitati bez prijave."
+      "reason": "Službeni CSV izvoz postupaka (GetData/ExportDocument) robots.txt izričito zabranjuje robotima, a liste tendera su inače samo u sistemima s prijavom (provjereno 8.10.2026)."
     },
     {
       "key": "EPRK",
       "name": "e-Prokurimi (Kosovo)",
       "home": "https://e-prokurimi.rks-gov.net",
-      "reason": "Stari sistem bez javnog izvoza ili API-ja; za sada nije pronađen stabilan javni popis tendera."
+      "reason": "Javni popis objavljenih dokumenata postoji (stranica „Dokumentet e publikuara“ u sistemu SPIN), ali se pri provjeri 8.10.2026. nije učitao; kolektor još nije napravljen."
     }
   ]
 }

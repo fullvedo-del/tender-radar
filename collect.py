@@ -37,7 +37,7 @@ from collectors import base
 # Redoslijed je ujedno prioritet kod duplikata: objavu zadržava izvor koji je prvi na listi.
 # Interni izvori uvijek dolaze poslije javnih, pa istu objavu zadržava javni izvor.
 # developmentaid.py i enabavki_mk.py ostaju u repozitoriju, ali se ne pokreću (vidi config.json, excluded).
-MODULES = ["ejn", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
+MODULES = ["ejn", "cejn_me", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
            "czechaid", "eu_grants", "fzofbih", "ekofondrs", "fmrpo", "mrezamira",
            "giz", "osce"]
 
@@ -254,6 +254,11 @@ def main() -> int:
     a_path = os.path.join(args.data, "awards.json")
     m_path = os.path.join(args.data, "refmatch.json")
     x_path = os.path.join(args.data, "expertmatch.json")
+    # Pamćenje izvora između dana (npr. rokovi koje izvor ne daje u listi): cfg["_state"].
+    st_path = os.path.join(args.data, "state.json")
+    state = load_json(st_path, {})
+    if not isinstance(state, dict):
+        state = {}
     run_minutes = float(cfg.get("run_minutes") or RUN_MINUTES)
 
     def left() -> float:
@@ -339,7 +344,8 @@ def main() -> int:
         else:
             t0 = time.time()
             try:
-                items = mod.collect(cfg)
+                mcfg = {**cfg, "_state": dict(state.get(key) or {})}
+                items = mod.collect(mcfg)
                 check(items, key)
                 if not items and len(kept) >= SUSPICIOUS_EMPTY:
                     raise base.SourceChanged(
@@ -351,6 +357,10 @@ def main() -> int:
                         r["d0"] = was
                 st.update(ok=True, error=None, last_ok=stamp)
                 any_ok = True
+                if mcfg.get("_state"):
+                    state[key] = mcfg["_state"]
+                else:
+                    state.pop(key, None)
             except Exception as e:  # jedan izvor ne smije srušiti ostale
                 traceback.print_exc()
                 items = kept
@@ -451,6 +461,12 @@ def main() -> int:
         for k in [k for k in r if k.startswith("_")]:
             del r[k]
     write_json_lines(t_path, public)
+    # Pamćenje se ne piše za interne izvore (fajl je javan) ni za izvore kojih više nema.
+    keys = {m.META["key"] for m in mods} - private
+    state = {k: v for k, v in state.items() if k in keys}
+    if state or os.path.exists(st_path):
+        with open(st_path, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, separators=(",", ":"))
     if private and not locked_reason:
         with open(p_path, "w", encoding="utf-8") as f:
             json.dump(encrypt_records(internal, passphrase, stamp), f)

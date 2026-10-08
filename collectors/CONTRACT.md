@@ -18,6 +18,10 @@ original notice. No tender documents, no logins.
   `base.rec(...)` (see its docstring for every field).
 - Tunables: read them from `cfg.get("<key lowercase>", {})` with sensible defaults in
   code, so `collect({})` works.
+- Memory between days (optional): `cfg["_state"]` is a small dict that `collect.py` saves in
+  `data/state.json` after a successful run and passes back the next day (not for internal
+  sources; the file is public). Use it only for public facts a source does not give in its
+  list, e.g. a deadline that needs one extra request per notice (see `cejn_me.py`).
 - Last lines: `if __name__ == "__main__": base.cli(collect, META)`.
 - Test with: `cd /home/claude/tender-radar && python3 -m collectors.<name>`
 
