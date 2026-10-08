@@ -1,0 +1,26 @@
+name: Proba izvora
+
+# Pokreće se samo ručno (Actions, „Proba izvora“, Run workflow). Ništa ne sprema u repozitorij:
+# rezultat je u sažetku posla (Summary).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Instaliraj biblioteke
+        run: pip install requests
+
+      - name: Proba izvora
+        run: python tools/proba_izvora.py
