@@ -21,7 +21,7 @@ META = {
     "key": "CEJN",
     "name": "CeJN Crna Gora",
     "home": "https://cejn.gov.me",
-    "scope": "Objavljeni tenderi u Crnoj Gori kojima rok za ponude nije prošao (zadano samo usluge); "
+    "scope": "Objavljeni tenderi u Crnoj Gori (robe, usluge i radovi) kojima rok za ponude nije prošao; "
              "naslovi su na crnogorskom.",
 }
 API = "https://cejn.gov.me/api/"
@@ -79,9 +79,9 @@ def _deadline(s, tender_id) -> str:
 
 def collect(cfg: dict) -> list[dict]:
     c = cfg.get("cejn", {})
-    types = [t for t in c.get("types", ["S"]) if t in SUBJECT]
+    types = [t for t in c.get("types", ["S", "G", "W"]) if t in SUBJECT]
     days = int(c.get("days", 60))           # koliko unazad gledati datume objave
-    budget = int(c.get("max_rounds", 150))  # najviše čitanja rokova po osvježavanju
+    budget = int(c.get("max_rounds", 300))  # najviše čitanja rokova po osvježavanju
     recheck = int(c.get("recheck_days", 2))  # rok ovoliko dana unaprijed se čita ponovo
     state = cfg.get("_state")
     if not isinstance(state, dict):

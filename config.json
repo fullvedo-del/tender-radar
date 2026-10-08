@@ -35,11 +35,19 @@
   "cejn": {
     "_napomena": "CeJN Crna Gora. types: vrste predmeta koje se uzimaju (S usluge, G robe, W radovi). days: koliko dana unazad se gledaju objave. CeJN u listi ne daje rok, pa se rok čita za svaki tender posebno; max_rounds je najviše takvih čitanja po osvježavanju (ostali dolaze na red sljedeći dan), a recheck_days koliko dana prije roka se rok čita ponovo zbog mogućeg produženja.",
     "types": [
-      "S"
+      "S",
+      "G",
+      "W"
     ],
     "days": 60,
-    "max_rounds": 150,
+    "max_rounds": 300,
     "recheck_days": 2
+  },
+  "app": {
+    "_napomena": "APP Albanija (javna lista „Njoftimi i kontratës së shpallur“). days: koliko dana unazad se gledaju datumi objave. Prvo osvježavanje čita sve stranice za taj period (najviše first_pages, po 10 objava), a poslije samo nove stranice (najviše daily_pages); otvorene objave se pamte u data/state.json. Izostavljeni su poništeni i obustavljeni postupci, dinamična kupovina avionskih karata i pregovori bez objave.",
+    "days": 40,
+    "first_pages": 160,
+    "daily_pages": 30
   },
   "ai": {
     "_napomena": "AI ocjena relevantnosti, AI prijevod naslova i AI sažetak opisa (za ocjene 2 i 3). Rade samo ako je na GitHubu postavljen secret ANTHROPIC_API_KEY. AI ocjenjuje po okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3, primjeri); poslije izmjene tog fajla objave se postepeno ocjenjuju ponovo, a do tada vrijedi stara ocjena. max_per_run: najviše ocjena po osvježavanju. include_private: da li se i objave internih izvora (GIZ, OSCE) šalju AI servisu na ocjenu, prijevod i sažetak; rezultati ostaju u šifriranom fajlu.",
@@ -147,25 +155,19 @@
       "key": "JNRS",
       "name": "Portal javnih nabavki (Srbija)",
       "home": "https://jnportal.ujn.gov.rs",
-      "reason": "robots.txt zabranjuje automatski pristup svemu osim naslovne strane (provjereno 8.10.2026)."
+      "reason": "robots.txt Portala javnih nabavki zabranjuje automatski pristup svemu osim naslovne strane. Skup otvorenih podataka Kancelarije za javne nabavke na data.gov.rs upućuje samo na fajlove na starom portalu (portal.ujn.gov.rs), od kojih je najnoviji iz avgusta 2020, a taj server nije odgovarao (provjereno 8.10.2026)."
     },
     {
       "key": "ESJN",
       "name": "e-Nabavki (Sjeverna Makedonija)",
       "home": "https://e-nabavki.gov.mk/PublicAccess/home.aspx#/notices",
-      "reason": "Zaštita od robota (Cloudflare) odbija pristup sa GitHub servera (HTTP 403). Objave treba pregledati ručno; nabavke iz EU sredstava stižu preko TED-a."
-    },
-    {
-      "key": "APP",
-      "name": "Agjencia e Prokurimit Publik (Albanija)",
-      "home": "https://www.app.gov.al",
-      "reason": "Službeni CSV izvoz postupaka (GetData/ExportDocument) robots.txt izričito zabranjuje robotima, a liste tendera su inače samo u sistemima s prijavom (provjereno 8.10.2026)."
+      "reason": "Zaštita od robota (Cloudflare) odbija pristup sa GitHub servera (HTTP 403); i stranica za javna preuzimanja (PublicAccess/PublicDownload.aspx) vraća 403 (provjereno 8.10.2026). Objave treba pregledati ručno; nabavke iz EU sredstava stižu preko TED-a."
     },
     {
       "key": "EPRK",
       "name": "e-Prokurimi (Kosovo)",
       "home": "https://e-prokurimi.rks-gov.net",
-      "reason": "Javni popis objavljenih dokumenata postoji (stranica „Dokumentet e publikuara“ u sistemu SPIN), ali se pri provjeri 8.10.2026. nije učitao; kolektor još nije napravljen."
+      "reason": "Javna pretraga objavljenih dokumenata postoji (SPIN, Common/SearchFrm.aspx, stranica „Dokumentet e publikuara“), ali bez parametara sesije vraća grešku 500, a stranice su se pri provjeri 8.10.2026. učitavale sporo ili nikako; kolektor još nije napravljen."
     }
   ]
 }
