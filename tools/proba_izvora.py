@@ -6,8 +6,9 @@ zahtjeva, s jednim poštenim User-Agentom. Ništa se ne sprema u repozitorij: re
 zapisniku posla i u sažetku posla (Summary) na GitHubu, red po red, pa ostaje i ako posao
 prekine. Kontakt podaci (imena, e-mail, telefon) se ne ispisuju.
 
-Ova proba: Kosovo OCDS API (opis API-ja, koliko traje, koja polja daje) i jedna pretraga
-data.gov.mk.
+Ova proba (peti krug): Kosovo preko TenderRelease, jedan dan po upitu (kako radi Open Contracting
+collector), uz traženje XML-a i lagan TenderUpdate; te datasetovi Biroa za javne nabavke na
+data.gov.mk. Mjeri koliko upit traje i koja polja daje.
 """
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ UA = "TenderRadar/1.0 (dnevni indeks javnih objava o nabavkama; python-requests)
 S = requests.Session()
 S.headers["User-Agent"] = UA
 S.headers["Accept"] = "application/json, text/html;q=0.9, */*;q=0.8"
+S.headers["Connection"] = "close"  # bez održavanja veze, kako predlaže programer
 SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY")
 ROBOTS: dict[str, urllib.robotparser.RobotFileParser | tuple[bool, str]] = {}
 HIDE = re.compile(r"contact|email|telephone|phone|fax|person", re.I)  # ovo se ne ispisuje
@@ -123,6 +125,15 @@ def fetch(name: str, url: str, secs: int = 60, max_mb: int = 5, **kw):
     return r, text, cut
 
 
+def twice(name: str, url: str, **kw):
+    """fetch, pa još jednom ako ne stigne, istekne ili vrati grešku 5xx (ne više od dva puta)."""
+    got = fetch(name, url, **kw)
+    if got is None or got[2] or got[0].status_code >= 500:
+        got2 = fetch(name + " (drugi pokušaj)", url, **kw)
+        return got2 if got2 is not None else got
+    return got
+
+
 def show(text: str, n: int = 800) -> None:
     if text.strip():
         say(f"- prvih {n} znakova odgovora:")
@@ -190,78 +201,55 @@ def digest(recs: list, paths: bool = True) -> None:
         say(f"- raspon `{p}`: {lo[p]} do {hi[p]}")
 
 
-def api_help() -> None:
-    got = fetch("Kosovo, opis API-ja (Help)", KS + "Help")
-    if got is not None and got[0].ok:
-        names = [html.unescape(n).strip()
-                 for n in re.findall(r'class="api-name"[^>]*>\s*<a[^>]*>([^<]+)</a>', got[1])]
-        if names:
-            say(f"- metode ({len(names)}):")
-            for n in names[:80]:
-                say(f"  - `{n}`")
-            return
-        show(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", got[1])))
-        return
-    got = fetch("Kosovo, opis API-ja (swagger)", KS + "swagger/docs/v1")
-    if got is not None and got[0].ok and not got[2]:
-        try:
-            spec = json.loads(got[1])
-        except ValueError:
-            show(got[1])
-            return
-        for path, ops in (spec.get("paths") or {}).items():
-            for method, op in (ops or {}).items():
-                params = [q.get("name") for q in (op or {}).get("parameters", []) if isinstance(q, dict)]
-                say(f"  - `{method.upper()} {path}` {params}")
+def kosovo_day(label: str, day_from: dt.date, day_to: dt.date, **kw):
+    """Jedan dan preko TenderRelease (onako kako radi Open Contracting collector)."""
+    return twice(f"Kosovo, TenderRelease, {label}", KS + "TenderRelease", secs=60,
+                 params={"endDateFrom": day_from.isoformat(), "endDateEnd": day_to.isoformat()}, **kw)
 
 
 def main() -> int:
     say(f"# Proba izvora ({time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())})")
     say()
     today = dt.date.today()
-    api_help()
-    # Kosovo: tenderi s rokom od danas do +1 i do +7 dana (server zna vratiti grešku 500 poslije
-    # oko 30 s, pa se vidi prolazi li manji upit); polja iz većeg odgovora koji stigne
-    best, week = None, None
-    for days, secs in ((1, 120), (7, 300)):
-        week = fetch(f"Kosovo, Tender, rok od danas do +{days} dana", KS + "Tender", secs=secs, max_mb=20,
-                     params={"endDateFrom": today.isoformat(),
-                             "endDateEnd": (today + dt.timedelta(days=days)).isoformat()})
-        recs = records(week)
-        if recs:
-            best = (days, recs)
-    if best:
-        say(f"### Kosovo, polja iz odgovora za +{best[0]} dana")
-        recs = best[1]
+    y = today - dt.timedelta(days=1)
+    # 1. TenderRelease za jedan dan (jučer -> danas): endpoint i prozor koji već koristi Kingfisher
+    rel = kosovo_day("jučer do danas (jedan dan)", y, today)
+    recs = records(rel)
+    if recs is not None:
         digest(recs)
         uri = next((x.get("uri") for x in recs if isinstance(x, dict) and x.get("uri")), None)
-        if uri:  # da li je stranica tendera (link za čovjeka) javna
+        if uri:  # je li stranica tendera (link za čovjeka) javna
             got = fetch("Kosovo, stranica tendera na e-prokurimi (uri iz API-ja)", uri)
             if got is not None:
                 m = re.search(r"<title[^>]*>(.*?)</title>", got[1], re.S | re.I)
                 say(f"- naslov stranice: {html.unescape(m[1]).strip()[:120] if m else '(nema)'}")
-    # Sjeverna Makedonija: najnoviji skupovi s riječju „огласи“ (oglasi) na data.gov.mk
-    got = fetch("Sjeverna Makedonija, data.gov.mk, skupovi „огласи“, najnoviji prvi", MK,
-                params={"q": "огласи", "sort": "metadata_modified desc", "rows": 20})
+    # 2. Isti upit, ali trazen XML (mozda JSON serijalizacija pravi problem, a XML backend radi)
+    got = kosovo_day("jedan dan, trazen XML", y, today, headers={"Accept": "application/xml"})
+    if got is not None:
+        show(got[1])
+    # 3. Tender (ne Release) za jedan dan, radi poredjenja
+    records(twice("Kosovo, Tender, jedan dan", KS + "Tender", secs=60,
+                  params={"endDateFrom": y.isoformat(), "endDateEnd": today.isoformat()}))
+    # 4. TenderUpdate bez parametara: lagan endpoint, pokazuje odgovara li server na pojedinacne upite
+    records(fetch("Kosovo, TenderUpdate (lagan upit)", KS + "TenderUpdate", secs=60))
+    # 5. Ako TenderRelease radi, izmjeri jos tri pojedinacna dana zaredom (koliko traje po danu)
+    if rel is not None and not rel[2] and rel[0].ok:
+        for i in range(2, 5):
+            d = today - dt.timedelta(days=i)
+            records(kosovo_day(f"dan -{i} ({d.isoformat()})", d, d + dt.timedelta(days=1)))
+    # Sjeverna Makedonija: svi datasetovi organizacije Biro za javne nabavke (BJN), najnoviji prvi
+    got = fetch("Sjeverna Makedonija, data.gov.mk, datasetovi BJN (owner_org)", MK,
+                params={"fq": "owner_org:e61494c4-5ada-439a-8f0d-44d78c76dd30",
+                        "sort": "metadata_modified desc", "rows": 50})
     if got is not None and got[0].ok and not got[2]:
         try:
             res = json.loads(got[1]).get("result") or {}
         except (ValueError, AttributeError):
             res = {}
-        say(f"- pronađeno {res.get('count')} skupova (naziv | organizacija | izmijenjeno | formati):")
+        say(f"- pronadjeno {res.get('count')} datasetova BJN (naziv | izmijenjeno | formati):")
         for p in res.get("results") or []:
             fmts = sorted({(x.get("format") or "?") for x in p.get("resources") or []})
-            say(f"  - {p.get('title')} | {(p.get('organization') or {}).get('title') or ''} | "
-                f"{p.get('metadata_modified')} | {', '.join(fmts)}")
-    # Kosovo: rok od danas do +45 dana (otprilike svi otvoreni tenderi); samo trajanje i rasponi
-    if week is None or week[2] or not week[0].ok:
-        say("### Kosovo, Tender, rok od danas do +45 dana: preskočeno, jer upit za 7 dana nije uspio")
-    else:
-        recs = records(fetch("Kosovo, Tender, rok od danas do +45 dana (mjerenje)", KS + "Tender", secs=360,
-                             max_mb=40, params={"endDateFrom": today.isoformat(),
-                                                "endDateEnd": (today + dt.timedelta(days=45)).isoformat()}))
-        if recs:
-            digest(recs, paths=False)
+            say(f"  - {p.get('title')} | {p.get('metadata_modified')} | {', '.join(fmts)}")
     say()
     say("Kraj probe.")
     return 0
