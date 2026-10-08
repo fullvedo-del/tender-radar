@@ -6,11 +6,13 @@ filtrira po roku za ponude (tenderPeriod.endDate). Sajt nema robots.txt (vraća 
 nije zabranjeno. Svaki release ima naslov, naručioca, rok, vrstu, vrijednost i link na javnu
 stranicu objave na e-prokurimi.
 
-API je spor (jedan uzak prozor traje 40 do 60 s i zna ne odgovoriti), pa se ne čita cijeli
-raspon odjednom. Prozor otvorenih rokova (od danas do `days` dana unaprijed) dijeli se na
-komade od `chunk` dana. Svaki dan se pročita onoliko komada koliko stane u `budget` sekundi,
-krećući od mjesta gdje se stalo; ostali komadi zadrže jučerašnje tendere iz cfg["_state"]. Tako
-se cijeli prozor osvježi za nekoliko dana, a izvor nikad ne premaši vremenski budžet.
+API je spor: server računa upit 40 do 60 s bez obzira na veličinu prozora (tako radi i Open
+Contracting Kingfisher collector), pa se čita jedan dan po upitu. Prozor otvorenih rokova (od
+danas do `days` dana unaprijed) dijeli se na komade od `chunk` dana (podrazumijevano 1). Svaki
+dan se pročita onoliko dana koliko stane u `budget` sekundi, krećući od mjesta gdje se stalo;
+ostali dani zadrže jučerašnje tendere iz cfg["_state"]. Tako se cijeli prozor napuni za desetak
+dana i poslije održava, a izvor nikad ne premaši vremenski budžet. Dan koji padne pokušava se
+ponovo pri sljedećem osvježavanju.
 """
 from __future__ import annotations
 
@@ -77,10 +79,10 @@ def _chunk(d: str, today: dt.date, chunk: int) -> int:
 
 def collect(cfg: dict) -> list[dict]:
     c = cfg.get("kosovo", {})
-    days = int(c.get("days", 42))           # koliko dana unaprijed (rok) gledati
-    chunk = int(c.get("chunk", 7))          # veličina jednog komada u danima
-    budget = float(c.get("budget", 180))    # najviše sekundi na čitanje po osvježavanju
-    timeout = float(c.get("timeout", 90))   # najduže čekanje na jedan upit
+    days = int(c.get("days", 30))           # koliko dana unaprijed (rok) gledati
+    chunk = int(c.get("chunk", 1))          # veličina jednog komada u danima (API je spor, 1 dan po upitu)
+    budget = float(c.get("budget", 200))    # najviše sekundi na čitanje po osvježavanju
+    timeout = float(c.get("timeout", 75))   # najduže čekanje na jedan upit
     state = cfg.get("_state")
     if not isinstance(state, dict):
         state = {}
@@ -97,9 +99,9 @@ def collect(cfg: dict) -> list[dict]:
             break
         k = (cursor + step) % windows
         a = today + dt.timedelta(days=k * chunk)
-        b = today + dt.timedelta(days=min(days, (k + 1) * chunk) - 1)
+        b = today + dt.timedelta(days=min(days, (k + 1) * chunk))  # gornja granica isključiva, kao kod Kingfishera
         try:
-            r = base.fetch(s, "GET", API, tries=2, pause=3.0, timeout=timeout,
+            r = base.fetch(s, "GET", API, tries=1, pause=3.0, timeout=timeout,
                            params={"endDateFrom": a.isoformat(), "endDateEnd": b.isoformat()})
             payload = r.json()
         except base.SourceBlocked:

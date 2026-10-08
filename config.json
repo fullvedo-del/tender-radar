@@ -50,11 +50,11 @@
     "daily_pages": 30
   },
   "kosovo": {
-    "_napomena": "e-Prokurimi Kosovo preko OCDS servisa PPRC-a (krppAPI/TenderRelease). API je spor, pa se raspon otvorenih rokova (od danas do days dana unaprijed) čita u komadima od chunk dana, onoliko koliko stane u budget sekundi po osvježavanju, krećući od mjesta gdje se stalo; ostali komadi zadrže jučerašnje tendere iz data/state.json. timeout je najduže čekanje na jedan upit. Kosovo je zato najkrhkiji izvor i neke dane možda neće osvježiti.",
-    "days": 42,
-    "chunk": 7,
-    "budget": 180,
-    "timeout": 90
+    "_napomena": "e-Prokurimi Kosovo preko OCDS servisa PPRC-a (krppAPI/TenderRelease). Server računa upit 40 do 60 s bez obzira na veličinu prozora, pa se čita jedan dan po upitu (chunk 1). Raspon otvorenih rokova (od danas do days dana unaprijed) čita se dan po dan, onoliko dana koliko stane u budget sekundi po osvježavanju, krećući od mjesta gdje se stalo; ostali dani zadrže jučerašnje tendere iz data/state.json. timeout je najduže čekanje na jedan upit. Kosovo je najkrhkiji izvor: puni se desetak dana i neke dane možda neće osvježiti.",
+    "days": 30,
+    "chunk": 1,
+    "budget": 200,
+    "timeout": 75
   },
   "ai": {
     "_napomena": "AI ocjena relevantnosti, AI prijevod naslova i AI sažetak opisa (za ocjene 2 i 3). Rade samo ako je na GitHubu postavljen secret ANTHROPIC_API_KEY. AI ocjenjuje po okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3, primjeri); poslije izmjene tog fajla objave se postepeno ocjenjuju ponovo, a do tada vrijedi stara ocjena. max_per_run: najviše ocjena po osvježavanju. include_private: da li se i objave internih izvora (GIZ, OSCE) šalju AI servisu na ocjenu, prijevod i sažetak; rezultati ostaju u šifriranom fajlu.",
