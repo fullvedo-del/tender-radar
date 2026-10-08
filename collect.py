@@ -37,7 +37,7 @@ from collectors import base
 # Redoslijed je ujedno prioritet kod duplikata: objavu zadržava izvor koji je prvi na listi.
 # Interni izvori uvijek dolaze poslije javnih, pa istu objavu zadržava javni izvor.
 # developmentaid.py i enabavki_mk.py ostaju u repozitoriju, ali se ne pokreću (vidi config.json, excluded).
-MODULES = ["ejn", "cejn_me", "app_al", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
+MODULES = ["ejn", "cejn_me", "app_al", "kosovo", "ted", "eu_ft", "worldbank", "undp", "ebrd", "rcc", "expertise_france",
            "czechaid", "eu_grants", "fzofbih", "ekofondrs", "fmrpo", "mrezamira",
            "giz", "osce"]
 
