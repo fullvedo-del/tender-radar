@@ -4,10 +4,15 @@ Za svaki trag prvo čita robots.txt. Ako robots.txt zabranjuje putanju ili se ne
 zbog greške servera (5xx, isteklo vrijeme), zahtjev se ne šalje. Šalje se najviše nekoliko
 zahtjeva, s jednim poštenim User-Agentom. Ništa se ne sprema u repozitorij: rezultat je u
 zapisniku posla i u sažetku posla (Summary) na GitHubu, red po red, pa ostaje i ako posao
-prekine.
+prekine. Kontakt podaci (imena, e-mail, telefon) se ne ispisuju.
+
+Ova proba: Kosovo OCDS API (opis API-ja, koliko traje, koja polja daje) i jedna pretraga
+data.gov.mk.
 """
 from __future__ import annotations
 
+import datetime as dt
+import html
 import json
 import os
 import re
@@ -15,6 +20,7 @@ import signal
 import sys
 import time
 import urllib.robotparser
+from collections import Counter
 from urllib.parse import urlsplit
 
 import requests
@@ -25,8 +31,9 @@ S.headers["User-Agent"] = UA
 S.headers["Accept"] = "application/json, text/html;q=0.9, */*;q=0.8"
 SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY")
 ROBOTS: dict[str, urllib.robotparser.RobotFileParser | tuple[bool, str]] = {}
-MAX_BYTES = 5_000_000  # odgovor se čita najviše do ove veličine
-MAX_SECS = 60          # cijeli zahtjev traje najviše ovoliko sekundi
+HIDE = re.compile(r"contact|email|telephone|phone|fax|person", re.I)  # ovo se ne ispisuje
+KS = "https://ocdskrpp.rks-gov.net/krppAPI/"
+MK = "https://data.gov.mk/api/3/action/package_search"
 
 
 def say(line: str = "") -> None:
@@ -67,28 +74,8 @@ def _alarm(*_):
     raise _TooSlow
 
 
-def _show_json(data) -> None:
-    res = data.get("result") if isinstance(data, dict) else None
-    if isinstance(res, dict) and isinstance(res.get("results"), list):  # CKAN (data.gov.mk)
-        say(f"- CKAN: pronađeno {res.get('count')} skupova; prvih 20 (naziv | organizacija | izmijenjeno):")
-        for p in res["results"][:20]:
-            say(f"  - {p.get('title')} | {(p.get('organization') or {}).get('title')} | {p.get('metadata_modified')}")
-        return
-    items = data if isinstance(data, list) else (
-        next((v for v in data.values() if isinstance(v, list)), None) if isinstance(data, dict) else None)
-    if isinstance(data, dict):
-        say(f"- ključevi na vrhu: {list(data)[:15]}")
-    if items is not None:
-        say(f"- broj zapisa: {len(items)}")
-        if items:
-            say("- prvi zapis:")
-            say("```")
-            say(json.dumps(items[0], ensure_ascii=False, indent=1)[:2500])
-            say("```")
-
-
-def probe(name: str, url: str, method: str = "GET", show_json: bool = True, **kw):
-    """Šalje jedan zahtjev ako robots.txt dozvoljava; vraća (odgovor, tekst) ili None."""
+def fetch(name: str, url: str, secs: int = 60, max_mb: int = 5, **kw):
+    """Jedan GET ako robots.txt dozvoljava; vraća (odgovor, tekst, skraćeno) ili None."""
     ok, why = robots_ok(url)
     say(f"### {name}")
     say(f"- adresa: `{url}`" + (f" s parametrima {kw['params']}" if kw.get("params") else ""))
@@ -97,94 +84,184 @@ def probe(name: str, url: str, method: str = "GET", show_json: bool = True, **kw
         say("- zahtjev nije poslan")
         return None
     time.sleep(1)
-    t0, r, buf, cut = time.monotonic(), None, bytearray(), False
+    t0, r, head, buf, cut = time.monotonic(), None, 0.0, bytearray(), False
     signal.signal(signal.SIGALRM, _alarm)
-    signal.alarm(MAX_SECS)  # tvrda granica za cijeli zahtjev, i kad server šalje kap po kap
+    signal.alarm(secs)  # tvrda granica za cijeli zahtjev, i kad server šalje kap po kap
     try:
-        r = S.request(method, url, timeout=45, stream=True, **kw)
-        for chunk in r.iter_content(8192):
+        r = S.get(url, timeout=(30, 120), stream=True, **kw)
+        head = time.monotonic() - t0
+        for chunk in r.iter_content(16384):
             buf += chunk
-            if len(buf) >= MAX_BYTES:
+            if len(buf) >= max_mb * 1_000_000:
                 cut = True
                 break
     except _TooSlow:
         cut = True
     except requests.RequestException as e:
-        say(f"- greška veze: {type(e).__name__}: {str(e)[:200]}")
+        say(f"- greška veze poslije {time.monotonic() - t0:.0f} s: {type(e).__name__}: {str(e)[:160]}")
         return None
     finally:
         signal.alarm(0)
         if r is not None:
             r.close()
     if r is None:
-        say(f"- nema odgovora ni poslije {MAX_SECS} s")
+        say(f"- nema odgovora ni poslije {secs} s")
         return None
-    body = bytes(buf)
+    total = time.monotonic() - t0
+    size = r.headers.get("content-length")
+    say(f"- HTTP {r.status_code}, {r.headers.get('content-type', '?')}, {len(buf)} bajta"
+        + (f" od {size}" if size else "")
+        + f"; zaglavlje stiglo za {head:.1f} s, ukupno {total:.1f} s,"
+        + f" prijenos {len(buf) / 1024 / max(total - head, 0.1):.1f} KB/s"
+        + (f" (skraćeno: granica {secs} s ili {max_mb} MB)" if cut else "")
+        + (", Cloudflare" if "cf-ray" in r.headers else ""))
     enc = r.encoding if r.encoding and r.encoding.lower() != "iso-8859-1" else "utf-8"  # requests-ov podrazumijevani
     try:
-        text = body.decode(enc, errors="replace")
+        text = bytes(buf).decode(enc, errors="replace")
     except LookupError:
-        text = body.decode("utf-8", errors="replace")
-    ct = r.headers.get("content-type", "?")
-    say(f"- HTTP {r.status_code}, {ct}, {len(body)} bajta, {time.monotonic() - t0:.1f} s"
-        + (f" (skraćeno: veće od 5 MB ili duže od {MAX_SECS} s)" if cut else "")
-        + (f", Content-Length: {r.headers.get('content-length')}" if r.headers.get("content-length") else "")
-        + (f", Location: `{r.headers.get('location')}`" if r.headers.get("location") else "")
-        + (f", Last-Modified: {r.headers.get('last-modified')}" if r.headers.get("last-modified") else "")
-        + (", Cloudflare" if "cf-ray" in r.headers else ""))
-    if show_json and r.ok and "json" in ct and not cut:
+        text = bytes(buf).decode("utf-8", errors="replace")
+    return r, text, cut
+
+
+def show(text: str, n: int = 800) -> None:
+    if text.strip():
+        say(f"- prvih {n} znakova odgovora:")
+        say("```")
+        say(text[:n])
+        say("```")
+
+
+def records(got) -> list | None:
+    """Lista zapisa iz JSON odgovora, ili None (uz ispis razloga)."""
+    if got is None:
+        return None
+    r, text, cut = got
+    if cut or not r.ok:
+        show(text)
+        return None
+    try:
+        data = json.loads(text)
+    except ValueError:
+        say("- odgovor nije ispravan JSON")
+        show(text)
+        return None
+    recs = data if isinstance(data, list) else (
+        next((v for v in data.values() if isinstance(v, list)), None) if isinstance(data, dict) else None)
+    if recs is None:
+        say(f"- JSON bez liste zapisa; ključevi: {list(data)[:15] if isinstance(data, dict) else type(data).__name__}")
+        return None
+    say(f"- broj zapisa: {len(recs)}")
+    return recs
+
+
+def _leaves(x, path: str, out: dict) -> None:
+    if isinstance(x, dict):
+        for k, v in x.items():
+            _leaves(v, f"{path}.{k}" if path else str(k), out)
+    elif isinstance(x, list):
+        for v in x[:5]:
+            _leaves(v, path + "[]", out)
+    elif x not in (None, ""):
+        out.setdefault(path, []).append(x)
+
+
+def digest(recs: list, paths: bool = True) -> None:
+    """Polja s popunjenošću i primjerom, vrijednosti statusa i vrsta, rasponi datuma."""
+    fill, example, first, lo, hi = Counter(), {}, {}, {}, {}
+    for rec in recs:
+        leaves: dict = {}
+        _leaves(rec, "", leaves)
+        for p, vals in leaves.items():
+            fill[p] += 1
+            example.setdefault(p, vals[0])
+            first.setdefault(p, Counter())[str(vals[0])] += 1
+            if "date" in p.rsplit(".", 1)[-1].lower():
+                lo[p] = min([lo.get(p, str(vals[0]))] + [str(v) for v in vals])
+                hi[p] = max([hi.get(p, str(vals[0]))] + [str(v) for v in vals])
+    if paths:
+        say(f"- polja (u koliko zapisa od {len(recs)} je popunjeno, primjer):")
+        for p in sorted(fill)[:160]:
+            say(f"  - `{p}`: {fill[p]}, npr. {'(skriveno)' if HIDE.search(p) else str(example[p])[:70]}")
+    for p in sorted(fill):
+        last = p.rsplit(".", 1)[-1].lower()
+        if not HIDE.search(p) and re.search(r"status|method|category|currency", last) and len(first[p]) <= 25:
+            say(f"- vrijednosti `{p}`: " + ", ".join(f"{v} ({n})" for v, n in first[p].most_common(12)))
+    for p in sorted(lo):
+        say(f"- raspon `{p}`: {lo[p]} do {hi[p]}")
+
+
+def api_help() -> None:
+    got = fetch("Kosovo, opis API-ja (Help)", KS + "Help")
+    if got is not None and got[0].ok:
+        names = [html.unescape(n).strip()
+                 for n in re.findall(r'class="api-name"[^>]*>\s*<a[^>]*>([^<]+)</a>', got[1])]
+        if names:
+            say(f"- metode ({len(names)}):")
+            for n in names[:80]:
+                say(f"  - `{n}`")
+            return
+        show(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", got[1])))
+        return
+    got = fetch("Kosovo, opis API-ja (swagger)", KS + "swagger/docs/v1")
+    if got is not None and got[0].ok and not got[2]:
         try:
-            _show_json(json.loads(text))
-            return r, text
+            spec = json.loads(got[1])
         except ValueError:
-            say("- odgovor nije ispravan JSON")
-    if method != "HEAD" and text.strip():
-        say("- prvih 1000 znakova odgovora:")
-        say("```")
-        say(text[:1000])
-        say("```")
-    return r, text
+            show(got[1])
+            return
+        for path, ops in (spec.get("paths") or {}).items():
+            for method, op in (ops or {}).items():
+                params = [q.get("name") for q in (op or {}).get("parameters", []) if isinstance(q, dict)]
+                say(f"  - `{method.upper()} {path}` {params}")
 
 
 def main() -> int:
     say(f"# Proba izvora ({time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())})")
     say()
-    # Kosovo: OCDS API Regulatorne komisije za javne nabavke (PPRC)
-    base = "https://ocdskrpp.rks-gov.net/krppAPI/"
-    iso = {"endDateFrom": "2026-10-01", "endDateEnd": "2026-10-08"}
-    tries = [
-        ("Kosovo, Tender bez parametara", "Tender", None),
-        ("Kosovo, Tender, rok 2026-10-01 do 2026-10-08", "Tender", iso),
-        ("Kosovo, Tender, rok 10/01/2026 do 10/08/2026", "Tender", {"endDateFrom": "10/01/2026", "endDateEnd": "10/08/2026"}),
-        ("Kosovo, Tender, rok 01.10.2026 do 08.10.2026", "Tender", {"endDateFrom": "01.10.2026", "endDateEnd": "08.10.2026"}),
-        ("Kosovo, Tender, rok 2026-10-01 do 2026-10-08, DataFormat=json", "Tender", {**iso, "DataFormat": "json"}),
-        ("Kosovo, TenderRelease, rok 2026-10-01 do 2026-10-08, DataFormat=json", "TenderRelease", {**iso, "DataFormat": "json"}),
-        ("Kosovo, TenderRelease, rok 2026-10-01 do 2026-10-08", "TenderRelease", iso),
-    ]
-    allowed = robots_ok(base + "Tender")[0]
-    for name, path, params in tries:  # svaka varijanta se proba, i kad prethodna vrati grešku
-        probe(name, base + path, **({"params": params} if params else {}))
-        if not allowed:
-            break  # robots.txt ne dozvoljava ili se ne može pročitati: ostale varijante se ne šalju
-    # Sjeverna Makedonija: stranica otvorenih podataka ESJN
-    got = probe("Sjeverna Makedonija, otvoreni podaci", "https://www.e-nabavki.gov.mk/opendata-announcements.aspx",
-                show_json=False)
-    if got is not None and got[0].ok:
-        scripts = sorted(set(re.findall(r"""src=["']([^"']+\.js[^"']*)""", got[1])))[:20]
-        services = sorted(set(re.findall(r"[\w/.-]+\.(?:asmx|svc|ashx)[\w/.-]*", got[1])))[:20]
-        say(f"- skripte: {scripts}")
-        say(f"- servisi u stranici: {services}")
-    # Sjeverna Makedonija: državni portal otvorenih podataka (CKAN API)
-    probe("Sjeverna Makedonija, data.gov.mk, skupovi o javnim nabavkama",
-          "https://data.gov.mk/api/3/action/package_search", params={"q": "јавни набавки", "rows": 50})
-    # Srbija: trajni link resursa na data.gov.rs (kuda vodi)
-    got = probe("Srbija, data.gov.rs trajni link (bez praćenja)",
-                "https://data.gov.rs/sr/datasets/r/50881b17-0d4a-4f6b-b9fc-26e148780f27",
-                show_json=False, allow_redirects=False)
-    loc = got[0].headers.get("location") if got is not None else None
-    if loc:
-        probe("Srbija, fajl na koji link vodi (samo zaglavlje)", loc, method="HEAD", show_json=False,
-              allow_redirects=False)
+    today = dt.date.today()
+    api_help()
+    # Kosovo: tenderi s rokom od danas do +1 i do +7 dana (server zna vratiti grešku 500 poslije
+    # oko 30 s, pa se vidi prolazi li manji upit); polja iz većeg odgovora koji stigne
+    best, week = None, None
+    for days, secs in ((1, 120), (7, 300)):
+        week = fetch(f"Kosovo, Tender, rok od danas do +{days} dana", KS + "Tender", secs=secs, max_mb=20,
+                     params={"endDateFrom": today.isoformat(),
+                             "endDateEnd": (today + dt.timedelta(days=days)).isoformat()})
+        recs = records(week)
+        if recs:
+            best = (days, recs)
+    if best:
+        say(f"### Kosovo, polja iz odgovora za +{best[0]} dana")
+        recs = best[1]
+        digest(recs)
+        uri = next((x.get("uri") for x in recs if isinstance(x, dict) and x.get("uri")), None)
+        if uri:  # da li je stranica tendera (link za čovjeka) javna
+            got = fetch("Kosovo, stranica tendera na e-prokurimi (uri iz API-ja)", uri)
+            if got is not None:
+                m = re.search(r"<title[^>]*>(.*?)</title>", got[1], re.S | re.I)
+                say(f"- naslov stranice: {html.unescape(m[1]).strip()[:120] if m else '(nema)'}")
+    # Sjeverna Makedonija: najnoviji skupovi s riječju „огласи“ (oglasi) na data.gov.mk
+    got = fetch("Sjeverna Makedonija, data.gov.mk, skupovi „огласи“, najnoviji prvi", MK,
+                params={"q": "огласи", "sort": "metadata_modified desc", "rows": 20})
+    if got is not None and got[0].ok and not got[2]:
+        try:
+            res = json.loads(got[1]).get("result") or {}
+        except (ValueError, AttributeError):
+            res = {}
+        say(f"- pronađeno {res.get('count')} skupova (naziv | organizacija | izmijenjeno | formati):")
+        for p in res.get("results") or []:
+            fmts = sorted({(x.get("format") or "?") for x in p.get("resources") or []})
+            say(f"  - {p.get('title')} | {(p.get('organization') or {}).get('title') or ''} | "
+                f"{p.get('metadata_modified')} | {', '.join(fmts)}")
+    # Kosovo: rok od danas do +45 dana (otprilike svi otvoreni tenderi); samo trajanje i rasponi
+    if week is None or week[2] or not week[0].ok:
+        say("### Kosovo, Tender, rok od danas do +45 dana: preskočeno, jer upit za 7 dana nije uspio")
+    else:
+        recs = records(fetch("Kosovo, Tender, rok od danas do +45 dana (mjerenje)", KS + "Tender", secs=360,
+                             max_mb=40, params={"endDateFrom": today.isoformat(),
+                                                "endDateEnd": (today + dt.timedelta(days=45)).isoformat()}))
+        if recs:
+            digest(recs, paths=False)
     say()
     say("Kraj probe.")
     return 0
