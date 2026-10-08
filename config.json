@@ -56,6 +56,15 @@
     "budget": 200,
     "timeout": 75
   },
+  "srbija": {
+    "_napomena": "Portal javnih nabavki Srbije (jnportal.ujn.gov.rs) preko javnog servisa api/searchgrid/TendersAll/get. Kolektor otvori stranicu (uzme token uiUserToken i kolačiće), pa povuče postupke kojima rok nije prošao, stranicu po stranicu (servis vraća najviše 100 po strani, najviše max_pages strana). Robots.txt portala zabranjuje robote, ali po odluci naručioca to nije prepreka; prijava i Cloudflare se ne diraju.",
+    "take": 100,
+    "max_pages": 60
+  },
+  "makedonija": {
+    "_napomena": "ESJN Sj. Makedonije (e-nabavki.gov.mk) blokira servere u podatkovnim centrima (GitHub), pa GitHub NE preuzima makedonske podatke. Kancelarijski računar na običnoj vezi skriptom tools/esjn_fetch.py jednom dnevno upiše data/esjn_raw.json i gurne ga u repozitorij (vidi tools/kancelarija). Ovaj kolektor samo pročita taj fajl. raw_file: putanja do fajla (podrazumijevano data/esjn_raw.json).",
+    "raw_file": ""
+  },
   "ai": {
     "_napomena": "AI ocjena relevantnosti, AI prijevod naslova i AI sažetak opisa (za ocjene 2 i 3). Rade samo ako je na GitHubu postavljen secret ANTHROPIC_API_KEY. AI ocjenjuje po okviru iz fajla ai_okvir.md (opis CETEOR-a i REIC-a, pravila za ocjene 0 do 3, primjeri); poslije izmjene tog fajla objave se postepeno ocjenjuju ponovo, a do tada vrijedi stara ocjena. max_per_run: najviše ocjena po osvježavanju. include_private: da li se i objave internih izvora (GIZ, OSCE) šalju AI servisu na ocjenu, prijevod i sažetak; rezultati ostaju u šifriranom fajlu.",
     "model": "claude-haiku-4-5-20251001",
@@ -157,18 +166,6 @@
       "name": "EOJN RH (Hrvatska)",
       "home": "https://eojn.hr",
       "reason": "robots.txt zabranjuje automatski pristup svemu osim naslovne strane. Hrvatske nabavke iznad EU praga stižu preko TED-a, koji se prati."
-    },
-    {
-      "key": "JNRS",
-      "name": "Portal javnih nabavki (Srbija)",
-      "home": "https://jnportal.ujn.gov.rs",
-      "reason": "robots.txt Portala javnih nabavki zabranjuje automatski pristup svemu osim naslovne strane. Skup otvorenih podataka Kancelarije za javne nabavke na data.gov.rs upućuje samo na fajlove na starom portalu (portal.ujn.gov.rs), od kojih je najnoviji iz avgusta 2020, a taj server nije odgovarao (provjereno 8.10.2026)."
-    },
-    {
-      "key": "ESJN",
-      "name": "e-Nabavki (Sjeverna Makedonija)",
-      "home": "https://e-nabavki.gov.mk/PublicAccess/home.aspx#/notices",
-      "reason": "Zaštita od robota (Cloudflare) odbija pristup sa GitHub servera (HTTP 403); i stranica za javna preuzimanja (PublicAccess/PublicDownload.aspx) vraća 403 (provjereno 8.10.2026). Objave treba pregledati ručno; nabavke iz EU sredstava stižu preko TED-a."
     }
   ]
 }
