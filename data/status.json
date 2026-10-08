@@ -1,7 +1,7 @@
 {
- "generated": "2026-10-08T14:23:48Z",
- "total": 5577,
- "total_private": 84,
+ "generated": "2026-10-08T16:16:28Z",
+ "total": 7739,
+ "total_private": 85,
  "fx": {
   "BAM": 1.0,
   "EUR": 1.95583,
@@ -44,22 +44,22 @@
  "ai": {
   "model": "claude-haiku-4-5-20251001",
   "on": true,
-  "new": 112,
-  "error": null,
+  "new": 1040,
+  "error": "isteklo vrijeme za ocjenjivanje; ostatak se ocjenjuje pri sljedećem osvježavanju",
   "okvir": "ab21a94570",
-  "scored": 5661,
-  "pending": 0,
-  "stale": 0,
+  "scored": 6682,
+  "pending": 1142,
+  "stale": 1,
   "tr": {
    "on": true,
-   "new": 52,
-   "error": null,
-   "done": 1141,
-   "pending": 0
+   "new": 123,
+   "error": "isteklo vrijeme za prijevode; ostatak se prevodi pri sljedećem osvježavanju",
+   "done": 1264,
+   "pending": 273
   },
   "sm": {
    "on": true,
-   "new": 4,
+   "new": 0,
    "error": null,
    "done": 136,
    "pending": 0
@@ -74,7 +74,7 @@
     "ok": true,
     "count": 494,
     "done": true,
-    "error": null,
+    "error": "nije stiglo na red u ovom osvježavanju (isteklo vrijeme)",
     "last_ok": "2026-10-08T14:38:31Z",
     "sec": 5.2
    },
@@ -82,7 +82,7 @@
     "ok": true,
     "count": 1641,
     "done": true,
-    "error": null,
+    "error": "nije stiglo na red u ovom osvježavanju (isteklo vrijeme)",
     "last_ok": "2026-10-08T14:38:31Z",
     "sec": 9.9
    }
@@ -91,16 +91,16 @@
  "refs": {
   "on": true,
   "n": 899,
-  "matched": 272,
+  "matched": 283,
   "error": null
  },
  "experts": {
   "on": true,
   "n": 44,
-  "new": 8,
-  "error": null,
+  "new": 0,
+  "error": "isteklo vrijeme za preporuke; ostatak se radi pri sljedećem osvježavanju",
   "matched": 157,
-  "pending": 0
+  "pending": 21
  },
  "sources": [
   {
@@ -110,9 +110,9 @@
    "scope": "Sva obavještenja o nabavci (robe, usluge, radovi) kojima rok za ponude ili zahtjeve za učešće nije istekao; bez poništenih postupaka, direktnih sporazuma i javnih poziva za usluge iz Aneksa II.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 88.1,
-   "count": 2005,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 109.8,
+   "count": 2006,
    "merged": 0
   },
   {
@@ -122,9 +122,9 @@
    "scope": "Objavljeni tenderi u Crnoj Gori (robe, usluge i radovi) kojima rok za ponude nije prošao; naslovi su na crnogorskom.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 203.6,
-   "count": 379,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 4.5,
+   "count": 381,
    "merged": 0
   },
   {
@@ -134,8 +134,8 @@
    "scope": "Objavljeni tenderi u Albaniji kojima rok nije prošao, bez poništenih i obustavljenih; naslovi su na albanskom.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 6.6,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 6.5,
    "count": 553,
    "merged": 0
   },
@@ -146,9 +146,33 @@
    "scope": "Objavljeni tenderi na Kosovu kojima rok za ponude nije prošao, preko OCDS servisa PPRC-a; naslovi su na albanskom.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 237.2,
-   "count": 39,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 228.6,
+   "count": 200,
+   "merged": 0
+  },
+  {
+   "key": "JNRS",
+   "name": "Portal JN (Srbija)",
+   "home": "https://jnportal.ujn.gov.rs",
+   "scope": "Objavljeni postupci javnih nabavki u Srbiji kojima rok za ponude nije prošao, bez pregovaračkih postupaka bez objave; naslovi su na srpskom.",
+   "ok": true,
+   "error": null,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 34.9,
+   "count": 2010,
+   "merged": 0
+  },
+  {
+   "key": "ESJN",
+   "name": "ESJN (Sj. Makedonija)",
+   "home": "https://e-nabavki.gov.mk",
+   "scope": "Objavljeni pozivi za ponude u Sjevernoj Makedoniji kojima rok (javno otvaranje) nije prošao, bez pregovaračkih bez objave; naslovi su na makedonskom.",
+   "ok": false,
+   "error": "Makedonija: nema data/esjn_raw.json; kancelarijski računar još nije poslao podatke (vidi tools/esjn_fetch.py)",
+   "last_ok": null,
+   "sec": 0.0,
+   "count": 0,
    "merged": 0
   },
   {
@@ -158,8 +182,8 @@
    "scope": "Otvoreni pozivi (rok nije istekao): svi tipovi ugovora za Zapadni Balkan (mjesto izvršenja ili naručilac) te usluge koje naručuju EU institucije, međunarodne organizacije i razvojne agencije i banke (GIZ, KfW, EIB, AFD, Enabel i dr.).",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 10.6,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 11.7,
    "count": 793,
    "merged": 0
   },
@@ -170,9 +194,9 @@
    "scope": "Otvoreni i najavljeni pozivi za tendere institucija i agencija EU; bez poziva za grantove.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 14.1,
-   "count": 200,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 16.1,
+   "count": 202,
    "merged": 117
   },
   {
@@ -182,8 +206,8 @@
    "scope": "Svi otvoreni pozivi za ponude, izraze interesa i pretkvalifikaciju iz projekata Svjetske banke u cijelom svijetu; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 6.8,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 7.5,
    "count": 651,
    "merged": 0
   },
@@ -194,8 +218,8 @@
    "scope": "Sve otvorene objave s UNDP-ovog portala nabavki (UNDP, UNCDF, UNV) u cijelom svijetu, iz zvaničnog RSS feeda.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 1.6,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 1.9,
    "count": 544,
    "merged": 0
   },
@@ -206,8 +230,8 @@
    "scope": "Otvoreni pozivi s liste objava na ebrd.com za projekte koje finansira EBRD (tenderi, prijedlozi, izražavanje interesa, pretkvalifikacija); bez portala ECEPP i vlastitih korporativnih i konsultantskih nabavki EBRD-a.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 3.5,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 3.6,
    "count": 2,
    "merged": 2
   },
@@ -218,8 +242,8 @@
    "scope": "Svi otvoreni pozivi sa RCC stranice „Open Calls“ (konsultantske usluge, individualni konsultanti, druge nabavke); oglasi za zapošljavanje nisu uključeni. Poziv koji ne imenuje državu vodi se pod svih šest zemalja Zapadnog Balkana.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 0.7,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 0.8,
    "count": 0,
    "merged": 0
   },
@@ -230,9 +254,9 @@
    "scope": "Otvorene nabavke Expertise France (sjedište i sve njegove jedinice) objavljene na francuskoj državnoj platformi PLACE; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 49.5,
-   "count": 33,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 51.5,
+   "count": 34,
    "merged": 3
   },
   {
@@ -242,8 +266,8 @@
    "scope": "Tenderi (zadávací řízení) i otvoreni pozivi za dotacije (dotační výzvy) Češke razvojne agencije, u svim zemljama u kojima radi.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 44.3,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 44.7,
    "count": 4,
    "merged": 0
   },
@@ -254,9 +278,9 @@
    "scope": "Otvoreni i najavljeni pozivi za grantove EU programa (Horizon Europe, LIFE, Erasmus+ i drugi); ko smije aplicirati piše u samom pozivu.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 8.3,
-   "count": 487,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 9.6,
+   "count": 473,
    "merged": 0
   },
   {
@@ -266,8 +290,8 @@
    "scope": "Otvoreni javni pozivi i konkursi za dodjelu sredstava, revolving fond i posebne kategorije otpada; bez natječaja za prijem radnika.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 41.3,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 43.7,
    "count": 0,
    "merged": 0
   },
@@ -278,8 +302,8 @@
    "scope": "Javni konkursi Fonda za tekuću godinu (zaštita životne sredine, energetska efikasnost); rok se čita iz teksta konkursa kad je naveden.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 3.5,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 3.4,
    "count": 2,
    "merged": 0
   },
@@ -290,8 +314,8 @@
    "scope": "Otvoreni javni pozivi i konkursi ministarstva (poticaji i grantovi); bez rang-lista, rezultata i odluka.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 4.4,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 4.7,
    "count": 0,
    "merged": 0
   },
@@ -302,9 +326,9 @@
    "scope": "Pozivi za projekte, grantove i programe koje Mreža mira prenosi za organizacije iz BiH; bez info sesija i rezultata.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 83.7,
-   "count": 7,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 95.8,
+   "count": 6,
    "merged": 0
   },
   {
@@ -315,10 +339,10 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 12.0,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 12.6,
    "count": 84,
-   "merged": 21
+   "merged": 20
   },
   {
    "key": "OSCE",
@@ -328,8 +352,8 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-08T14:23:48Z",
-   "sec": 3.7,
+   "last_ok": "2026-10-08T16:16:28Z",
+   "sec": 3.4,
    "count": 21,
    "merged": 0
   },
@@ -419,28 +443,6 @@
    "off": true,
    "count": 0,
    "error": "robots.txt zabranjuje automatski pristup svemu osim naslovne strane. Hrvatske nabavke iznad EU praga stižu preko TED-a, koji se prati.",
-   "last_ok": null
-  },
-  {
-   "key": "JNRS",
-   "name": "Portal javnih nabavki (Srbija)",
-   "home": "https://jnportal.ujn.gov.rs",
-   "scope": "",
-   "ok": false,
-   "off": true,
-   "count": 0,
-   "error": "robots.txt Portala javnih nabavki zabranjuje automatski pristup svemu osim naslovne strane. Skup otvorenih podataka Kancelarije za javne nabavke na data.gov.rs upućuje samo na fajlove na starom portalu (portal.ujn.gov.rs), od kojih je najnoviji iz avgusta 2020, a taj server nije odgovarao (provjereno 8.10.2026).",
-   "last_ok": null
-  },
-  {
-   "key": "ESJN",
-   "name": "e-Nabavki (Sjeverna Makedonija)",
-   "home": "https://e-nabavki.gov.mk/PublicAccess/home.aspx#/notices",
-   "scope": "",
-   "ok": false,
-   "off": true,
-   "count": 0,
-   "error": "Zaštita od robota (Cloudflare) odbija pristup sa GitHub servera (HTTP 403); i stranica za javna preuzimanja (PublicAccess/PublicDownload.aspx) vraća 403 (provjereno 8.10.2026). Objave treba pregledati ručno; nabavke iz EU sredstava stižu preko TED-a.",
    "last_ok": null
   }
  ]
