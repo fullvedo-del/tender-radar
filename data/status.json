@@ -1,105 +1,105 @@
 {
- "generated": "2026-10-09T10:44:28Z",
- "total": 8832,
- "total_private": 81,
+ "generated": "2026-10-10T09:59:39Z",
+ "total": 8752,
+ "total_private": 83,
  "fx": {
   "BAM": 1.0,
   "EUR": 1.95583,
-  "USD": 1.748462,
-  "GBP": 2.309181,
-  "CHF": 2.09718,
-  "SEK": 0.174721,
+  "USD": 1.745342,
+  "GBP": 2.30741,
+  "CHF": 2.100107,
+  "SEK": 0.175136,
   "MKD": 0.0318,
   "RSD": 0.0167,
   "ALL": 0.0198,
   "XOF": 0.00298,
   "XAF": 0.00298,
-  "JPY": 0.011047,
-  "CZK": 0.080147,
-  "DKK": 0.261688,
-  "HUF": 0.00534,
-  "PLN": 0.447016,
-  "RON": 0.366027,
-  "ISK": 0.014276,
-  "NOK": 0.182498,
-  "TRY": 0.035527,
-  "AUD": 1.214047,
-  "BRL": 0.348521,
-  "CAD": 1.225995,
-  "CNY": 0.260875,
-  "HKD": 0.222803,
+  "JPY": 0.011029,
+  "CZK": 0.080259,
+  "DKK": 0.261646,
+  "HUF": 0.005357,
+  "PLN": 0.44618,
+  "RON": 0.366219,
+  "ISK": 0.014297,
+  "NOK": 0.182523,
+  "TRY": 0.035494,
+  "AUD": 1.218434,
+  "BRL": 0.34872,
+  "CAD": 1.226841,
+  "CNY": 0.260805,
+  "HKD": 0.222405,
   "IDR": 9.8e-05,
-  "ILS": 0.568175,
-  "INR": 0.018065,
+  "ILS": 0.570879,
+  "INR": 0.018043,
   "KRW": 0.001301,
-  "MXN": 0.09707,
-  "MYR": 0.427336,
-  "NZD": 0.977231,
-  "PHP": 0.027752,
-  "SGD": 1.363898,
-  "THB": 0.051906,
-  "ZAR": 0.10501
+  "MXN": 0.095898,
+  "MYR": 0.427252,
+  "NZD": 0.979826,
+  "PHP": 0.027783,
+  "SGD": 1.363138,
+  "THB": 0.052053,
+  "ZAR": 0.105566
  },
- "fx_date": "2026-10-08",
+ "fx_date": "2026-10-09",
  "ai": {
   "model": "claude-haiku-4-5-20251001",
   "on": true,
-  "new": 181,
+  "new": 521,
   "error": null,
   "okvir": "ab21a94570",
-  "scored": 8913,
+  "scored": 8835,
   "pending": 0,
   "stale": 0,
   "tr": {
    "on": true,
-   "new": 31,
+   "new": 26,
    "error": null,
-   "done": 2387,
+   "done": 2291,
    "pending": 0
   },
   "sm": {
    "on": true,
-   "new": 0,
+   "new": 2,
    "error": null,
-   "done": 134,
+   "done": 128,
    "pending": 0
   }
  },
  "awards": {
   "on": true,
-  "count": 2130,
+  "count": 2116,
   "done": true,
   "sources": {
    "TED": {
     "ok": true,
-    "count": 495,
+    "count": 494,
     "done": true,
     "error": null,
-    "last_ok": "2026-10-09T10:56:03Z",
-    "sec": 4.8
+    "last_ok": "2026-10-10T10:17:53Z",
+    "sec": 5.4
    },
    "EJN": {
     "ok": true,
-    "count": 1635,
+    "count": 1622,
     "done": true,
     "error": null,
-    "last_ok": "2026-10-09T10:56:03Z",
-    "sec": 10.5
+    "last_ok": "2026-10-10T10:17:53Z",
+    "sec": 9.9
    }
   }
  },
  "refs": {
   "on": true,
   "n": 904,
-  "matched": 325,
+  "matched": 318,
   "error": null
  },
  "experts": {
   "on": true,
   "n": 89,
-  "new": 247,
+  "new": 9,
   "error": null,
-  "matched": 222,
+  "matched": 212,
   "pending": 0
  },
  "sources": [
@@ -110,9 +110,9 @@
    "scope": "Sva obavještenja o nabavci (robe, usluge, radovi) kojima rok za ponude ili zahtjeve za učešće nije istekao; bez poništenih postupaka, direktnih sporazuma i javnih poziva za usluge iz Aneksa II.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 85.8,
-   "count": 1952,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 87.8,
+   "count": 1947,
    "merged": 0
   },
   {
@@ -122,9 +122,9 @@
    "scope": "Objavljeni tenderi u Crnoj Gori (robe, usluge i radovi) kojima rok za ponude nije prošao; naslovi su na crnogorskom.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 7.1,
-   "count": 369,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 138.9,
+   "count": 347,
    "merged": 0
   },
   {
@@ -134,9 +134,9 @@
    "scope": "Objavljeni tenderi u Albaniji kojima rok nije prošao, bez poništenih i obustavljenih; naslovi su na albanskom.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 9.5,
-   "count": 547,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 8.6,
+   "count": 516,
    "merged": 0
   },
   {
@@ -146,9 +146,9 @@
    "scope": "Objavljeni tenderi na Kosovu kojima rok za ponude nije prošao, preko OCDS servisa PPRC-a; naslovi su na albanskom.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 223.4,
-   "count": 315,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 257.1,
+   "count": 308,
    "merged": 0
   },
   {
@@ -158,9 +158,9 @@
    "scope": "Objavljeni postupci javnih nabavki u Srbiji kojima rok za ponude nije prošao, bez pregovaračkih postupaka bez objave; naslovi su na srpskom.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 64.3,
-   "count": 2047,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 41.2,
+   "count": 2134,
    "merged": 0
   },
   {
@@ -170,9 +170,9 @@
    "scope": "Objavljeni pozivi za ponude u Sjevernoj Makedoniji kojima rok (javno otvaranje) nije prošao, bez pregovaračkih bez objave; naslovi su na makedonskom.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 0.0,
-   "count": 996,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 0.1,
+   "count": 959,
    "merged": 0
   },
   {
@@ -182,9 +182,9 @@
    "scope": "Otvoreni pozivi (rok nije istekao): svi tipovi ugovora za Zapadni Balkan (mjesto izvršenja ili naručilac) te usluge koje naručuju EU institucije, međunarodne organizacije i razvojne agencije i banke (GIZ, KfW, EIB, AFD, Enabel i dr.).",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 12.6,
-   "count": 808,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 11.5,
+   "count": 790,
    "merged": 0
   },
   {
@@ -194,10 +194,10 @@
    "scope": "Otvoreni i najavljeni pozivi za tendere institucija i agencija EU; bez poziva za grantove.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 14.3,
-   "count": 206,
-   "merged": 122
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 14.0,
+   "count": 199,
+   "merged": 118
   },
   {
    "key": "WB",
@@ -206,9 +206,9 @@
    "scope": "Svi otvoreni pozivi za ponude, izraze interesa i pretkvalifikaciju iz projekata Svjetske banke u cijelom svijetu; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 8.9,
-   "count": 654,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 6.9,
+   "count": 617,
    "merged": 0
   },
   {
@@ -218,9 +218,9 @@
    "scope": "Sve otvorene objave s UNDP-ovog portala nabavki (UNDP, UNCDF, UNV) u cijelom svijetu, iz zvaničnog RSS feeda.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 1.8,
-   "count": 540,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 1.6,
+   "count": 534,
    "merged": 0
   },
   {
@@ -230,8 +230,8 @@
    "scope": "Otvoreni pozivi s liste objava na ebrd.com za projekte koje finansira EBRD (tenderi, prijedlozi, izražavanje interesa, pretkvalifikacija); bez portala ECEPP i vlastitih korporativnih i konsultantskih nabavki EBRD-a.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 3.6,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 3.3,
    "count": 2,
    "merged": 2
   },
@@ -242,8 +242,8 @@
    "scope": "Svi otvoreni pozivi sa RCC stranice „Open Calls“ (konsultantske usluge, individualni konsultanti, druge nabavke); oglasi za zapošljavanje nisu uključeni. Poziv koji ne imenuje državu vodi se pod svih šest zemalja Zapadnog Balkana.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 1.0,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 0.6,
    "count": 0,
    "merged": 0
   },
@@ -254,9 +254,9 @@
    "scope": "Otvorene nabavke Expertise France (sjedište i sve njegove jedinice) objavljene na francuskoj državnoj platformi PLACE; svi tipovi ugovora.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 49.5,
-   "count": 35,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 46.9,
+   "count": 32,
    "merged": 3
   },
   {
@@ -266,8 +266,8 @@
    "scope": "Tenderi (zadávací řízení) i otvoreni pozivi za dotacije (dotační výzvy) Češke razvojne agencije, u svim zemljama u kojima radi.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 52.2,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 47.2,
    "count": 5,
    "merged": 0
   },
@@ -278,9 +278,9 @@
    "scope": "Otvoreni i najavljeni pozivi za grantove EU programa (Horizon Europe, LIFE, Erasmus+ i drugi); ko smije aplicirati piše u samom pozivu.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 8.8,
-   "count": 475,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 8.3,
+   "count": 476,
    "merged": 0
   },
   {
@@ -290,8 +290,8 @@
    "scope": "Otvoreni javni pozivi i konkursi za dodjelu sredstava, revolving fond i posebne kategorije otpada; bez natječaja za prijem radnika.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 30.2,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 41.7,
    "count": 0,
    "merged": 0
   },
@@ -302,8 +302,8 @@
    "scope": "Javni konkursi Fonda za tekuću godinu (zaštita životne sredine, energetska efikasnost); rok se čita iz teksta konkursa kad je naveden.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 3.2,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 3.6,
    "count": 2,
    "merged": 0
   },
@@ -314,8 +314,8 @@
    "scope": "Otvoreni javni pozivi i konkursi ministarstva (poticaji i grantovi); bez rang-lista, rezultata i odluka.",
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 4.6,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 4.9,
    "count": 0,
    "merged": 0
   },
@@ -324,11 +324,11 @@
    "name": "Mreža mira (pozivi za projekte)",
    "home": "https://www.mreza-mira.net/kategorija/vijesti/pozivi-za-projekte/",
    "scope": "Pozivi za projekte, grantove i programe koje Mreža mira prenosi za organizacije iz BiH; bez info sesija i rezultata.",
-   "ok": false,
-   "error": "Neuspješno nakon 3 pokušaja: HTTP 502 za https://www.mreza-mira.net/kategorija/vijesti/pozivi-za-projekte/feed/",
-   "last_ok": "2026-10-09T08:58:38Z",
-   "sec": 13.2,
-   "count": 6,
+   "ok": true,
+   "error": null,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 106.9,
+   "count": 7,
    "merged": 0
   },
   {
@@ -339,8 +339,8 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 11.8,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 11.1,
    "count": 81,
    "merged": 19
   },
@@ -352,9 +352,9 @@
    "private": true,
    "ok": true,
    "error": null,
-   "last_ok": "2026-10-09T10:44:28Z",
-   "sec": 3.9,
-   "count": 19,
+   "last_ok": "2026-10-10T09:59:39Z",
+   "sec": 3.8,
+   "count": 21,
    "merged": 0
   },
   {
